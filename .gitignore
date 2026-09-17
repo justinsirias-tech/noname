@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+*.log
+.DS_Store
+desktop.ini
+Thumbs.db
+__pycache__/
+*.pyc
+
+# Scratch helper scripts
+make_icons.py
+file_writer.py

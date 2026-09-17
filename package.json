@@ -1,0 +1,33 @@
+{
+  "name": "noname-laundry-bangkok",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Bangkok's 100% digital laundry pickup & delivery service by KG. Connected to Google Cloud PostgreSQL.",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "build": "npx esbuild js/index.jsx --bundle --outfile=dist/app.js --format=esm --external:react --external:react-dom --external:react-dom/client --minify",
+    "db:init": "node server/initDb.js",
+    "serve": "npx serve ."
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  },
+  "keywords": [
+    "laundry",
+    "bangkok",
+    "digital-laundry",
+    "laundry-by-kg",
+    "postgresql",
+    "google-cloud-sql",
+    "pos-tracking"
+  ],
+  "author": "NoName Laundry Bangkok",
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
