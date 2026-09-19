@@ -653,38 +653,45 @@ export function CustomerCRM({
 
                         {/* Actions */}
                         <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {/* Direct Chat Triggers */}
-                            {cust.isWhatsApp && cust.mobileNumber && (
+                          <div className="flex items-center justify-end gap-2">
+                            {/* WhatsApp Button - Always present and identically sized */}
+                            {cust.mobileNumber ? (
                               <a
                                 href={`https://wa.me/${cust.mobileNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello K. ${cust.nickName || cust.fullName}, this is NoName Laundry Bangkok.`)}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 transition"
+                                className="w-8 h-8 rounded-xl flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition shrink-0"
                                 title="Chat on WhatsApp"
                               >
-                                <Icon name="whatsapp" className="w-3.5 h-3.5" />
+                                <Icon name="whatsapp" className="w-4 h-4" />
                               </a>
-                            )}
-
-                            {cust.lineId && (
-                              <a
-                                href={getLineOaMessageUrl(`Order inquiry for K. ${cust.nickName || cust.fullName}`)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-1.5 rounded-lg text-green-700 hover:bg-green-50 border border-green-200 transition"
-                                title="Open LINE OA Message"
+                            ) : (
+                              <div
+                                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 bg-slate-50 border border-slate-200 shrink-0 cursor-not-allowed"
+                                title="No mobile number registered"
                               >
-                                <Icon name="line" className="w-3.5 h-3.5" />
-                              </a>
+                                <Icon name="whatsapp" className="w-4 h-4" />
+                              </div>
                             )}
 
+                            {/* LINE Button - Always present and identically sized */}
+                            <a
+                              href={getLineOaMessageUrl(`Order inquiry for K. ${cust.nickName || cust.fullName}${cust.lineId ? ` (LINE: ${cust.lineId})` : ''}`)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-8 h-8 rounded-xl flex items-center justify-center text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 transition shrink-0"
+                              title={cust.lineId ? `Open LINE OA Chat (${cust.lineId})` : "Open LINE OA Chat"}
+                            >
+                              <Icon name="line" className="w-4 h-4" />
+                            </a>
+
+                            {/* View Profile Button */}
                             <button
                               onClick={() => {
                                 setSelectedCustomer(cust);
                                 setActiveCustomerTab('profile');
                               }}
-                              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition"
+                              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition whitespace-nowrap"
                             >
                               View Profile
                             </button>

@@ -277,7 +277,7 @@ export const INITIAL_CUSTOMERS = [
     gender: 'Female',
     dateOfBirth: '1993-11-28',
     mobileNumber: '+66 89 712 3456',
-    isWhatsApp: false,
+    isWhatsApp: true,
     email: 'siriporn.t@yahoo.co.th',
     lineId: '@siriporn_bkk',
     pinCode: '654321',

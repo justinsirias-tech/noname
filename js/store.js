@@ -134,7 +134,13 @@ export class LaundryStore {
       this.incidents = savedIncidents ? JSON.parse(savedIncidents) : INITIAL_INCIDENTS;
 
       const savedCustomers = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
-      this.customers = savedCustomers ? JSON.parse(savedCustomers) : INITIAL_CUSTOMERS;
+      const parsedCusts = savedCustomers ? JSON.parse(savedCustomers) : INITIAL_CUSTOMERS;
+      this.customers = parsedCusts.map(c => {
+        if (c.id === 'CUST-3920') {
+          return { ...c, isWhatsApp: true };
+        }
+        return c;
+      });
 
       const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       this.settings = savedSettings ? JSON.parse(savedSettings) : {
