@@ -25,10 +25,19 @@ export function CustomerCRM({
   const [newNickName, setNewNickName] = useState('');
   const [newGender, setNewGender] = useState('Rather not say');
   const [newDob, setNewDob] = useState('');
-  const [newMobile, setNewMobile] = useState('');
+  const [newMobile, setNewMobile] = useState('+66 ');
   const [newIsWhatsApp, setNewIsWhatsApp] = useState(true);
+  const [newSecondaryMobile, setNewSecondaryMobile] = useState('');
+  const [newIsSecondaryWhatsApp, setNewIsSecondaryWhatsApp] = useState(true);
   const [newEmail, setNewEmail] = useState('');
   const [newLineId, setNewLineId] = useState('');
+
+  // Edit Phone Numbers Modal inside Customer Detail
+  const [showEditPhonesModal, setShowEditPhonesModal] = useState(false);
+  const [editThaiMobile, setEditThaiMobile] = useState('');
+  const [editIsWhatsAppThai, setEditIsWhatsAppThai] = useState(true);
+  const [editIntlMobile, setEditIntlMobile] = useState('');
+  const [editIsWhatsAppIntl, setEditIsWhatsAppIntl] = useState(true);
   const [newPin, setNewPin] = useState('123456');
   const [newTier, setNewTier] = useState('Regular');
   const [newNotes, setNewNotes] = useState('');
@@ -106,7 +115,9 @@ export function CustomerCRM({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
-        if (showPinModal) {
+        if (showEditPhonesModal) {
+          setShowEditPhonesModal(false);
+        } else if (showPinModal) {
           setShowPinModal(false);
         } else if (showOtpModal) {
           setShowOtpModal(false);
@@ -123,7 +134,7 @@ export function CustomerCRM({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showPinModal, showOtpModal, showLogIssueModal, showAddAddressForm, showAddModal, selectedCustomer]);
+  }, [showEditPhonesModal, showPinModal, showOtpModal, showLogIssueModal, showAddAddressForm, showAddModal, selectedCustomer]);
 
   // Calculate Age from Date of Birth
   const calculateAge = (dobString) => {
@@ -187,6 +198,8 @@ export function CustomerCRM({
       dateOfBirth: newDob,
       mobileNumber: newMobile.trim(),
       isWhatsApp: newIsWhatsApp,
+      secondaryMobile: newSecondaryMobile.trim(),
+      isSecondaryWhatsApp: newIsSecondaryWhatsApp,
       email: newEmail.trim().toLowerCase(),
       lineId: newLineId.trim(),
       pinCode: newPin.trim() || '123456',
@@ -220,7 +233,10 @@ export function CustomerCRM({
     // Reset Form
     setNewFullName('');
     setNewNickName('');
-    setNewMobile('');
+    setNewMobile('+66 ');
+    setNewIsWhatsApp(true);
+    setNewSecondaryMobile('');
+    setNewIsSecondaryWhatsApp(true);
     setNewEmail('');
     setNewLineId('');
     setNewAddrText('');
@@ -228,6 +244,31 @@ export function CustomerCRM({
     setNewRequireTax(false);
     setNewCompanyName('');
     setNewTaxId('');
+  };
+
+  // Open & Save Phone Numbers Edit Modal
+  const handleOpenEditPhones = (cust) => {
+    setEditThaiMobile(cust.mobileNumber || '+66 ');
+    setEditIsWhatsAppThai(cust.isWhatsApp !== undefined ? cust.isWhatsApp : true);
+    setEditIntlMobile(cust.secondaryMobile || '');
+    setEditIsWhatsAppIntl(cust.isSecondaryWhatsApp !== undefined ? cust.isSecondaryWhatsApp : true);
+    setShowEditPhonesModal(true);
+  };
+
+  const handleSaveEditedPhones = (e) => {
+    e.preventDefault();
+    if (!selectedCustomer) return;
+
+    laundryStore.updateCustomer(selectedCustomer.id, {
+      mobileNumber: editThaiMobile.trim(),
+      isWhatsApp: editIsWhatsAppThai,
+      secondaryMobile: editIntlMobile.trim(),
+      isSecondaryWhatsApp: editIsWhatsAppIntl
+    });
+
+    refreshCustomers();
+    setShowEditPhonesModal(false);
+    showToast('Customer phone numbers and WhatsApp preferences updated!');
   };
 
   // Handle Inline Add Address
@@ -585,14 +626,31 @@ export function CustomerCRM({
                         {/* Contact & WhatsApp */}
                         <td className="py-3 px-2.5 sm:px-3">
                           <div className="space-y-0.5 min-w-0">
+                            {/* Thai Mobile */}
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-semibold text-slate-800 text-xs">{cust.mobileNumber || 'No mobile'}</span>
+                              <span className="font-mono font-semibold text-slate-800 text-xs">{cust.mobileNumber || 'No Thai phone'}</span>
                               {cust.isWhatsApp && (
-                                <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[9px] shrink-0" title="WhatsApp registered">
-                                  WhatsApp
+                                <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[9px] shrink-0" title="Default Thai mobile is on WhatsApp">
+                                  WA
                                 </span>
                               )}
                             </div>
+
+                            {/* Secondary International Mobile */}
+                            {cust.secondaryMobile && (
+                              <div className="flex items-center gap-1 text-[11px]">
+                                <span className="font-mono text-indigo-700 truncate max-w-[130px]" title={`International: ${cust.secondaryMobile}`}>
+                                  🌐 {cust.secondaryMobile}
+                                </span>
+                                {cust.isSecondaryWhatsApp && (
+                                  <span className="px-1 py-0.2 rounded-full bg-teal-100 text-teal-800 font-bold text-[8px] shrink-0" title="International number is on WhatsApp">
+                                    WA-Intl
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* LINE & Email */}
                             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 truncate max-w-[160px]">
                               {cust.lineId && (
                                 <span className="text-green-700 font-medium shrink-0">LINE: {cust.lineId}</span>
@@ -678,25 +736,36 @@ export function CustomerCRM({
                         {/* Actions */}
                         <td className="py-3 px-2.5 sm:px-3 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* WhatsApp Button - Always present and identically sized */}
-                            {cust.mobileNumber ? (
-                              <a
-                                href={`https://wa.me/${cust.mobileNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello K. ${cust.nickName || cust.fullName}, this is NoName Laundry Bangkok.`)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition shrink-0"
-                                title="Chat on WhatsApp"
-                              >
-                                <Icon name="whatsapp" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              </a>
-                            ) : (
-                              <div
-                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center text-slate-300 bg-slate-50 border border-slate-200 shrink-0 cursor-not-allowed"
-                                title="No mobile number registered"
-                              >
-                                <Icon name="whatsapp" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              </div>
-                            )}
+                            {/* WhatsApp Button - Routes to WhatsApp-verified mobile (Intl or Thai) */}
+                            {(() => {
+                              const waPhone = (cust.isSecondaryWhatsApp && cust.secondaryMobile)
+                                ? cust.secondaryMobile
+                                : (cust.isWhatsApp && cust.mobileNumber ? cust.mobileNumber : (cust.secondaryMobile || cust.mobileNumber));
+                              const cleanPhone = waPhone ? waPhone.replace(/[^0-9]/g, '') : '';
+                              const isIntl = cust.isSecondaryWhatsApp && cust.secondaryMobile;
+
+                              if (cleanPhone) {
+                                return (
+                                  <a
+                                    href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello K. ${cust.nickName || cust.fullName}, this is NoName Laundry Bangkok.`)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition shrink-0"
+                                    title={isIntl ? `Chat on WhatsApp (International: ${cust.secondaryMobile})` : `Chat on WhatsApp (${cust.mobileNumber})`}
+                                  >
+                                    <Icon name="whatsapp" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                  </a>
+                                );
+                              }
+                              return (
+                                <div
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center text-slate-300 bg-slate-50 border border-slate-200 shrink-0 cursor-not-allowed"
+                                  title="No mobile number registered"
+                                >
+                                  <Icon name="whatsapp" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                </div>
+                              );
+                            })()}
 
                             {/* LINE Button - Always present and identically sized */}
                             <a
@@ -877,16 +946,32 @@ export function CustomerCRM({
               </div>
 
               {/* Action Buttons & Close */}
-              <div className="flex items-center gap-2 self-end sm:self-auto">
+              <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                {/* Primary Thai WhatsApp */}
                 {selectedCustomer.isWhatsApp && selectedCustomer.mobileNumber && (
                   <a
                     href={`https://wa.me/${selectedCustomer.mobileNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello K. ${selectedCustomer.nickName || selectedCustomer.fullName}, this is NoName Laundry Bangkok.`)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 flex items-center gap-1.5 transition"
+                    title={`Open WhatsApp to Thai Mobile (${selectedCustomer.mobileNumber})`}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 flex items-center gap-1.5 transition shadow-sm"
                   >
                     <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>WhatsApp</span>
+                    <span>{selectedCustomer.isSecondaryWhatsApp && selectedCustomer.secondaryMobile ? 'WA (Thai)' : 'WhatsApp'}</span>
+                  </a>
+                )}
+
+                {/* Secondary International WhatsApp */}
+                {selectedCustomer.isSecondaryWhatsApp && selectedCustomer.secondaryMobile && (
+                  <a
+                    href={`https://wa.me/${selectedCustomer.secondaryMobile.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello K. ${selectedCustomer.nickName || selectedCustomer.fullName}, this is NoName Laundry Bangkok.`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`Open WhatsApp to International Number (${selectedCustomer.secondaryMobile})`}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 flex items-center gap-1.5 transition shadow-sm"
+                  >
+                    <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>WA (Intl)</span>
                   </a>
                 )}
 
@@ -895,7 +980,7 @@ export function CustomerCRM({
                     href={getLineOaMessageUrl(`Order update for K. ${selectedCustomer.nickName || selectedCustomer.fullName}`)}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 font-bold text-xs border border-green-300 flex items-center gap-1.5 transition"
+                    className="px-3 py-1.5 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 font-bold text-xs border border-green-300 flex items-center gap-1.5 transition shadow-sm"
                   >
                     <Icon name="line" className="w-3.5 h-3.5 text-green-600" />
                     <span>LINE</span>
@@ -940,11 +1025,21 @@ export function CustomerCRM({
               <div className="space-y-6 text-xs">
                 
                 {/* 1. Basic & Contact Grid */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                  <h4 className="font-extrabold text-slate-900 uppercase tracking-wide text-xs flex items-center gap-2">
-                    <Icon name="user" className="w-4 h-4 text-sky-600" />
-                    <span>Customer Identity & Contact Information</span>
-                  </h4>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3.5">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h4 className="font-extrabold text-slate-900 uppercase tracking-wide text-xs flex items-center gap-2">
+                      <Icon name="user" className="w-4 h-4 text-sky-600" />
+                      <span>Customer Identity & Contact Information</span>
+                    </h4>
+
+                    <button
+                      onClick={() => handleOpenEditPhones(selectedCustomer)}
+                      className="px-3 py-1 rounded-xl bg-white hover:bg-sky-50 text-sky-700 hover:text-sky-900 font-bold text-xs border border-slate-300 shadow-sm flex items-center gap-1.5 transition"
+                    >
+                      <span>✏️</span>
+                      <span>Edit Phone Numbers & WhatsApp</span>
+                    </button>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                     <div>
@@ -963,22 +1058,6 @@ export function CustomerCRM({
                     </div>
 
                     <div>
-                      <span className="text-slate-400 font-semibold block">Mobile Number:</span>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="font-mono font-bold text-slate-900 text-sm">{selectedCustomer.mobileNumber}</span>
-                        {selectedCustomer.isWhatsApp ? (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                            ✓ WhatsApp
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 text-[10px]">
-                            SMS Only
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
                       <span className="text-slate-400 font-semibold block">Email Address:</span>
                       <span className="font-semibold text-slate-800">{selectedCustomer.email || 'None'}</span>
                     </div>
@@ -986,6 +1065,115 @@ export function CustomerCRM({
                     <div>
                       <span className="text-slate-400 font-semibold block">LINE OA / ID:</span>
                       <span className="font-bold text-green-700 font-mono">{selectedCustomer.lineId || 'None'}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-slate-400 font-semibold block">Tier & Profile ID:</span>
+                      <span className="font-mono font-bold text-slate-700">{selectedCustomer.tier || 'Regular'} • {selectedCustomer.id}</span>
+                    </div>
+                  </div>
+
+                  {/* Dual Phone Numbers & WhatsApp Verification Panel */}
+                  <div className="pt-2 border-t border-slate-200">
+                    <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-2">
+                      Dual Mobile Numbers & WhatsApp Connectivity
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Thai Primary Mobile */}
+                      <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                              <span>🇹🇭</span>
+                              <span>Primary Thai Mobile</span>
+                            </span>
+                            {selectedCustomer.isWhatsApp ? (
+                              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center gap-1">
+                                <Icon name="whatsapp" className="w-3 h-3 text-emerald-600" />
+                                <span>WhatsApp OK</span>
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold">
+                                SMS Only
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-mono font-black text-slate-900 text-sm mt-1">
+                            {selectedCustomer.mobileNumber || 'Not set'}
+                          </div>
+                        </div>
+
+                        {selectedCustomer.mobileNumber && (
+                          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                            <a
+                              href={`https://wa.me/${selectedCustomer.mobileNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello K. ${selectedCustomer.nickName || selectedCustomer.fullName}, this is NoName Laundry Bangkok.`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 transition"
+                            >
+                              <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>{selectedCustomer.isWhatsApp ? 'Open WhatsApp Chat' : 'Check on WhatsApp'} ↗</span>
+                            </a>
+                            <span className="text-slate-400 text-[10px]">Default Local</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* International Secondary Mobile */}
+                      <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                              <span>🌐</span>
+                              <span>International Mobile (Country Code)</span>
+                            </span>
+                            {selectedCustomer.secondaryMobile ? (
+                              selectedCustomer.isSecondaryWhatsApp ? (
+                                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center gap-1">
+                                  <Icon name="whatsapp" className="w-3 h-3 text-emerald-600" />
+                                  <span>WhatsApp OK</span>
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold">
+                                  SMS / Voice
+                                </span>
+                              )
+                            ) : (
+                              <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-[10px] font-bold">
+                                None Registered
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-mono font-black text-slate-900 text-sm mt-1">
+                            {selectedCustomer.secondaryMobile || (
+                              <span className="text-slate-400 font-sans font-normal text-xs italic">No international number on file</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                          {selectedCustomer.secondaryMobile ? (
+                            <a
+                              href={`https://wa.me/${selectedCustomer.secondaryMobile.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello K. ${selectedCustomer.nickName || selectedCustomer.fullName}, this is NoName Laundry Bangkok.`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 transition"
+                            >
+                              <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Check / Test on WhatsApp ↗</span>
+                            </a>
+                          ) : (
+                            <button
+                              onClick={() => handleOpenEditPhones(selectedCustomer)}
+                              className="text-sky-600 hover:text-sky-800 font-bold text-[11px] underline"
+                            >
+                              + Register Intl WhatsApp Number
+                            </button>
+                          )}
+                          <span className="text-slate-400 text-[10px]">Roaming/Expats</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1596,12 +1784,17 @@ export function CustomerCRM({
               {/* Contact Information */}
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                 <div className="font-bold text-slate-800 uppercase tracking-wide text-xs">
-                  Contact Channels & WhatsApp Checkbox
+                  Contact Channels & Dual Phone Numbers
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Dual Phone Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-3 bg-white rounded-xl border border-slate-200">
+                  {/* Thai Default Mobile */}
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Mobile Phone Number *</label>
+                    <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>🇹🇭 Default Thai Mobile *</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Local +66</span>
+                    </label>
                     <input
                       type="tel"
                       required
@@ -1617,10 +1810,75 @@ export function CustomerCRM({
                         onChange={(e) => setNewIsWhatsApp(e.target.checked)}
                         className="w-4 h-4 text-emerald-600 rounded"
                       />
-                      <span className="font-bold text-emerald-800 text-[11px]">Number is registered on WhatsApp</span>
+                      <span className="font-bold text-emerald-800 text-[11px]">Thai number has WhatsApp</span>
                     </label>
                   </div>
 
+                  {/* International Mobile */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>🌐 International Mobile (Optional)</span>
+                      <span className="text-[10px] text-slate-400 font-normal">With Country Code</span>
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. +1 (415) 890-1234 or +44 ..."
+                      value={newSecondaryMobile}
+                      onChange={(e) => setNewSecondaryMobile(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white"
+                    />
+                    
+                    {/* Quick Country Code Pills */}
+                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                      <span className="text-[10px] text-slate-400 font-medium">Quick Prefix:</span>
+                      {[
+                        { code: '+1 ', label: '🇺🇸 +1' },
+                        { code: '+44 ', label: '🇬🇧 +44' },
+                        { code: '+65 ', label: '🇸🇬 +65' },
+                        { code: '+81 ', label: '🇯🇵 +81' },
+                        { code: '+61 ', label: '🇦🇺 +61' },
+                        { code: '+33 ', label: '🇫🇷 +33' },
+                        { code: '+49 ', label: '🇩🇪 +49' }
+                      ].map(country => (
+                        <button
+                          key={country.code}
+                          type="button"
+                          onClick={() => setNewSecondaryMobile(country.code)}
+                          className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-mono transition"
+                        >
+                          {country.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newIsSecondaryWhatsApp}
+                          onChange={(e) => setNewIsSecondaryWhatsApp(e.target.checked)}
+                          className="w-4 h-4 text-emerald-600 rounded"
+                        />
+                        <span className="font-bold text-emerald-800 text-[11px]">Intl number has WhatsApp</span>
+                      </label>
+
+                      {newSecondaryMobile.replace(/[^0-9]/g, '').length >= 6 && (
+                        <a
+                          href={`https://wa.me/${newSecondaryMobile.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-700 hover:text-emerald-900 font-bold text-[11px] underline flex items-center gap-1"
+                        >
+                          <span>📱 Check WhatsApp</span>
+                          <span>↗</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Other contact channels */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">LINE ID</label>
                     <input
@@ -2096,7 +2354,163 @@ export function CustomerCRM({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
 
+      {/* ========================================================================= */}
+      {/* EDIT PHONE NUMBERS & WHATSAPP VERIFICATION MODAL */}
+      {/* ========================================================================= */}
+      {showEditPhonesModal && selectedCustomer && (
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setShowEditPhonesModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div>
+                <h3 className="font-black text-slate-900 text-base">Edit Phone Numbers & WhatsApp</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Customer: <strong className="text-slate-800">{selectedCustomer.fullName}</strong> {selectedCustomer.nickName && `(${selectedCustomer.nickName})`}
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowEditPhonesModal(false)} 
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 flex items-center gap-1" 
+                title="Close (Esc)"
+              >
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedPhones} className="space-y-4 text-xs">
+              {/* Thai Primary Mobile */}
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 flex items-center gap-1">
+                    <span>🇹🇭</span>
+                    <span>Primary Thai Mobile *</span>
+                  </label>
+                  <span className="text-[10px] font-mono text-slate-400">Default Local</span>
+                </div>
+                <input
+                  type="tel"
+                  required
+                  placeholder="+66 8X XXX XXXX"
+                  value={editThaiMobile}
+                  onChange={(e) => setEditThaiMobile(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white"
+                />
+                <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsWhatsAppThai}
+                      onChange={(e) => setEditIsWhatsAppThai(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded"
+                    />
+                    <span className="font-bold text-emerald-800 text-[11px]">Number is registered on WhatsApp</span>
+                  </label>
+
+                  {editThaiMobile.replace(/[^0-9]/g, '').length >= 6 && (
+                    <a
+                      href={`https://wa.me/${editThaiMobile.replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-700 hover:text-emerald-900 font-bold text-[11px] underline flex items-center gap-1"
+                    >
+                      <Icon name="whatsapp" className="w-3 h-3 text-emerald-600" />
+                      <span>Test Link ↗</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* International Secondary Mobile */}
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 flex items-center gap-1">
+                    <span>🌐</span>
+                    <span>International Mobile (Country Code)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">Expats / Roaming</span>
+                </div>
+                <input
+                  type="tel"
+                  placeholder="e.g. +1 (415) 890-1234 or +44 ..."
+                  value={editIntlMobile}
+                  onChange={(e) => setEditIntlMobile(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white"
+                />
+
+                {/* Country Code Helper Pills */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="text-[10px] text-slate-400 font-medium">Quick Prefix:</span>
+                  {[
+                    { code: '+1 ', label: '🇺🇸 +1' },
+                    { code: '+44 ', label: '🇬🇧 +44' },
+                    { code: '+65 ', label: '🇸🇬 +65' },
+                    { code: '+81 ', label: '🇯🇵 +81' },
+                    { code: '+61 ', label: '🇦🇺 +61' },
+                    { code: '+33 ', label: '🇫🇷 +33' },
+                    { code: '+49 ', label: '🇩🇪 +49' }
+                  ].map(country => (
+                    <button
+                      key={country.code}
+                      type="button"
+                      onClick={() => setEditIntlMobile(country.code)}
+                      className="px-1.5 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-slate-600 text-[10px] font-mono transition"
+                    >
+                      {country.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsWhatsAppIntl}
+                      onChange={(e) => setEditIsWhatsAppIntl(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded"
+                    />
+                    <span className="font-bold text-emerald-800 text-[11px]">Number is registered on WhatsApp</span>
+                  </label>
+
+                  {editIntlMobile.replace(/[^0-9]/g, '').length >= 6 && (
+                    <a
+                      href={`https://wa.me/${editIntlMobile.replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-700 hover:text-emerald-900 font-bold text-[11px] underline flex items-center gap-1"
+                    >
+                      <Icon name="whatsapp" className="w-3 h-3 text-emerald-600" />
+                      <span>Test Link ↗</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowEditPhonesModal(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow"
+                >
+                  Save Phone Numbers
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -136,10 +136,33 @@ export class LaundryStore {
       const savedCustomers = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
       const parsedCusts = savedCustomers ? JSON.parse(savedCustomers) : INITIAL_CUSTOMERS;
       this.customers = parsedCusts.map(c => {
-        if (c.id === 'CUST-3920') {
-          return { ...c, isWhatsApp: true };
+        const item = {
+          ...c,
+          mobileNumber: c.mobileNumber || '',
+          isWhatsApp: c.isWhatsApp !== undefined ? Boolean(c.isWhatsApp) : true,
+          secondaryMobile: c.secondaryMobile !== undefined ? c.secondaryMobile : '',
+          isSecondaryWhatsApp: c.isSecondaryWhatsApp !== undefined ? Boolean(c.isSecondaryWhatsApp) : false
+        };
+        if (item.id === 'CUST-8491') {
+          if (!item.secondaryMobile) {
+            item.secondaryMobile = '+1 (415) 890-1234';
+            item.isSecondaryWhatsApp = true;
+          }
         }
-        return c;
+        if (item.id === 'CUST-7741') {
+          if (!item.secondaryMobile) {
+            item.secondaryMobile = '+33 6 12 34 56 78';
+            item.isSecondaryWhatsApp = true;
+          }
+        }
+        if (item.id === 'CUST-3920') {
+          item.isWhatsApp = true;
+          if (!item.secondaryMobile) {
+            item.secondaryMobile = '+81 90 1234 5678';
+            item.isSecondaryWhatsApp = false;
+          }
+        }
+        return item;
       });
 
       const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
@@ -727,6 +750,8 @@ export class LaundryStore {
       dateOfBirth: data.dateOfBirth || '',
       mobileNumber: (data.mobileNumber || '').trim(),
       isWhatsApp: Boolean(data.isWhatsApp),
+      secondaryMobile: (data.secondaryMobile || '').trim(),
+      isSecondaryWhatsApp: Boolean(data.isSecondaryWhatsApp),
       email: (data.email || '').trim().toLowerCase(),
       lineId: (data.lineId || '').trim(),
       pinCode: data.pinCode || '123456',
@@ -781,6 +806,8 @@ export class LaundryStore {
           dateOfBirth: data.dateOfBirth !== undefined ? data.dateOfBirth : cust.dateOfBirth,
           mobileNumber: data.mobileNumber !== undefined ? data.mobileNumber.trim() : cust.mobileNumber,
           isWhatsApp: data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : cust.isWhatsApp,
+          secondaryMobile: data.secondaryMobile !== undefined ? data.secondaryMobile.trim() : (cust.secondaryMobile || ''),
+          isSecondaryWhatsApp: data.isSecondaryWhatsApp !== undefined ? Boolean(data.isSecondaryWhatsApp) : Boolean(cust.isSecondaryWhatsApp),
           email: data.email !== undefined ? data.email.trim().toLowerCase() : cust.email,
           lineId: data.lineId !== undefined ? data.lineId.trim() : cust.lineId,
           tier: data.tier !== undefined ? data.tier : cust.tier,
