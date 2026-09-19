@@ -10,6 +10,7 @@ import { OrderTracker } from './components/OrderTracker.jsx';
 import { TermsAndConditions } from './components/TermsAndConditions.jsx';
 import { AdminPOS } from './components/AdminPOS.jsx';
 import { AdminLogin } from './components/AdminLogin.jsx';
+import { CustomerCRMPage } from './components/CustomerCRMPage.jsx';
 import { DigitalContactModal } from './components/DigitalContactModal.jsx';
 import { Footer } from './components/Footer.jsx';
 import { Icon } from './components/Icons.jsx';
@@ -19,6 +20,7 @@ const getInitialView = () => {
     const hash = window.location.hash.replace('#', '').toLowerCase();
     const path = window.location.pathname.replace(/^\//, '').toLowerCase();
     if (hash === 'admin' || path === 'admin') return 'admin';
+    if (hash === 'crm' || path === 'crm') return 'crm';
     if (hash === 'track' || path === 'track') return 'track';
     if (hash === 'services' || path === 'services') return 'services';
     if (hash === 'terms' || path === 'terms') return 'terms';
@@ -223,6 +225,10 @@ export function App() {
         e.preventDefault();
         navigateTo('admin');
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+        e.preventDefault();
+        navigateTo('crm');
+      }
     };
 
     window.addEventListener('hashchange', onHashChange);
@@ -350,6 +356,23 @@ export function App() {
               onCreateManualOrder={handleCreateManualOrder}
               onResolveIncident={handleResolveIncident}
               onResetData={handleResetData}
+            />
+          )
+        )}
+
+        {currentView === 'crm' && (
+          !isAdminAuthenticated ? (
+            <AdminLogin
+              onLoginSuccess={handleAdminLogin}
+              onCancel={() => navigateTo('home')}
+            />
+          ) : (
+            <CustomerCRMPage
+              adminUser={adminUser}
+              onLogout={handleAdminLogout}
+              onBackToPOS={() => navigateTo('admin')}
+              onBackToStorefront={() => navigateTo('home')}
+              onCreateManualOrder={handleCreateManualOrder}
             />
           )
         )}

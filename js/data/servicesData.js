@@ -223,6 +223,43 @@ export const CUSTOMER_TIERS = {
   Corporate: { label: 'Corporate Account', color: 'bg-amber-100 text-amber-800 border-amber-200' }
 };
 
+export const DETERGENT_OPTIONS = [
+  'Hypoallergenic & Fragrance-Free (Sensitive Skin)',
+  'Luxury French Lavender Essential Oil',
+  'Baby-Safe Dermatologically Tested',
+  'Eco-Friendly Plant-Based Formula',
+  'Fresh Citrus Breeze (Active Wear)',
+  'Commercial Heavy-Duty Brightener'
+];
+
+export const WATER_TEMP_OPTIONS = [
+  'Cold Wash (30°C - Fabric Preservation)',
+  'Warm Wash (40°C - Balanced Cleaning)',
+  'Hot Sanitization (60°C - Bacteria & Dust Mite Elimination)'
+];
+
+export const STARCH_OPTIONS = [
+  'No Starch (Natural Soft Drape)',
+  'Light Starch (Crisp Casual Collars)',
+  'Medium Starch (Executive Shirts)',
+  'Heavy Crisp Starch (Formal Wear)'
+];
+
+export const PACKAGING_OPTIONS = [
+  'Folded in Reusable Cotton Eco-Tote',
+  'Folded & Heat-Sealed Polybags (Moisture Proof)',
+  'Hanger Ready with Breathable Clear Dust Covers',
+  'Premium Wooden Hanger Wardrobe Presentation'
+];
+
+export const CHURN_STATUS_CONFIG = {
+  ACTIVE_VIP: { label: 'Active VIP Member', color: 'bg-amber-100 text-amber-900 border-amber-300' },
+  REGULAR: { label: 'Active Regular', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+  AT_RISK: { label: 'At Risk (30+ Days Inactive)', color: 'bg-orange-100 text-orange-800 border-orange-300' },
+  CHURNED: { label: 'Inactive / Churned (90+ Days)', color: 'bg-rose-100 text-rose-800 border-rose-300' },
+  NEW: { label: 'First-Month Member', color: 'bg-sky-100 text-sky-800 border-sky-300' }
+};
+
 export const INITIAL_CUSTOMERS = [
   {
     id: 'CUST-8491',
@@ -237,6 +274,24 @@ export const INITIAL_CUSTOMERS = [
     pinCode: '123456',
     isVerified: true,
     verifiedVia: 'whatsapp',
+    memberSince: '2023-03-15T00:00:00Z',
+    loyaltyPoints: 1850,
+    lifetimeKg: 194.5,
+    lifetimeSpend: 16820,
+    tier: 'VIP',
+    garmentPreferences: {
+      detergent: 'Eco-Friendly Plant-Based Formula',
+      waterTemp: 'Cold Wash (30°C - Fabric Preservation)',
+      fabricSoftener: 'Plant-Based Gentle Softener',
+      starch: 'Light Starch (Crisp Casual Collars)',
+      packaging: 'Hanger Ready with Breathable Clear Dust Covers',
+      specialFabricAlerts: 'Silk shirts require low-heat steam finishing. Check for pet hair and use gentle lint roller.'
+    },
+    deliveryAccess: {
+      condoAccessCode: 'Keycard with Juristic Lobby (Building A)',
+      preferredTimeslot: '09:00 - 11:00 (Morning)',
+      guardInstructions: 'Inform guard you are visiting The Estelle Juristic Office. Unit keycard is on file with K. Somchai.'
+    },
     companyTax: {
       required: true,
       companyName: 'Thorne Design & Living (Thailand) Co., Ltd.',
@@ -266,9 +321,8 @@ export const INITIAL_CUSTOMERS = [
         isPrimary: false
       }
     ],
-    tier: 'VIP',
-    notes: 'Prefers eco-friendly detergent. Leave bag with Juristic office K. Somchai. Light starch on button-down shirts.',
-    createdAt: '2026-08-10T10:00:00Z'
+    notes: 'Long-time customer since 2023. Always prompt PromptPay payment. Prefers WhatsApp messaging over LINE.',
+    createdAt: '2023-03-15T10:00:00Z'
   },
   {
     id: 'CUST-3920',
@@ -283,6 +337,24 @@ export const INITIAL_CUSTOMERS = [
     pinCode: '654321',
     isVerified: true,
     verifiedVia: 'sms',
+    memberSince: '2024-01-20T00:00:00Z',
+    loyaltyPoints: 640,
+    lifetimeKg: 78.2,
+    lifetimeSpend: 5460,
+    tier: 'Regular',
+    garmentPreferences: {
+      detergent: 'Hypoallergenic & Fragrance-Free (Sensitive Skin)',
+      waterTemp: 'Cold Wash (30°C - Fabric Preservation)',
+      fabricSoftener: 'Zero Softener (Sensitive Skin Allergy)',
+      starch: 'No Starch (Natural Soft Drape)',
+      packaging: 'Folded in Reusable Cotton Eco-Tote',
+      specialFabricAlerts: 'Strict skin allergy: No artificial perfumes or scented dryer sheets.'
+    },
+    deliveryAccess: {
+      condoAccessCode: 'Intercom code #2209 at lobby door',
+      preferredTimeslot: '18:00 - 20:30 (Evening Rush)',
+      guardInstructions: 'Juristic office closed after 6 PM. Courier must ring room 2209 via lobby intercom.'
+    },
     companyTax: {
       required: false,
       companyName: '',
@@ -302,9 +374,8 @@ export const INITIAL_CUSTOMERS = [
         isPrimary: true
       }
     ],
-    tier: 'Regular',
     notes: 'Please message via LINE before arriving. Ring room doorbell.',
-    createdAt: '2026-08-22T14:30:00Z'
+    createdAt: '2024-01-20T14:30:00Z'
   },
   {
     id: 'CUST-7741',
@@ -319,6 +390,24 @@ export const INITIAL_CUSTOMERS = [
     pinCode: '778899',
     isVerified: true,
     verifiedVia: 'email',
+    memberSince: '2022-09-10T00:00:00Z',
+    loyaltyPoints: 3420,
+    lifetimeKg: 312.0,
+    lifetimeSpend: 34800,
+    tier: 'Corporate',
+    garmentPreferences: {
+      detergent: 'Luxury French Lavender Essential Oil',
+      waterTemp: 'Warm Wash (40°C - Balanced Cleaning)',
+      fabricSoftener: 'Standard Fabric Softener',
+      starch: 'Medium Starch (Executive Shirts)',
+      packaging: 'Premium Wooden Hanger Wardrobe Presentation',
+      specialFabricAlerts: 'High-end French business suits & Egyptian cotton dress shirts. Always return on wooden hangers.'
+    },
+    deliveryAccess: {
+      condoAccessCode: 'Concierge Desk Sathon',
+      preferredTimeslot: '14:00 - 16:00 (Afternoon)',
+      guardInstructions: 'Leave with The Sukhothai Concierge desk. Concierge will bring up to Penthouse B.'
+    },
     companyTax: {
       required: true,
       companyName: 'Bangkok Expat Cultural Services Co., Ltd.',
@@ -338,9 +427,8 @@ export const INITIAL_CUSTOMERS = [
         isPrimary: true
       }
     ],
-    tier: 'Regular',
-    notes: 'Always return on high-grade wooden hangers in breathable garment bag. Concierge desk accepts drop-offs.',
-    createdAt: '2026-07-15T09:15:00Z'
+    notes: 'Key corporate account since 2022. Weekly executive laundry run. Monthly tax invoices sent to accounting email.',
+    createdAt: '2022-09-10T09:15:00Z'
   },
   {
     id: 'CUST-5510',
@@ -355,6 +443,24 @@ export const INITIAL_CUSTOMERS = [
     pinCode: '112233',
     isVerified: false,
     verifiedVia: null,
+    memberSince: '2026-09-18T00:00:00Z',
+    loyaltyPoints: 0,
+    lifetimeKg: 0,
+    lifetimeSpend: 0,
+    tier: 'New',
+    garmentPreferences: {
+      detergent: 'Baby-Safe Dermatologically Tested',
+      waterTemp: 'Cold Wash (30°C - Fabric Preservation)',
+      fabricSoftener: 'Plant-Based Gentle Softener',
+      starch: 'No Starch (Natural Soft Drape)',
+      packaging: 'Folded & Heat-Sealed Polybags (Moisture Proof)',
+      specialFabricAlerts: 'Inquired about delicate bedding comforters.'
+    },
+    deliveryAccess: {
+      condoAccessCode: 'Rhythm Sathorn Juristic',
+      preferredTimeslot: '11:00 - 14:00 (Midday)',
+      guardInstructions: 'Leave in South Tower Juristic lockers.'
+    },
     companyTax: {
       required: false,
       companyName: '',
@@ -374,8 +480,7 @@ export const INITIAL_CUSTOMERS = [
         isPrimary: true
       }
     ],
-    tier: 'New',
-    notes: 'Inquired via LINE OA about comforter and curtain dry cleaning.',
+    notes: 'New prospective customer who inquired via LINE OA about comforter and curtain dry cleaning.',
     createdAt: '2026-09-18T16:40:00Z'
   }
 ];

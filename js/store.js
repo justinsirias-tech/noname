@@ -666,6 +666,7 @@ export class LaundryStore {
   // ==========================================
 
   getEnrichedCustomers() {
+    const now = new Date();
     return (this.customers || []).map(cust => {
       // Find orders matching customer name, mobile, or email
       const custOrders = (this.orders || []).filter(o => {
@@ -679,10 +680,85 @@ export class LaundryStore {
         return matchName || matchEmail || matchPhone;
       });
 
-      const activeOrders = custOrders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED');
-      const pastOrders = custOrders.filter(o => o.status === 'DELIVERED' || o.status === 'CANCELLED');
-      const totalSpend = custOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
-      const totalKg = custOrders.reduce((sum, o) => sum + (Number(o.actualWeightKg || o.estimatedWeightKg) || 0), 0);
+      // Sort orders descending by createdAt/pickupDate
+      const sortedOrders = [...custOrders].sort((a, b) => new Date(b.createdAt || b.pickupDate || 0) - new Date(a.createdAt || a.pickupDate || 0));
+
+      const activeOrders = sortedOrders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED');
+      const pastOrders = sortedOrders.filter(o => o.status === 'DELIVERED' || o.status === 'CANCELLED');
+      const storeSpend = sortedOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+      const storeKg = sortedOrders.reduce((sum, o) => sum + (Number(o.actualWeightKg || o.estimatedWeightKg) || 0), 0);
+
+      // Lifetime values (combining historical baseline with active store transactions)
+      const lifetimeSpend = Math.max(Number(cust.lifetimeSpend) || 0, storeSpend);
+      const lifetimeKg = Number(Math.max(Number(cust.lifetimeKg) || 0, storeKg).toFixed(1));
+      const loyaltyPoints = cust.loyaltyPoints !== undefined ? cust.loyaltyPoints : Math.round(lifetimeSpend / 10);
+      const averageOrderValue = sortedOrders.length > 0 ? Math.round(storeSpend / sortedOrders.length) : (lifetimeSpend > 0 ? Math.round(lifetimeSpend / Math.max(1, Math.round(lifetimeKg / 4))) : 0);
+
+      // Favorite laundry service calculation
+      const serviceCounts = {};
+      sortedOrders.forEach(o => {
+        const sName = o.serviceName || o.serviceId || 'Wash & Fold';
+        serviceCounts[sName] = (serviceCounts[sName] || 0) + 1;
+      });
+      let favoriteService = 'Wash / Iron / Fold';
+      let maxSrvCount = 0;
+      Object.entries(serviceCounts).forEach(([sName, count]) => {
+        if (count > maxSrvCount) {
+          maxSrvCount = count;
+          favoriteService = sName;
+        }
+      });
+
+      // Member Since & Tenure calculation
+      const memberSinceDate = new Date(cust.memberSince || cust.createdAt || '2024-01-01');
+      const diffMs = Math.max(0, now.getTime() - memberSinceDate.getTime());
+      const totalMonths = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30.44));
+      const years = Math.floor(totalMonths / 12);
+      const remainingMonths = totalMonths % 12;
+      let tenureText = '';
+      if (years > 0 && remainingMonths > 0) {
+        tenureText = `${years}y ${remainingMonths}m`;
+      } else if (years > 0) {
+        tenureText = `${years} year${years > 1 ? 's' : ''}`;
+      } else if (totalMonths > 0) {
+        tenureText = `${totalMonths} month${totalMonths > 1 ? 's' : ''}`;
+      } else {
+        tenureText = 'New member';
+      }
+
+      // Last Active & Churn Risk calculation
+      const lastOrder = sortedOrders[0] || null;
+      const lastActiveDate = lastOrder ? new Date(lastOrder.createdAt || lastOrder.pickupDate) : memberSinceDate;
+      const daysSinceActive = Math.floor((now.getTime() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24));
+      let churnStatus = 'NEW';
+      if (sortedOrders.length === 0 && daysSinceActive < 30) {
+        churnStatus = 'NEW';
+      } else if (cust.tier === 'VIP' || cust.tier === 'Corporate') {
+        churnStatus = daysSinceActive > 60 ? 'AT_RISK' : 'ACTIVE_VIP';
+      } else if (daysSinceActive <= 35) {
+        churnStatus = 'REGULAR';
+      } else if (daysSinceActive <= 90) {
+        churnStatus = 'AT_RISK';
+      } else {
+        churnStatus = 'CHURNED';
+      }
+
+      // Default Garment Care Preferences if not populated
+      const garmentPreferences = {
+        detergent: cust.garmentPreferences?.detergent || 'Hypoallergenic & Fragrance-Free (Sensitive Skin)',
+        waterTemp: cust.garmentPreferences?.waterTemp || 'Cold Wash (30°C - Fabric Preservation)',
+        fabricSoftener: cust.garmentPreferences?.fabricSoftener || 'Plant-Based Gentle Softener',
+        starch: cust.garmentPreferences?.starch || 'No Starch (Natural Soft Drape)',
+        packaging: cust.garmentPreferences?.packaging || 'Folded in Reusable Cotton Eco-Tote',
+        specialFabricAlerts: cust.garmentPreferences?.specialFabricAlerts || ''
+      };
+
+      // Default Delivery Access notes
+      const deliveryAccess = {
+        condoAccessCode: cust.deliveryAccess?.condoAccessCode || '',
+        preferredTimeslot: cust.deliveryAccess?.preferredTimeslot || '09:00 - 11:00 (Morning)',
+        guardInstructions: cust.deliveryAccess?.guardInstructions || 'Leave at juristic office reception if unattended.'
+      };
 
       // Find incidents matching customer name, contact or orderId
       const custIncidents = (this.incidents || []).filter(inc => {
@@ -698,12 +774,25 @@ export class LaundryStore {
 
       return {
         ...cust,
-        orders: custOrders,
+        memberSince: memberSinceDate.toISOString(),
+        tenureText,
+        totalMonths,
+        orders: sortedOrders,
         activeOrders,
         pastOrders,
         totalOrders: custOrders.length,
-        totalSpend,
-        totalKg: Number(totalKg.toFixed(1)),
+        storeSpend,
+        storeKg: Number(storeKg.toFixed(1)),
+        lifetimeSpend,
+        lifetimeKg,
+        loyaltyPoints,
+        averageOrderValue,
+        favoriteService,
+        lastActiveDate: lastActiveDate.toISOString(),
+        daysSinceActive,
+        churnStatus,
+        garmentPreferences,
+        deliveryAccess,
         incidents: custIncidents,
         openIncidentsCount: openIncidents.length,
         primaryAddress
@@ -952,6 +1041,86 @@ export class LaundryStore {
     });
     this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
     this.notify();
+  }
+
+  updateCustomerPreferences(customerId, garmentPreferences, deliveryAccess) {
+    this.customers = (this.customers || []).map(cust => {
+      if (cust.id === customerId) {
+        return {
+          ...cust,
+          garmentPreferences: garmentPreferences ? { ...cust.garmentPreferences, ...garmentPreferences } : cust.garmentPreferences,
+          deliveryAccess: deliveryAccess ? { ...cust.deliveryAccess, ...deliveryAccess } : cust.deliveryAccess
+        };
+      }
+      return cust;
+    });
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+
+    fetch(`/api/customers/${encodeURIComponent(customerId)}/preferences`, {
+      method: 'PATCH',
+      headers: this.getAdminAuthHeaders(),
+      body: JSON.stringify({ garmentPreferences, deliveryAccess })
+    }).catch(err => console.warn('PostgreSQL preference sync warning:', err));
+  }
+
+  adjustLoyaltyPoints(customerId, pointsDelta, reason = '') {
+    this.customers = (this.customers || []).map(cust => {
+      if (cust.id === customerId) {
+        const newPts = Math.max(0, (cust.loyaltyPoints || 0) + pointsDelta);
+        const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+        const note = `[${timestamp}] Loyalty points ${pointsDelta > 0 ? '+' : ''}${pointsDelta} (${reason}). New balance: ${newPts} pts.`;
+        const notes = cust.notes ? cust.notes + `\n${note}` : note;
+        return { ...cust, loyaltyPoints: newPts, notes };
+      }
+      return cust;
+    });
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+  }
+
+  exportCustomerJson(customerId) {
+    const enriched = this.getEnrichedCustomers().find(c => c.id === customerId);
+    if (!enriched) return null;
+    return JSON.stringify(enriched, null, 2);
+  }
+
+  exportAllCustomersCsv() {
+    const list = this.getEnrichedCustomers();
+    const headers = [
+      'Customer ID', 'Full Name', 'Nickname', 'Gender', 'DOB', 'Mobile', 'WhatsApp',
+      'LINE ID', 'Email', 'Tier', 'Tenure', 'Lifetime Spend (THB)', 'Lifetime KG',
+      'Loyalty Points', 'Average Order Value (THB)', 'Churn Status', 'Favorite Service',
+      'Total Orders', 'Primary District', 'Primary Address', 'Company Tax ID', 'Company Legal Name', 'Created At'
+    ];
+
+    const rows = list.map(c => [
+      `"${c.id}"`,
+      `"${(c.fullName || '').replace(/"/g, '""')}"`,
+      `"${(c.nickName || '').replace(/"/g, '""')}"`,
+      `"${c.gender || ''}"`,
+      `"${c.dateOfBirth || ''}"`,
+      `"${c.mobileNumber || ''}"`,
+      `"${c.isWhatsApp ? 'YES' : 'NO'}"`,
+      `"${c.lineId || ''}"`,
+      `"${c.email || ''}"`,
+      `"${c.tier || ''}"`,
+      `"${c.tenureText || ''}"`,
+      c.lifetimeSpend || 0,
+      c.lifetimeKg || 0,
+      c.loyaltyPoints || 0,
+      c.averageOrderValue || 0,
+      `"${c.churnStatus || ''}"`,
+      `"${(c.favoriteService || '').replace(/"/g, '""')}"`,
+      c.totalOrders || 0,
+      `"${(c.primaryAddress?.district || '').replace(/"/g, '""')}"`,
+      `"${(c.primaryAddress?.address || '').replace(/"/g, '""')}"`,
+      `"${c.companyTax?.taxId || ''}"`,
+      `"${(c.companyTax?.companyName || '').replace(/"/g, '""')}"`,
+      `"${c.createdAt || ''}"`
+    ]);
+
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
   }
 
   resetAllData() {
