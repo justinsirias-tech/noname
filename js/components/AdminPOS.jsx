@@ -417,8 +417,23 @@ export function AdminPOS({
     return matchesStatus && matchesSearch;
   });
 
+  // ESC key listener to close modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        if (showAddServiceModal) {
+          setShowAddServiceModal(false);
+        } else if (inspectingOrderId) {
+          setInspectingOrderId(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddServiceModal, inspectingOrderId]);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className={`mx-auto px-2 sm:px-4 lg:px-6 py-6 transition-all ${activeTab === 'crm' ? 'max-w-[1700px] w-full' : 'max-w-7xl'}`}>
       
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">

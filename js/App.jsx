@@ -223,6 +223,9 @@ export function App() {
         e.preventDefault();
         navigateTo('admin');
       }
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        setIsContactModalOpen(false);
+      }
     };
 
     window.addEventListener('hashchange', onHashChange);

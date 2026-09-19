@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { ORDER_STATUSES } from '../data/servicesData.js';
 import { CONTACT_CHANNELS, getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
@@ -18,6 +18,20 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
 
   // Cashless Payment Gateway Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // ESC key listener to close payment modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        if (showPaymentModal) {
+          setShowPaymentModal(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPaymentModal]);
+
   const [paymentTab, setPaymentTab] = useState('promptpay'); // 'promptpay', 'card'
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
@@ -114,8 +128,14 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
       
       {/* 3RD-PARTY CASHLESS PAYMENT GATEWAY MODAL */}
       {showPaymentModal && activeOrder && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-5">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setShowPaymentModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <span className="text-xs uppercase font-bold text-emerald-600 tracking-wider">
@@ -128,8 +148,10 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
               <button
                 type="button"
                 onClick={() => setShowPaymentModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-800"
+                className="p-1 text-slate-400 hover:text-slate-800 flex items-center gap-1"
+                title="Close (Esc)"
               >
+                <span className="hidden sm:inline text-[10px] font-mono font-bold px-1 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
                 <Icon name="x" className="w-5 h-5" />
               </button>
             </div>

@@ -102,6 +102,29 @@ export function CustomerCRM({
     });
   }, []);
 
+  // System-wide ESC Key listener to close open profile or modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        if (showPinModal) {
+          setShowPinModal(false);
+        } else if (showOtpModal) {
+          setShowOtpModal(false);
+        } else if (showLogIssueModal) {
+          setShowLogIssueModal(false);
+        } else if (showAddAddressForm) {
+          setShowAddAddressForm(false);
+        } else if (showAddModal) {
+          setShowAddModal(false);
+        } else if (selectedCustomer) {
+          setSelectedCustomer(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPinModal, showOtpModal, showLogIssueModal, showAddAddressForm, showAddModal, selectedCustomer]);
+
   // Calculate Age from Date of Birth
   const calculateAge = (dobString) => {
     if (!dobString) return null;
@@ -499,17 +522,17 @@ export function CustomerCRM({
       {/* CUSTOMER DIRECTORY VIEW: TABLE */}
       {viewMode === 'table' && (
         <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left text-xs table-auto">
               <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="py-3.5 px-4">Customer & Nickname</th>
-                  <th className="py-3.5 px-4">Contact & WhatsApp</th>
-                  <th className="py-3.5 px-4">Delivery Addresses</th>
-                  <th className="py-3.5 px-4">Company Tax ID</th>
-                  <th className="py-3.5 px-4">Lifetime Spend & KG</th>
-                  <th className="py-3.5 px-4">Live Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                  <th className="py-3 px-2.5 sm:px-3">Customer</th>
+                  <th className="py-3 px-2.5 sm:px-3">Contact</th>
+                  <th className="py-3 px-2.5 sm:px-3">Address</th>
+                  <th className="py-3 px-2.5 sm:px-3">Tax / Invoice</th>
+                  <th className="py-3 px-2.5 sm:px-3">Spend & Orders</th>
+                  <th className="py-3 px-2.5 sm:px-3">Status</th>
+                  <th className="py-3 px-2.5 sm:px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -530,28 +553,28 @@ export function CustomerCRM({
                       <tr key={cust.id} className="hover:bg-slate-50/70 transition">
                         
                         {/* Customer & Nickname */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-sky-100 to-indigo-100 text-sky-800 font-bold text-sm flex items-center justify-center shrink-0 border border-sky-200">
+                        <td className="py-3 px-2.5 sm:px-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-100 to-indigo-100 text-sky-800 font-bold text-xs flex items-center justify-center shrink-0 border border-sky-200">
                               {cust.nickName ? cust.nickName.substring(0, 2).toUpperCase() : cust.fullName.substring(0, 2).toUpperCase()}
                             </div>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-extrabold text-slate-900 text-xs">{cust.fullName}</span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-extrabold text-slate-900 text-xs truncate max-w-[130px] sm:max-w-[160px]">{cust.fullName}</span>
                                 {cust.nickName && (
-                                  <span className="px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-200">
+                                  <span className="px-1.5 py-0.2 rounded-md bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-200 shrink-0">
                                     "{cust.nickName}"
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                              <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
                                 <span>{cust.id}</span>
                                 <span>•</span>
                                 <span className="capitalize">{cust.gender}</span>
                                 {cust.dateOfBirth && (
                                   <>
                                     <span>•</span>
-                                    <span>{calculateAge(cust.dateOfBirth)} yrs</span>
+                                    <span>{calculateAge(cust.dateOfBirth)}y</span>
                                   </>
                                 )}
                               </div>
@@ -560,117 +583,118 @@ export function CustomerCRM({
                         </td>
 
                         {/* Contact & WhatsApp */}
-                        <td className="py-3.5 px-4">
-                          <div className="space-y-1">
+                        <td className="py-3 px-2.5 sm:px-3">
+                          <div className="space-y-0.5 min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-semibold text-slate-800">{cust.mobileNumber || 'No mobile'}</span>
+                              <span className="font-mono font-semibold text-slate-800 text-xs">{cust.mobileNumber || 'No mobile'}</span>
                               {cust.isWhatsApp && (
-                                <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[9px] flex items-center gap-0.5" title="WhatsApp registered">
-                                  <span>WhatsApp</span>
+                                <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[9px] shrink-0" title="WhatsApp registered">
+                                  WhatsApp
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 truncate max-w-[160px]">
                               {cust.lineId && (
-                                <span className="text-green-700 font-medium">LINE: {cust.lineId}</span>
+                                <span className="text-green-700 font-medium shrink-0">LINE: {cust.lineId}</span>
                               )}
+                              {cust.lineId && cust.email && <span>•</span>}
                               {cust.email && (
-                                <span className="text-slate-400 truncate max-w-[130px]">{cust.email}</span>
+                                <span className="text-slate-400 truncate" title={cust.email}>{cust.email}</span>
                               )}
                             </div>
                           </div>
                         </td>
 
                         {/* Delivery Addresses */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-2.5 sm:px-3">
                           {primaryAddr ? (
-                            <div className="max-w-[200px]">
-                              <div className="font-semibold text-slate-800 truncate flex items-center gap-1">
-                                <Icon name="mapPin" className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <div className="max-w-[150px] xl:max-w-[200px]">
+                              <div className="font-semibold text-slate-800 truncate flex items-center gap-1 text-xs" title={primaryAddr.label || primaryAddr.address}>
+                                <Icon name="mapPin" className="w-3 h-3 text-sky-600 shrink-0" />
                                 <span className="truncate">{primaryAddr.label || primaryAddr.address}</span>
                               </div>
-                              <div className="text-[11px] text-slate-500 truncate">
+                              <div className="text-[10px] text-slate-500 truncate" title={`${primaryAddr.roomNumber ? primaryAddr.roomNumber + ', ' : ''}${primaryAddr.district}`}>
                                 {primaryAddr.roomNumber ? `${primaryAddr.roomNumber}, ` : ''}{primaryAddr.district}
                               </div>
                               {cust.addresses?.length > 1 && (
-                                <div className="text-[10px] text-sky-600 font-bold mt-0.5">
-                                  +{cust.addresses.length - 1} more address(es)
+                                <div className="text-[9px] text-sky-600 font-bold">
+                                  +{cust.addresses.length - 1} more
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-400 italic">No saved address</span>
+                            <span className="text-slate-400 italic text-[11px]">No address</span>
                           )}
                         </td>
 
                         {/* Company Tax ID */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-2.5 sm:px-3">
                           {cust.companyTax?.required ? (
-                            <div className="space-y-0.5">
-                              <span className="inline-block px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-bold text-[10px]">
+                            <div className="space-y-0.5 max-w-[130px]">
+                              <span className="inline-block px-1.5 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-200 font-bold text-[9px]">
                                 Tax Invoice
                               </span>
-                              <div className="font-mono text-[11px] text-slate-700">{cust.companyTax.taxId || 'Pending ID'}</div>
-                              <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{cust.companyTax.companyName}</div>
+                              <div className="font-mono text-[10px] text-slate-700 truncate">{cust.companyTax.taxId || 'Pending ID'}</div>
+                              <div className="text-[10px] text-slate-500 truncate" title={cust.companyTax.companyName}>{cust.companyTax.companyName}</div>
                             </div>
                           ) : (
-                            <span className="text-slate-400">Individual (Receipt)</span>
+                            <span className="text-slate-400 text-xs">Individual</span>
                           )}
                         </td>
 
                         {/* Lifetime Spend & KG */}
-                        <td className="py-3.5 px-4">
-                          <div className="font-black text-slate-900">
+                        <td className="py-3 px-2.5 sm:px-3 whitespace-nowrap">
+                          <div className="font-black text-slate-900 text-xs">
                             ฿{(cust.totalSpend || 0).toLocaleString()} THB
                           </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
-                            {cust.totalOrders || 0} orders • {cust.totalKg || 0} KG
+                          <div className="text-[10px] text-slate-500 mt-0.5">
+                            {cust.totalOrders || 0} ord • {cust.totalKg || 0} kg
                           </div>
                         </td>
 
                         {/* Live Status */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-2.5 sm:px-3">
                           <div className="space-y-1">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${tierInfo.color}`}>
+                            <span className={`inline-block px-2 py-0.2 rounded-full text-[9px] font-bold border ${tierInfo.color}`}>
                               {cust.tier || 'Regular'}
                             </span>
                             
                             {hasActiveOrder && (
-                              <div className="flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
-                                <span>{cust.activeOrders.length} In-Progress</span>
+                              <div className="flex items-center gap-1 text-[9px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded border border-sky-200 whitespace-nowrap">
+                                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse shrink-0" />
+                                <span>{cust.activeOrders.length} In-Prog</span>
                               </div>
                             )}
 
                             {hasOpenIssues && (
-                              <div className="flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                                <Icon name="alertTriangle" className="w-3 h-3 text-amber-600" />
-                                <span>{cust.openIncidentsCount} Open Ticket</span>
+                              <div className="flex items-center gap-1 text-[9px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 whitespace-nowrap">
+                                <Icon name="alertTriangle" className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                                <span>{cust.openIncidentsCount} Ticket</span>
                               </div>
                             )}
                           </div>
                         </td>
 
                         {/* Actions */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="py-3 px-2.5 sm:px-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
                             {/* WhatsApp Button - Always present and identically sized */}
                             {cust.mobileNumber ? (
                               <a
                                 href={`https://wa.me/${cust.mobileNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello K. ${cust.nickName || cust.fullName}, this is NoName Laundry Bangkok.`)}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="w-8 h-8 rounded-xl flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition shrink-0"
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition shrink-0"
                                 title="Chat on WhatsApp"
                               >
-                                <Icon name="whatsapp" className="w-4 h-4" />
+                                <Icon name="whatsapp" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </a>
                             ) : (
                               <div
-                                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 bg-slate-50 border border-slate-200 shrink-0 cursor-not-allowed"
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center text-slate-300 bg-slate-50 border border-slate-200 shrink-0 cursor-not-allowed"
                                 title="No mobile number registered"
                               >
-                                <Icon name="whatsapp" className="w-4 h-4" />
+                                <Icon name="whatsapp" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </div>
                             )}
 
@@ -679,10 +703,10 @@ export function CustomerCRM({
                               href={getLineOaMessageUrl(`Order inquiry for K. ${cust.nickName || cust.fullName}${cust.lineId ? ` (LINE: ${cust.lineId})` : ''}`)}
                               target="_blank"
                               rel="noreferrer"
-                              className="w-8 h-8 rounded-xl flex items-center justify-center text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 transition shrink-0"
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 transition shrink-0"
                               title={cust.lineId ? `Open LINE OA Chat (${cust.lineId})` : "Open LINE OA Chat"}
                             >
-                              <Icon name="line" className="w-4 h-4" />
+                              <Icon name="line" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </a>
 
                             {/* View Profile Button */}
@@ -691,7 +715,7 @@ export function CustomerCRM({
                                 setSelectedCustomer(cust);
                                 setActiveCustomerTab('profile');
                               }}
-                              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition whitespace-nowrap"
+                              className="px-2.5 py-1.5 rounded-lg sm:rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition whitespace-nowrap"
                             >
                               View Profile
                             </button>
@@ -809,8 +833,14 @@ export function CustomerCRM({
       {/* COMPREHENSIVE CUSTOMER DETAIL DRAWER / MODAL */}
       {/* ========================================================================= */}
       {selectedCustomer && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[92vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setSelectedCustomer(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {/* Top Modal Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
@@ -874,8 +904,10 @@ export function CustomerCRM({
 
                 <button
                   onClick={() => setSelectedCustomer(null)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition ml-1"
+                  className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition ml-1 flex items-center gap-1.5"
+                  title="Close Profile (Esc)"
                 >
+                  <span className="hidden sm:inline text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
                   <Icon name="x" className="w-5 h-5" />
                 </button>
               </div>
@@ -1469,8 +1501,14 @@ export function CustomerCRM({
       {/* REGISTER NEW CUSTOMER MODAL */}
       {/* ========================================================================= */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setShowAddModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
@@ -1481,8 +1519,10 @@ export function CustomerCRM({
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 flex items-center gap-1"
+                title="Close (Esc)"
               >
+                <span className="hidden sm:inline text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
                 <Icon name="x" className="w-5 h-5" />
               </button>
             </div>
@@ -1783,8 +1823,14 @@ export function CustomerCRM({
       {/* OTP VERIFICATION SIMULATOR MODAL */}
       {/* ========================================================================= */}
       {showOtpModal && otpTargetCustomer && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setShowOtpModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -1796,7 +1842,10 @@ export function CustomerCRM({
                   <p className="text-[11px] text-slate-500">Verify customer mobile or email</p>
                 </div>
               </div>
-              <button onClick={() => setShowOtpModal(false)} className="text-slate-400 hover:text-slate-700 p-1">✕</button>
+              <button onClick={() => setShowOtpModal(false)} className="text-slate-400 hover:text-slate-700 p-1 flex items-center gap-1" title="Close (Esc)">
+                <span className="text-[10px] font-mono font-bold px-1 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
+                ✕
+              </button>
             </div>
 
             <div className="space-y-3 text-xs">
@@ -1910,11 +1959,20 @@ export function CustomerCRM({
       {/* 6-DIGIT PIN CHANGE MODAL */}
       {/* ========================================================================= */}
       {showPinModal && selectedCustomer && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setShowPinModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="font-black text-slate-900 text-sm">Update 6-Digit Quick Access PIN</h3>
-              <button onClick={() => setShowPinModal(false)} className="text-slate-400 hover:text-slate-700">✕</button>
+              <button onClick={() => setShowPinModal(false)} className="text-slate-400 hover:text-slate-700 flex items-center gap-1" title="Close (Esc)">
+                <span className="text-[10px] font-mono font-bold px-1 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleSavePin} className="space-y-3 text-xs">
@@ -1956,12 +2014,21 @@ export function CustomerCRM({
       {/* LOG NEW ISSUE / INCIDENT MODAL */}
       {/* ========================================================================= */}
       {showLogIssueModal && selectedCustomer && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setShowLogIssueModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="font-black text-slate-900 text-base">Record Customer Issue / Request</h3>
-              <button onClick={() => setShowLogIssueModal(false)} className="text-slate-400 hover:text-slate-700">✕</button>
+              <button onClick={() => setShowLogIssueModal(false)} className="text-slate-400 hover:text-slate-700 flex items-center gap-1" title="Close (Esc)">
+                <span className="text-[10px] font-mono font-bold px-1 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleLogIssueSubmit} className="space-y-3 text-xs">

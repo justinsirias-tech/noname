@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { ORDER_STATUSES } from '../data/servicesData.js';
 import { getLineOaAddFriendUrl } from '../store.js';
@@ -10,6 +10,17 @@ export function OrderDetailsModal({
   onMarkPaid
 }) {
   if (!order) return null;
+
+  // ESC key listener to close modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const [editStatus, setEditStatus] = useState(order.status || 'BOOKING_REQUESTED');
   const [editWeight, setEditWeight] = useState(order.actualWeightKg !== null && order.actualWeightKg !== undefined ? order.actualWeightKg : (order.estimatedWeightKg || 4.0));
@@ -75,7 +86,10 @@ export function OrderDetailsModal({
   const previewPrice = Math.round(billableKg * (order.pricePerKg || 75));
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn"
+      onClick={onClose}
+    >
       <div 
         className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
@@ -115,9 +129,10 @@ export function OrderDetailsModal({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            title="Close Order Details"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5"
+            title="Close Order Details (Esc)"
           >
+            <span className="hidden sm:inline text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">ESC</span>
             <Icon name="x" className="w-5 h-5" />
           </button>
         </div>

@@ -1,12 +1,27 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { TERMS_SUMMARY_POINTS } from '../data/termsData.js';
 
 export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) {
+  // ESC key listener to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fadeIn"
+      onClick={onClose}
+    >
       <div 
         className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden transform transition-all"
         onClick={(e) => e.stopPropagation()}
@@ -30,8 +45,10 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1"
+            title="Close (Esc)"
           >
+            <span className="hidden sm:inline text-[10px] font-mono font-bold px-1 rounded bg-slate-800 text-slate-300 border border-slate-700">ESC</span>
             <Icon name="x" className="w-5 h-5" />
           </button>
         </div>
