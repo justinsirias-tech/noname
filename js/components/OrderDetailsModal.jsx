@@ -122,11 +122,15 @@ export function OrderDetailsModal({
 
             {order.turnaroundSpeed === 'same_day' ? (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-amber-950 border border-amber-300">
-                ⚡ SAME DAY
+                🚀 SAME DAY (&lt;18H)
+              </span>
+            ) : (order.turnaroundSpeed === 'next_day_24h' || order.turnaroundSpeed === 'next_day') ? (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-500 text-white border border-sky-400">
+                ⚡ NEXT DAY (24H)
               </span>
             ) : (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                🕒 NEXT DAY
+                🕒 STANDARD (48H)
               </span>
             )}
 
@@ -264,9 +268,11 @@ export function OrderDetailsModal({
                   <div className="p-3 bg-white rounded-xl border border-sky-100">
                     <span className="text-slate-400 block text-[10px] font-semibold uppercase">Turnaround Speed</span>
                     {order.turnaroundSpeed === 'same_day' ? (
-                      <span className="font-bold text-amber-800 flex items-center gap-0.5">⚡ Same Day</span>
+                      <span className="font-bold text-amber-800 flex items-center gap-0.5">🚀 Same Day (&lt;18:00)</span>
+                    ) : (order.turnaroundSpeed === 'next_day_24h' || order.turnaroundSpeed === 'next_day') ? (
+                      <span className="font-bold text-sky-700 flex items-center gap-0.5">⚡ Next Day (24h)</span>
                     ) : (
-                      <span className="font-bold text-sky-700 flex items-center gap-0.5">🕒 Next Day</span>
+                      <span className="font-bold text-slate-700 flex items-center gap-0.5">🕒 Standard (48h)</span>
                     )}
                   </div>
 

@@ -69,7 +69,7 @@ export function Hero({ services, setView, onSelectServiceForBooking }) {
 
           <div className="mt-4 flex items-center justify-center gap-4 text-xs text-slate-500">
             <span className="flex items-center gap-1">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" /> 24–48h Standard Turnaround
+              <Icon name="check" className="w-4 h-4 text-emerald-600" /> 48h Standard (24h &amp; Same Day Available)
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">

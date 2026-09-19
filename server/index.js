@@ -14,20 +14,22 @@ app.use(express.json());
 // Helper row mappers
 function mapService(row) {
   if (!row) return null;
-  const nextPrice = Number(row.next_day_price_per_kg || row.price_per_kg);
-  const samePrice = Number(row.same_day_price_per_kg || Math.round(nextPrice * 1.45));
+  const stdPrice = Number(row.standard_price_per_kg || row.price_per_kg || 65);
+  const nextPrice = Number(row.next_day_price_per_kg || Math.round(stdPrice * 1.3));
+  const samePrice = Number(row.same_day_price_per_kg || Math.round(stdPrice * 1.75));
   return {
     id: row.id,
     name: row.name,
     nameTh: row.name_th,
     description: row.description,
     unit: row.unit || 'KG',
-    pricePerKg: nextPrice,
+    pricePerKg: stdPrice,
+    standardPricePerKg: stdPrice,
     nextDayPricePerKg: nextPrice,
     sameDayPricePerKg: samePrice,
     sameDayAvailable: row.same_day_available !== undefined && row.same_day_available !== null ? Boolean(row.same_day_available) : true,
     minWeightKg: Number(row.min_weight_kg),
-    turnaroundHours: Number(row.turnaround_hours),
+    turnaroundHours: Number(row.turnaround_hours || 48),
     popular: Boolean(row.popular),
     features: Array.isArray(row.features) ? row.features : []
   };
@@ -52,7 +54,7 @@ function mapOrder(row) {
     minWeightAppliedKg: Number(row.min_weight_applied_kg || 4.0),
     pricePerKg: Number(row.price_per_kg),
     totalPrice: Number(row.total_price),
-    turnaroundSpeed: row.turnaround_speed || 'next_day',
+    turnaroundSpeed: row.turnaround_speed || 'standard_48h',
     status: row.status,
     paymentStatus: row.payment_status,
     paymentMethod: row.payment_method,
@@ -235,13 +237,14 @@ app.post('/api/services', requireAdminAuth, async (req, res) => {
   try {
     const s = req.body;
     const id = s.id || (s.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000));
-    const nextPrice = Number(s.nextDayPricePerKg || s.pricePerKg) || 80;
-    const samePrice = Number(s.sameDayPricePerKg) || Math.round(nextPrice * 1.45);
+    const stdPrice = Number(s.standardPricePerKg || s.pricePerKg) || 65;
+    const nextPrice = Number(s.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
+    const samePrice = Number(s.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
     const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true;
 
     const result = await query(`
-      INSERT INTO services (id, name, name_th, description, unit, price_per_kg, next_day_price_per_kg, same_day_price_per_kg, same_day_available, min_weight_kg, turnaround_hours, popular, features)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      INSERT INTO services (id, name, name_th, description, unit, price_per_kg, standard_price_per_kg, next_day_price_per_kg, same_day_price_per_kg, same_day_available, min_weight_kg, turnaround_hours, popular, features)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
     `, [
       id,
@@ -249,12 +252,13 @@ app.post('/api/services', requireAdminAuth, async (req, res) => {
       s.nameTh ? s.nameTh.trim() : s.name.trim(),
       s.description || '',
       s.unit || 'KG',
-      nextPrice,
+      stdPrice,
+      stdPrice,
       nextPrice,
       samePrice,
       sameAvail,
       Number(s.minWeightKg) || 4.0,
-      Number(s.turnaroundHours) || 24,
+      Number(s.turnaroundHours) || 48,
       Boolean(s.popular),
       JSON.stringify(Array.isArray(s.features) ? s.features : [])
     ]);
@@ -274,7 +278,8 @@ app.put('/api/services', requireAdminAuth, async (req, res) => {
 
     for (const s of servicesList) {
       if (!s || !s.id) continue;
-      const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : (s.pricePerKg !== undefined ? Number(s.pricePerKg) : null);
+      const stdPrice = s.standardPricePerKg !== undefined ? Number(s.standardPricePerKg) : (s.pricePerKg !== undefined ? Number(s.pricePerKg) : null);
+      const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : null;
       const samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : null;
       const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : null;
 
@@ -284,6 +289,7 @@ app.put('/api/services', requireAdminAuth, async (req, res) => {
             name_th = COALESCE($2, name_th),
             description = COALESCE($3, description),
             price_per_kg = COALESCE($4, price_per_kg),
+            standard_price_per_kg = COALESCE($4, standard_price_per_kg),
             next_day_price_per_kg = COALESCE($5, next_day_price_per_kg),
             same_day_price_per_kg = COALESCE($6, same_day_price_per_kg),
             same_day_available = COALESCE($7, same_day_available),
@@ -297,7 +303,7 @@ app.put('/api/services', requireAdminAuth, async (req, res) => {
         s.name !== undefined ? s.name.trim() : null,
         s.nameTh !== undefined ? s.nameTh.trim() : null,
         s.description !== undefined ? s.description.trim() : null,
-        nextPrice,
+        stdPrice,
         nextPrice,
         samePrice,
         sameAvail,
@@ -322,7 +328,8 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const s = req.body;
-    const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : (s.pricePerKg !== undefined ? Number(s.pricePerKg) : null);
+    const stdPrice = s.standardPricePerKg !== undefined ? Number(s.standardPricePerKg) : (s.pricePerKg !== undefined ? Number(s.pricePerKg) : null);
+    const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : null;
     const samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : null;
     const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : null;
 
@@ -332,6 +339,7 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
           name_th = COALESCE($2, name_th),
           description = COALESCE($3, description),
           price_per_kg = COALESCE($4, price_per_kg),
+          standard_price_per_kg = COALESCE($4, standard_price_per_kg),
           next_day_price_per_kg = COALESCE($5, next_day_price_per_kg),
           same_day_price_per_kg = COALESCE($6, same_day_price_per_kg),
           same_day_available = COALESCE($7, same_day_available),
@@ -346,7 +354,7 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
       s.name !== undefined ? s.name.trim() : null,
       s.nameTh !== undefined ? s.nameTh.trim() : null,
       s.description !== undefined ? s.description.trim() : null,
-      nextPrice,
+      stdPrice,
       nextPrice,
       samePrice,
       sameAvail,
@@ -360,7 +368,7 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Service not found' });
     }
-    console.log(`[POSTGRES] Service '${id}' updated: nextDayPrice=${nextPrice}, sameDayPrice=${samePrice}`);
+    console.log(`[POSTGRES] Service '${id}' updated: std=${stdPrice}, next=${nextPrice}, same=${samePrice}`);
     res.json(mapService(result.rows[0]));
   } catch (err) {
     console.error(`[POSTGRES ERROR] Updating service '${req.params.id}':`, err);

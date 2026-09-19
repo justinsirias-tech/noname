@@ -378,11 +378,15 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
                   <span>Service: <strong>{activeOrder.serviceName}</strong></span>
                   {activeOrder.turnaroundSpeed === 'same_day' ? (
                     <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-[10px]">
-                      ⚡ Same Day Express
+                      🚀 Same Day Express (&lt;18:00)
+                    </span>
+                  ) : (activeOrder.turnaroundSpeed === 'next_day_24h' || activeOrder.turnaroundSpeed === 'next_day') ? (
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 font-bold text-[10px]">
+                      ⚡ Next Day (24h)
                     </span>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-[10px]">
-                      🕒 Next Day
+                      🕒 Standard (48h)
                     </span>
                   )}
                   <span>• Tag: <code>{activeOrder.tagNumber}</code></span>

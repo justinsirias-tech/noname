@@ -29,8 +29,8 @@ export const INITIAL_FAQS = [
   {
     id: 'FAQ-4',
     category: 'Turnaround & Scheduling',
-    question: 'What is the turnaround time for wash, iron, and fold orders?',
-    answer: 'Our standard turnaround is 24 to 48 hours from intake. For example, morning pickups between 09:00 - 11:00 are washed, dried, steam-ironed, and delivered back the following day during your selected afternoon or evening delivery window. Express same-day turnaround is available upon request via our WhatsApp support channel.',
+    question: 'What turnaround speeds are available (48h Standard, Next Day 24h, Same Day)?',
+    answer: 'We offer three distinct turnaround speeds: 1) Standard Service (48 Hours / ~2 Days) for economical relaxed turnaround; 2) Next Day Delivery (24 Hours) for fast next-day returns; and 3) Same Day Express for priority morning pickups delivered anytime before 18:00 hrs on the same day. You can select your preferred turnaround speed directly during booking with dynamic per-KG pricing.',
     order: 4,
     isPublished: true
   },

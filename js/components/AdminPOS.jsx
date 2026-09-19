@@ -31,17 +31,19 @@ export function AdminPOS({
   // Service Full Drafts State (Pricing, Min Weight, Description, Features Sublist)
   const buildInitialDrafts = (srvList) =>
     (srvList || []).reduce((acc, s) => {
-      const nextPrice = s.nextDayPricePerKg !== undefined ? s.nextDayPricePerKg : (s.pricePerKg !== undefined ? s.pricePerKg : 80);
-      const samePrice = s.sameDayPricePerKg !== undefined ? s.sameDayPricePerKg : Math.round((s.pricePerKg || 80) * 1.45);
+      const stdPrice = s.standardPricePerKg !== undefined ? s.standardPricePerKg : (s.pricePerKg !== undefined ? s.pricePerKg : 65);
+      const nextPrice = s.nextDayPricePerKg !== undefined ? s.nextDayPricePerKg : Math.round(stdPrice * 1.3);
+      const samePrice = s.sameDayPricePerKg !== undefined ? s.sameDayPricePerKg : Math.round(stdPrice * 1.75);
       acc[s.id] = {
         name: s.name || '',
         nameTh: s.nameTh || '',
-        pricePerKg: nextPrice,
+        pricePerKg: stdPrice,
+        standardPricePerKg: stdPrice,
         nextDayPricePerKg: nextPrice,
         sameDayPricePerKg: samePrice,
         sameDayAvailable: s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true,
         minWeightKg: s.minWeightKg !== undefined ? s.minWeightKg : 4.0,
-        turnaroundHours: s.turnaroundHours !== undefined ? s.turnaroundHours : 24,
+        turnaroundHours: s.turnaroundHours !== undefined ? s.turnaroundHours : 48,
         description: s.description || '',
         popular: Boolean(s.popular),
         features: Array.isArray(s.features) ? [...s.features] : []
@@ -63,11 +65,12 @@ export function AdminPOS({
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [newServiceName, setNewServiceName] = useState('');
   const [newServiceNameTh, setNewServiceNameTh] = useState('');
-  const [newServicePrice, setNewServicePrice] = useState('85');
-  const [newServiceSameDayPrice, setNewServiceSameDayPrice] = useState('125');
+  const [newServicePrice, setNewServicePrice] = useState('65'); // Standard 48h price
+  const [newServiceNextDayPrice, setNewServiceNextDayPrice] = useState('85'); // Next Day 24h price
+  const [newServiceSameDayPrice, setNewServiceSameDayPrice] = useState('115'); // Same Day <18:00 price
   const [newServiceSameDayAvailable, setNewServiceSameDayAvailable] = useState(true);
   const [newServiceMinWeight, setNewServiceMinWeight] = useState('4.0');
-  const [newServiceTurnaround, setNewServiceTurnaround] = useState('24');
+  const [newServiceTurnaround, setNewServiceTurnaround] = useState('48');
   const [newServiceDesc, setNewServiceDesc] = useState('');
   const [newServicePopular, setNewServicePopular] = useState(false);
   const [newServiceFeatures, setNewServiceFeatures] = useState([
@@ -171,7 +174,7 @@ export function AdminPOS({
   const [manualDistrict, setManualDistrict] = useState(BANGKOK_DISTRICTS[0]);
   const [manualCondo, setManualCondo] = useState('');
   const [manualWeight, setManualWeight] = useState('4.0');
-  const [manualSpeed, setManualSpeed] = useState('next_day');
+  const [manualSpeed, setManualSpeed] = useState('standard_48h');
   const [manualSuccessMsg, setManualSuccessMsg] = useState('');
 
   // Stats Calculations
@@ -250,17 +253,19 @@ export function AdminPOS({
     setPricingErrorMsg('');
     try {
       const cleanFeatures = (draft.features || []).map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
-      const nextPrice = parseFloat(draft.nextDayPricePerKg || draft.pricePerKg) || 0;
-      const samePrice = parseFloat(draft.sameDayPricePerKg) || Math.round(nextPrice * 1.45);
+      const stdPrice = parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 65;
+      const nextPrice = parseFloat(draft.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
+      const samePrice = parseFloat(draft.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
       const payload = {
         name: draft.name,
         nameTh: draft.nameTh,
-        pricePerKg: nextPrice,
+        pricePerKg: stdPrice,
+        standardPricePerKg: stdPrice,
         nextDayPricePerKg: nextPrice,
         sameDayPricePerKg: samePrice,
         sameDayAvailable: Boolean(draft.sameDayAvailable !== false),
         minWeightKg: Math.max(1, parseFloat(draft.minWeightKg) || 4.0),
-        turnaroundHours: parseInt(draft.turnaroundHours) || 24,
+        turnaroundHours: parseInt(draft.turnaroundHours) || 48,
         description: draft.description,
         popular: Boolean(draft.popular),
         features: cleanFeatures
@@ -286,18 +291,20 @@ export function AdminPOS({
       const payloadList = Object.keys(serviceDrafts).map((srvId) => {
         const draft = serviceDrafts[srvId];
         const cleanFeatures = (draft.features || []).map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
-        const nextPrice = parseFloat(draft.nextDayPricePerKg || draft.pricePerKg) || 0;
-        const samePrice = parseFloat(draft.sameDayPricePerKg) || Math.round(nextPrice * 1.45);
+        const stdPrice = parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 65;
+        const nextPrice = parseFloat(draft.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
+        const samePrice = parseFloat(draft.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
         return {
           id: srvId,
           name: draft.name,
           nameTh: draft.nameTh,
-          pricePerKg: nextPrice,
+          pricePerKg: stdPrice,
+          standardPricePerKg: stdPrice,
           nextDayPricePerKg: nextPrice,
           sameDayPricePerKg: samePrice,
           sameDayAvailable: Boolean(draft.sameDayAvailable !== false),
           minWeightKg: Math.max(1, parseFloat(draft.minWeightKg) || 4.0),
-          turnaroundHours: parseInt(draft.turnaroundHours) || 24,
+          turnaroundHours: parseInt(draft.turnaroundHours) || 48,
           description: draft.description,
           popular: Boolean(draft.popular),
           features: cleanFeatures
@@ -337,18 +344,20 @@ export function AdminPOS({
     if (!newServiceName.trim() || !newServicePrice) return;
 
     const cleanFeatures = newServiceFeatures.map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
-    const nextPrice = parseFloat(newServicePrice) || 80;
-    const samePrice = parseFloat(newServiceSameDayPrice) || Math.round(nextPrice * 1.45);
+    const stdPrice = parseFloat(newServicePrice) || 65;
+    const nextPrice = parseFloat(newServiceNextDayPrice) || Math.round(stdPrice * 1.3);
+    const samePrice = parseFloat(newServiceSameDayPrice) || Math.round(stdPrice * 1.75);
 
     const added = laundryStore.addService({
       name: newServiceName.trim(),
       nameTh: newServiceNameTh.trim() || newServiceName.trim(),
-      pricePerKg: nextPrice,
+      pricePerKg: stdPrice,
+      standardPricePerKg: stdPrice,
       nextDayPricePerKg: nextPrice,
       sameDayPricePerKg: samePrice,
       sameDayAvailable: Boolean(newServiceSameDayAvailable),
       minWeightKg: parseFloat(newServiceMinWeight) || 4.0,
-      turnaroundHours: parseInt(newServiceTurnaround) || 24,
+      turnaroundHours: parseInt(newServiceTurnaround) || 48,
       description: newServiceDesc.trim() || 'Professional laundry service by weight across Bangkok.',
       popular: newServicePopular,
       features: cleanFeatures.length > 0 ? cleanFeatures : [
@@ -362,9 +371,12 @@ export function AdminPOS({
     setShowAddServiceModal(false);
     setNewServiceName('');
     setNewServiceNameTh('');
-    setNewServicePrice('85');
-    setNewServiceSameDayPrice('125');
+    setNewServicePrice('65');
+    setNewServiceNextDayPrice('85');
+    setNewServiceSameDayPrice('115');
     setNewServiceSameDayAvailable(true);
+    setNewServiceMinWeight('4.0');
+    setNewServiceTurnaround('48');
     setNewServiceDesc('');
     setNewServiceFeatures([
       'Hypoallergenic wash & gentle fabric care',
@@ -705,11 +717,15 @@ export function AdminPOS({
                                 <span className="font-semibold text-slate-800">{order.serviceName}</span>
                                 {order.turnaroundSpeed === 'same_day' ? (
                                   <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-[9px] inline-flex items-center gap-0.5">
-                                    <span>⚡ Same Day</span>
+                                    <span>🚀 Same Day (&lt;18h)</span>
+                                  </span>
+                                ) : (order.turnaroundSpeed === 'next_day_24h' || order.turnaroundSpeed === 'next_day') ? (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 font-bold text-[9px] inline-flex items-center gap-0.5">
+                                    <span>⚡ Next Day (24h)</span>
                                   </span>
                                 ) : (
-                                  <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-semibold text-[9px] inline-flex items-center gap-0.5">
-                                    <span>🕒 Next Day</span>
+                                  <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-medium text-[9px] inline-flex items-center gap-0.5">
+                                    <span>🕒 Standard (48h)</span>
                                   </span>
                                 )}
                               </div>
@@ -920,12 +936,12 @@ export function AdminPOS({
                         />
                       </div>
 
-                      {/* Dual Pricing & Weight Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
-                        {/* Next Day Price */}
+                      {/* 3-Tier Pricing & Weight Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+                        {/* Standard 48h Price */}
                         <div>
                           <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
-                            <span>🕒 Next Day Price (฿/KG) *</span>
+                            <span>🕒 Standard 48h (฿/KG) *</span>
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">฿</span>
@@ -934,21 +950,41 @@ export function AdminPOS({
                               min="1"
                               max="1000"
                               required
-                              value={draft.nextDayPricePerKg !== undefined ? draft.nextDayPricePerKg : draft.pricePerKg}
+                              value={draft.standardPricePerKg !== undefined ? draft.standardPricePerKg : draft.pricePerKg}
                               onChange={(e) => {
-                                handleDraftFieldChange(service.id, 'nextDayPricePerKg', e.target.value);
+                                handleDraftFieldChange(service.id, 'standardPricePerKg', e.target.value);
                                 handleDraftFieldChange(service.id, 'pricePerKg', e.target.value);
                               }}
                               className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                             />
                           </div>
-                          <span className="text-[10px] text-slate-400 mt-0.5 block">Standard ~24h turnaround</span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 block">Standard ~48h turnaround</span>
+                        </div>
+
+                        {/* Next Day 24h Price */}
+                        <div>
+                          <label className="block text-xs font-bold text-sky-800 mb-1 flex items-center gap-1">
+                            <span>⚡ Next Day 24h (฿/KG) *</span>
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">฿</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="1000"
+                              required
+                              value={draft.nextDayPricePerKg !== undefined ? draft.nextDayPricePerKg : Math.round((draft.pricePerKg || 65) * 1.3)}
+                              onChange={(e) => handleDraftFieldChange(service.id, 'nextDayPricePerKg', e.target.value)}
+                              className="w-full pl-7 pr-3 py-2 rounded-xl border border-sky-300 text-sm font-bold text-sky-950 bg-sky-50/40 focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                            />
+                          </div>
+                          <span className="text-[10px] text-sky-700/80 mt-0.5 block">Next day ~24h delivery</span>
                         </div>
 
                         {/* Same Day Price */}
                         <div>
                           <label className="block text-xs font-bold text-amber-800 mb-1 flex items-center gap-1">
-                            <span>⚡ Same Day Price (฿/KG) *</span>
+                            <span>🚀 Same Day (&lt;18h) (฿/KG) *</span>
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 font-bold text-xs">฿</span>
@@ -957,18 +993,18 @@ export function AdminPOS({
                               min="1"
                               max="1000"
                               required
-                              value={draft.sameDayPricePerKg !== undefined ? draft.sameDayPricePerKg : Math.round((draft.pricePerKg || 80) * 1.45)}
+                              value={draft.sameDayPricePerKg !== undefined ? draft.sameDayPricePerKg : Math.round((draft.pricePerKg || 65) * 1.75)}
                               onChange={(e) => handleDraftFieldChange(service.id, 'sameDayPricePerKg', e.target.value)}
                               className="w-full pl-7 pr-3 py-2 rounded-xl border border-amber-300 text-sm font-bold text-amber-950 bg-amber-50/40 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                             />
                           </div>
-                          <span className="text-[10px] text-amber-700/80 mt-0.5 block">Express same-day return</span>
+                          <span className="text-[10px] text-amber-700/80 mt-0.5 block">Deliver before 18:00 hrs</span>
                         </div>
 
                         {/* Minimum Weight */}
                         <div>
                           <label className="block text-xs font-bold text-slate-800 mb-1">
-                            Minimum Weight (KG) *
+                            Min Weight (KG) *
                           </label>
                           <div className="relative">
                             <input
@@ -1002,7 +1038,7 @@ export function AdminPOS({
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">hrs</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 mt-0.5 block">E.g. 24h for Wash/Fold</span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 block">Default 48h standard</span>
                         </div>
                       </div>
 
@@ -1016,8 +1052,8 @@ export function AdminPOS({
                             className="w-4 h-4 text-amber-600 rounded"
                           />
                           <div>
-                            <span className="font-bold text-amber-950 block">⚡ Offer Same Day Express Speed for this service</span>
-                            <span className="text-[11px] text-amber-800/80">When enabled, customers can select Same Day Express in the booking wizard at ฿{draft.sameDayPricePerKg || Math.round((draft.pricePerKg || 80) * 1.45)}/KG.</span>
+                            <span className="font-bold text-amber-950 block">🚀 Offer Same Day Express Speed (Delivered Before 18:00 hrs)</span>
+                            <span className="text-[11px] text-amber-800/80">When enabled, customers can select Same Day Express in the booking wizard at ฿{draft.sameDayPricePerKg || Math.round((draft.pricePerKg || 65) * 1.75)}/KG.</span>
                           </div>
                         </label>
                       </div>
@@ -1630,13 +1666,15 @@ export function AdminPOS({
                 >
                   {(() => {
                     const selSrv = services.find(s => s.id === manualServiceId) || services[0];
-                    const nextP = selSrv?.nextDayPricePerKg || selSrv?.pricePerKg || 65;
-                    const sameP = selSrv?.sameDayPricePerKg || Math.round(nextP * 1.45);
+                    const stdP = selSrv?.standardPricePerKg || selSrv?.pricePerKg || 65;
+                    const nextP = selSrv?.nextDayPricePerKg || Math.round(stdP * 1.3);
+                    const sameP = selSrv?.sameDayPricePerKg || Math.round(stdP * 1.75);
                     return (
                       <>
-                        <option value="next_day">🕒 Next Day (฿{nextP}/KG)</option>
+                        <option value="standard_48h">🕒 Standard 48h (฿{stdP}/KG)</option>
+                        <option value="next_day_24h">⚡ Next Day 24h (฿{nextP}/KG)</option>
                         {selSrv?.sameDayAvailable !== false && (
-                          <option value="same_day">⚡ Same Day Express (฿{sameP}/KG)</option>
+                          <option value="same_day">🚀 Same Day (&lt;18:00) (฿{sameP}/KG)</option>
                         )}
                       </>
                     );
@@ -1751,9 +1789,9 @@ export function AdminPOS({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">🕒 Next Day (฿/KG) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">🕒 Standard 48h (฿/KG) *</label>
                   <input
                     type="number"
                     min="1"
@@ -1765,7 +1803,19 @@ export function AdminPOS({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-amber-800 mb-1">⚡ Same Day (฿/KG) *</label>
+                  <label className="block font-bold text-sky-800 mb-1">⚡ Next Day 24h (฿/KG) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={newServiceNextDayPrice}
+                    onChange={(e) => setNewServiceNextDayPrice(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-sky-300 font-bold bg-sky-50/40 text-sky-950"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-amber-800 mb-1">🚀 Same Day (&lt;18h) (฿/KG) *</label>
                   <input
                     type="number"
                     min="1"
@@ -1811,7 +1861,7 @@ export function AdminPOS({
                     className="w-4 h-4 text-amber-600 rounded"
                   />
                   <div>
-                    <span className="font-bold text-amber-900 block">⚡ Enable Same Day Express Speed</span>
+                    <span className="font-bold text-amber-900 block">🚀 Enable Same Day Express Speed (Delivered Before 18:00)</span>
                     <span className="text-[11px] text-amber-700">Allow customers to choose Same Day turnaround for this service at ฿{newServiceSameDayPrice}/KG.</span>
                   </div>
                 </label>

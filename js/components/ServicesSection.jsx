@@ -62,42 +62,65 @@ export function ServicesSection({ services, onSelectServiceForBooking }) {
 
                   {/* Price & Min Weight */}
                   <div className="mt-6 p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
-                    {/* Dual Pricing Badges */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2.5 rounded-xl bg-white border border-sky-200 shadow-2xs">
-                        <div className="text-[10px] uppercase font-bold text-sky-700 flex items-center gap-1">
-                          <span>🕒 Next Day</span>
-                        </div>
-                        <div className="flex items-baseline gap-0.5 mt-0.5">
-                          <span className="text-xl sm:text-2xl font-black text-slate-900">
-                            ฿{service.nextDayPricePerKg || service.pricePerKg}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase">/KG</span>
-                        </div>
-                        <div className="text-[10px] text-slate-500 font-medium mt-0.5">~24h Standard</div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 shadow-2xs">
-                        <div className="text-[10px] uppercase font-bold text-amber-800 flex items-center gap-1">
-                          <span>⚡ Same Day</span>
-                        </div>
-                        <div className="flex items-baseline gap-0.5 mt-0.5">
-                          {service.sameDayAvailable !== false ? (
-                            <>
-                              <span className="text-xl sm:text-2xl font-black text-amber-950">
-                                ฿{service.sameDayPricePerKg || Math.round((service.pricePerKg || 65) * 1.45)}
+                    {/* 3-Tier Pricing Badges */}
+                    {(() => {
+                      const stdPrice = service.standardPricePerKg || service.pricePerKg || 65;
+                      const nextPrice = service.nextDayPricePerKg || Math.round(stdPrice * 1.3);
+                      const samePrice = service.sameDayPricePerKg || Math.round(stdPrice * 1.75);
+                      return (
+                        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                          {/* Tier 1: Standard 48h */}
+                          <div className="p-2 sm:p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+                            <div className="text-[9px] uppercase font-bold text-slate-600 flex items-center gap-0.5">
+                              <span>🕒 48h</span>
+                            </div>
+                            <div className="flex items-baseline gap-0.5 mt-0.5">
+                              <span className="text-lg sm:text-xl font-black text-slate-900">
+                                ฿{stdPrice}
                               </span>
-                              <span className="text-[10px] text-amber-700/70 font-bold uppercase">/KG</span>
-                            </>
-                          ) : (
-                            <span className="text-xs font-bold text-slate-400 mt-1 block">N/A</span>
-                          )}
+                              <span className="text-[9px] text-slate-400 font-bold uppercase">/KG</span>
+                            </div>
+                            <div className="text-[9px] text-slate-500 font-medium mt-0.5">~48h Standard</div>
+                          </div>
+
+                          {/* Tier 2: Next Day 24h */}
+                          <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50/70 border border-sky-200 shadow-2xs">
+                            <div className="text-[9px] uppercase font-bold text-sky-700 flex items-center gap-0.5">
+                              <span>⚡ 24h</span>
+                            </div>
+                            <div className="flex items-baseline gap-0.5 mt-0.5">
+                              <span className="text-lg sm:text-xl font-black text-sky-950">
+                                ฿{nextPrice}
+                              </span>
+                              <span className="text-[9px] text-sky-700/70 font-bold uppercase">/KG</span>
+                            </div>
+                            <div className="text-[9px] text-sky-700 font-medium mt-0.5">Next Day</div>
+                          </div>
+
+                          {/* Tier 3: Same Day */}
+                          <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 shadow-2xs">
+                            <div className="text-[9px] uppercase font-bold text-amber-800 flex items-center gap-0.5">
+                              <span>🚀 Same Day</span>
+                            </div>
+                            <div className="flex items-baseline gap-0.5 mt-0.5">
+                              {service.sameDayAvailable !== false ? (
+                                <>
+                                  <span className="text-lg sm:text-xl font-black text-amber-950">
+                                    ฿{samePrice}
+                                  </span>
+                                  <span className="text-[9px] text-amber-700/70 font-bold uppercase">/KG</span>
+                                </>
+                              ) : (
+                                <span className="text-xs font-bold text-slate-400 mt-0.5 block">N/A</span>
+                              )}
+                            </div>
+                            <div className="text-[9px] text-amber-800/80 font-medium mt-0.5">
+                              {service.sameDayAvailable !== false ? '<18:00 Today' : 'N/A'}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-amber-800/80 font-medium mt-0.5">
-                          {service.sameDayAvailable !== false ? 'Rush (~8-12h)' : 'Next Day only'}
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/60">
                       <span className="text-slate-500 font-medium">Minimum Threshold:</span>

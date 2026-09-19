@@ -9,11 +9,12 @@ CREATE TABLE IF NOT EXISTS services (
   description TEXT,
   unit VARCHAR(32) DEFAULT 'KG',
   price_per_kg NUMERIC NOT NULL,
+  standard_price_per_kg NUMERIC,
   next_day_price_per_kg NUMERIC,
   same_day_price_per_kg NUMERIC,
   same_day_available BOOLEAN DEFAULT TRUE,
   min_weight_kg NUMERIC NOT NULL DEFAULT 4.0,
-  turnaround_hours INTEGER DEFAULT 24,
+  turnaround_hours INTEGER DEFAULT 48,
   popular BOOLEAN DEFAULT FALSE,
   features JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -309,13 +310,16 @@ async function initDatabase() {
     // 1. Create Schema
     await query(SCHEMA_SQL);
     await query(`
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS standard_price_per_kg NUMERIC;
       ALTER TABLE services ADD COLUMN IF NOT EXISTS next_day_price_per_kg NUMERIC;
       ALTER TABLE services ADD COLUMN IF NOT EXISTS same_day_price_per_kg NUMERIC;
       ALTER TABLE services ADD COLUMN IF NOT EXISTS same_day_available BOOLEAN DEFAULT TRUE;
-      ALTER TABLE orders ADD COLUMN IF NOT EXISTS turnaround_speed VARCHAR(32) DEFAULT 'next_day';
-      UPDATE services SET next_day_price_per_kg = price_per_kg WHERE next_day_price_per_kg IS NULL;
-      UPDATE services SET same_day_price_per_kg = ROUND(price_per_kg * 1.45) WHERE same_day_price_per_kg IS NULL;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS turnaround_speed VARCHAR(32) DEFAULT 'standard_48h';
+      UPDATE services SET standard_price_per_kg = price_per_kg WHERE standard_price_per_kg IS NULL;
+      UPDATE services SET next_day_price_per_kg = ROUND(price_per_kg * 1.3) WHERE next_day_price_per_kg IS NULL OR next_day_price_per_kg = price_per_kg;
+      UPDATE services SET same_day_price_per_kg = ROUND(price_per_kg * 1.75) WHERE same_day_price_per_kg IS NULL;
       UPDATE services SET same_day_available = TRUE WHERE same_day_available IS NULL;
+      UPDATE services SET turnaround_hours = 48 WHERE turnaround_hours IS NULL OR turnaround_hours < 48;
     `).catch(err => console.warn('Column migration note:', err.message));
     console.log('✅ Tables created or verified (services, orders, incidents, settings).');
 
