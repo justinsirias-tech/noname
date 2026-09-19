@@ -377,20 +377,35 @@ export class LaundryStore {
     this.persist(STORAGE_KEYS.SERVICES, this.services);
     this.notify();
 
-    const res = await fetch(`/api/services/${encodeURIComponent(serviceId)}`, {
-      method: 'PUT',
-      headers: this.getAdminAuthHeaders(),
-      body: JSON.stringify(updatedData)
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch(`/api/services/${encodeURIComponent(serviceId)}`, {
+        method: 'PUT',
+        headers: this.getAdminAuthHeaders(),
+        body: JSON.stringify(updatedData)
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        this.services = this.services.map(s => s.id === serviceId ? { ...s, ...saved } : s);
+        this.persist(STORAGE_KEYS.SERVICES, this.services);
+        this.notify();
+        return saved;
+      }
+      if (res.status === 401) {
+        throw new Error('Admin session expired. Please log in again.');
+      }
+      if (res.status === 501 || res.status === 502 || res.status === 503) {
+        console.warn(`Backend returned HTTP ${res.status}, saved in local cache.`);
+        return updatedData;
+      }
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || `Failed to update service ${serviceId} (HTTP ${res.status})`);
+    } catch (networkErr) {
+      if (networkErr.message && (networkErr.message.includes('Failed to fetch') || networkErr.message.includes('NetworkError'))) {
+        console.warn('Backend offline, saved in local cache.');
+        return updatedData;
+      }
+      throw networkErr;
     }
-    const saved = await res.json();
-    this.services = this.services.map(s => s.id === serviceId ? { ...s, ...saved } : s);
-    this.persist(STORAGE_KEYS.SERVICES, this.services);
-    this.notify();
-    return saved;
   }
 
   async updateAllServices(servicesList) {
@@ -430,22 +445,37 @@ export class LaundryStore {
     this.persist(STORAGE_KEYS.SERVICES, this.services);
     this.notify();
 
-    const res = await fetch('/api/services', {
-      method: 'PUT',
-      headers: this.getAdminAuthHeaders(),
-      body: JSON.stringify(servicesList)
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch('/api/services', {
+        method: 'PUT',
+        headers: this.getAdminAuthHeaders(),
+        body: JSON.stringify(servicesList)
+      });
+      if (res.ok) {
+        const savedServices = await res.json();
+        if (Array.isArray(savedServices) && savedServices.length > 0) {
+          this.services = savedServices;
+          this.persist(STORAGE_KEYS.SERVICES, this.services);
+          this.notify();
+        }
+        return savedServices;
+      }
+      if (res.status === 401) {
+        throw new Error('Admin session expired. Please log in again.');
+      }
+      if (res.status === 501 || res.status === 502 || res.status === 503) {
+        console.warn(`Backend returned HTTP ${res.status}, saved in local cache.`);
+        return servicesList;
+      }
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || `Failed to batch update services (HTTP ${res.status})`);
+    } catch (networkErr) {
+      if (networkErr.message && (networkErr.message.includes('Failed to fetch') || networkErr.message.includes('NetworkError'))) {
+        console.warn('Backend offline, saved in local cache.');
+        return servicesList;
+      }
+      throw networkErr;
     }
-    const savedServices = await res.json();
-    if (Array.isArray(savedServices) && savedServices.length > 0) {
-      this.services = savedServices;
-      this.persist(STORAGE_KEYS.SERVICES, this.services);
-      this.notify();
-    }
-    return savedServices;
   }
 
   // Add a brand new service dynamically
