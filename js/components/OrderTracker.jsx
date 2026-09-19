@@ -374,8 +374,18 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
                     {statusMeta.label}
                   </span>
                 </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  Service: <strong>{activeOrder.serviceName}</strong> • Tag: <code>{activeOrder.tagNumber}</code>
+                <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                  <span>Service: <strong>{activeOrder.serviceName}</strong></span>
+                  {activeOrder.turnaroundSpeed === 'same_day' ? (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-[10px]">
+                      ⚡ Same Day Express
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-[10px]">
+                      🕒 Next Day
+                    </span>
+                  )}
+                  <span>• Tag: <code>{activeOrder.tagNumber}</code></span>
                 </div>
               </div>
 

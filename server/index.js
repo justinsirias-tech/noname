@@ -14,13 +14,18 @@ app.use(express.json());
 // Helper row mappers
 function mapService(row) {
   if (!row) return null;
+  const nextPrice = Number(row.next_day_price_per_kg || row.price_per_kg);
+  const samePrice = Number(row.same_day_price_per_kg || Math.round(nextPrice * 1.45));
   return {
     id: row.id,
     name: row.name,
     nameTh: row.name_th,
     description: row.description,
     unit: row.unit || 'KG',
-    pricePerKg: Number(row.price_per_kg),
+    pricePerKg: nextPrice,
+    nextDayPricePerKg: nextPrice,
+    sameDayPricePerKg: samePrice,
+    sameDayAvailable: row.same_day_available !== undefined && row.same_day_available !== null ? Boolean(row.same_day_available) : true,
     minWeightKg: Number(row.min_weight_kg),
     turnaroundHours: Number(row.turnaround_hours),
     popular: Boolean(row.popular),
@@ -47,6 +52,7 @@ function mapOrder(row) {
     minWeightAppliedKg: Number(row.min_weight_applied_kg || 4.0),
     pricePerKg: Number(row.price_per_kg),
     totalPrice: Number(row.total_price),
+    turnaroundSpeed: row.turnaround_speed || 'next_day',
     status: row.status,
     paymentStatus: row.payment_status,
     paymentMethod: row.payment_method,
@@ -229,9 +235,13 @@ app.post('/api/services', requireAdminAuth, async (req, res) => {
   try {
     const s = req.body;
     const id = s.id || (s.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000));
+    const nextPrice = Number(s.nextDayPricePerKg || s.pricePerKg) || 80;
+    const samePrice = Number(s.sameDayPricePerKg) || Math.round(nextPrice * 1.45);
+    const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true;
+
     const result = await query(`
-      INSERT INTO services (id, name, name_th, description, unit, price_per_kg, min_weight_kg, turnaround_hours, popular, features)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO services (id, name, name_th, description, unit, price_per_kg, next_day_price_per_kg, same_day_price_per_kg, same_day_available, min_weight_kg, turnaround_hours, popular, features)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
     `, [
       id,
@@ -239,7 +249,10 @@ app.post('/api/services', requireAdminAuth, async (req, res) => {
       s.nameTh ? s.nameTh.trim() : s.name.trim(),
       s.description || '',
       s.unit || 'KG',
-      Number(s.pricePerKg) || 80,
+      nextPrice,
+      nextPrice,
+      samePrice,
+      sameAvail,
       Number(s.minWeightKg) || 4.0,
       Number(s.turnaroundHours) || 24,
       Boolean(s.popular),
@@ -261,23 +274,33 @@ app.put('/api/services', requireAdminAuth, async (req, res) => {
 
     for (const s of servicesList) {
       if (!s || !s.id) continue;
+      const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : (s.pricePerKg !== undefined ? Number(s.pricePerKg) : null);
+      const samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : null;
+      const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : null;
+
       await query(`
         UPDATE services
         SET name = COALESCE($1, name),
             name_th = COALESCE($2, name_th),
             description = COALESCE($3, description),
             price_per_kg = COALESCE($4, price_per_kg),
-            min_weight_kg = COALESCE($5, min_weight_kg),
-            turnaround_hours = COALESCE($6, turnaround_hours),
-            popular = COALESCE($7, popular),
-            features = COALESCE($8::jsonb, features),
+            next_day_price_per_kg = COALESCE($5, next_day_price_per_kg),
+            same_day_price_per_kg = COALESCE($6, same_day_price_per_kg),
+            same_day_available = COALESCE($7, same_day_available),
+            min_weight_kg = COALESCE($8, min_weight_kg),
+            turnaround_hours = COALESCE($9, turnaround_hours),
+            popular = COALESCE($10, popular),
+            features = COALESCE($11::jsonb, features),
             updated_at = NOW()
-        WHERE id = $9
+        WHERE id = $12
       `, [
         s.name !== undefined ? s.name.trim() : null,
         s.nameTh !== undefined ? s.nameTh.trim() : null,
         s.description !== undefined ? s.description.trim() : null,
-        s.pricePerKg !== undefined ? Number(s.pricePerKg) : null,
+        nextPrice,
+        nextPrice,
+        samePrice,
+        sameAvail,
         s.minWeightKg !== undefined ? Math.max(1, Number(s.minWeightKg)) : null,
         s.turnaroundHours !== undefined ? Number(s.turnaroundHours) : null,
         s.popular !== undefined ? Boolean(s.popular) : null,
@@ -299,24 +322,34 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const s = req.body;
+    const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : (s.pricePerKg !== undefined ? Number(s.pricePerKg) : null);
+    const samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : null;
+    const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : null;
+
     const result = await query(`
       UPDATE services
       SET name = COALESCE($1, name),
           name_th = COALESCE($2, name_th),
           description = COALESCE($3, description),
           price_per_kg = COALESCE($4, price_per_kg),
-          min_weight_kg = COALESCE($5, min_weight_kg),
-          turnaround_hours = COALESCE($6, turnaround_hours),
-          popular = COALESCE($7, popular),
-          features = COALESCE($8::jsonb, features),
+          next_day_price_per_kg = COALESCE($5, next_day_price_per_kg),
+          same_day_price_per_kg = COALESCE($6, same_day_price_per_kg),
+          same_day_available = COALESCE($7, same_day_available),
+          min_weight_kg = COALESCE($8, min_weight_kg),
+          turnaround_hours = COALESCE($9, turnaround_hours),
+          popular = COALESCE($10, popular),
+          features = COALESCE($11::jsonb, features),
           updated_at = NOW()
-      WHERE id = $9
+      WHERE id = $12
       RETURNING *
     `, [
       s.name !== undefined ? s.name.trim() : null,
       s.nameTh !== undefined ? s.nameTh.trim() : null,
       s.description !== undefined ? s.description.trim() : null,
-      s.pricePerKg !== undefined ? Number(s.pricePerKg) : null,
+      nextPrice,
+      nextPrice,
+      samePrice,
+      sameAvail,
       s.minWeightKg !== undefined ? Math.max(1, Number(s.minWeightKg)) : null,
       s.turnaroundHours !== undefined ? Number(s.turnaroundHours) : null,
       s.popular !== undefined ? Boolean(s.popular) : null,
@@ -327,7 +360,7 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Service not found' });
     }
-    console.log(`[POSTGRES] Service '${id}' updated: price=${s.pricePerKg}, minWeight=${s.minWeightKg}`);
+    console.log(`[POSTGRES] Service '${id}' updated: nextDayPrice=${nextPrice}, sameDayPrice=${samePrice}`);
     res.json(mapService(result.rows[0]));
   } catch (err) {
     console.error(`[POSTGRES ERROR] Updating service '${req.params.id}':`, err);
@@ -375,7 +408,7 @@ app.post('/api/orders', async (req, res) => {
         id, customer_name, contact_channel, contact_value, email,
         service_id, service_name, district, condo_name, room_number,
         leave_with_juristic, estimated_weight_kg, actual_weight_kg,
-        min_weight_applied_kg, price_per_kg, total_price, status,
+        min_weight_applied_kg, price_per_kg, total_price, turnaround_speed, status,
         payment_status, payment_method, payment_ref, tag_number,
         pickup_date, pickup_time, delivery_date, delivery_time,
         special_instructions, agreed_terms, cashless_policy_acknowledged,
@@ -383,7 +416,7 @@ app.post('/api/orders', async (req, res) => {
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30
+        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
       )
       RETURNING *
     `, [
@@ -403,6 +436,7 @@ app.post('/api/orders', async (req, res) => {
       Number(o.minWeightAppliedKg) || 4.0,
       Number(o.pricePerKg) || 65,
       Number(o.totalPrice) || 0,
+      o.turnaroundSpeed || 'next_day',
       o.status || 'BOOKING_REQUESTED',
       o.paymentStatus || 'PENDING',
       o.paymentMethod || null,

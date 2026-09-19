@@ -120,6 +120,16 @@ export function OrderDetailsModal({
               {meta.label}
             </span>
 
+            {order.turnaroundSpeed === 'same_day' ? (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-amber-950 border border-amber-300">
+                ⚡ SAME DAY
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                🕒 NEXT DAY
+              </span>
+            )}
+
             {order.tagNumber && order.tagNumber !== 'TAG-PENDING' && (
               <span className="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-sky-950 text-sky-300 border border-sky-800">
                 🏷️ {order.tagNumber}
@@ -245,10 +255,19 @@ export function OrderDetailsModal({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div className="p-3 bg-white rounded-xl border border-sky-100">
                     <span className="text-slate-400 block text-[10px] font-semibold uppercase">Service</span>
                     <span className="font-bold text-slate-900">{order.serviceName}</span>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-xl border border-sky-100">
+                    <span className="text-slate-400 block text-[10px] font-semibold uppercase">Turnaround Speed</span>
+                    {order.turnaroundSpeed === 'same_day' ? (
+                      <span className="font-bold text-amber-800 flex items-center gap-0.5">⚡ Same Day</span>
+                    ) : (
+                      <span className="font-bold text-sky-700 flex items-center gap-0.5">🕒 Next Day</span>
+                    )}
                   </div>
 
                   <div className="p-3 bg-white rounded-xl border border-sky-100">

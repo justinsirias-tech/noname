@@ -61,27 +61,48 @@ export function ServicesSection({ services, onSelectServiceForBooking }) {
                   </p>
 
                   {/* Price & Min Weight */}
-                  <div className="mt-6 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl sm:text-4xl font-black text-slate-900">
-                        ฿{service.pricePerKg}
-                      </span>
-                      <span className="text-xs text-slate-500 font-bold uppercase">
-                        / KG
-                      </span>
+                  <div className="mt-6 p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
+                    {/* Dual Pricing Badges */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2.5 rounded-xl bg-white border border-sky-200 shadow-2xs">
+                        <div className="text-[10px] uppercase font-bold text-sky-700 flex items-center gap-1">
+                          <span>🕒 Next Day</span>
+                        </div>
+                        <div className="flex items-baseline gap-0.5 mt-0.5">
+                          <span className="text-xl sm:text-2xl font-black text-slate-900">
+                            ฿{service.nextDayPricePerKg || service.pricePerKg}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">/KG</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium mt-0.5">~24h Standard</div>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 shadow-2xs">
+                        <div className="text-[10px] uppercase font-bold text-amber-800 flex items-center gap-1">
+                          <span>⚡ Same Day</span>
+                        </div>
+                        <div className="flex items-baseline gap-0.5 mt-0.5">
+                          {service.sameDayAvailable !== false ? (
+                            <>
+                              <span className="text-xl sm:text-2xl font-black text-amber-950">
+                                ฿{service.sameDayPricePerKg || Math.round((service.pricePerKg || 65) * 1.45)}
+                              </span>
+                              <span className="text-[10px] text-amber-700/70 font-bold uppercase">/KG</span>
+                            </>
+                          ) : (
+                            <span className="text-xs font-bold text-slate-400 mt-1 block">N/A</span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-amber-800/80 font-medium mt-0.5">
+                          {service.sameDayAvailable !== false ? 'Rush (~8-12h)' : 'Next Day only'}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="mt-2 flex items-center justify-between text-xs pt-2 border-t border-slate-200/60">
-                      <span className="text-slate-500 font-medium">Minimum Weight:</span>
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/60">
+                      <span className="text-slate-500 font-medium">Minimum Threshold:</span>
                       <span className="font-extrabold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
                         {service.minWeightKg} KG
-                      </span>
-                    </div>
-
-                    <div className="mt-1 flex items-center justify-between text-xs pt-1">
-                      <span className="text-slate-500 font-medium">Est. Turnaround:</span>
-                      <span className="font-semibold text-slate-700">
-                        {service.turnaroundHours} Hours
                       </span>
                     </div>
                   </div>

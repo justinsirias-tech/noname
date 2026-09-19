@@ -8,6 +8,7 @@ import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 export function BookingWizard({ services, initialServiceId, initialWeight, onBookingSuccess, onViewFullTerms }) {
   const [serviceId, setServiceId] = useState(initialServiceId || services[0]?.id || 'wash_fold');
   const [estimatedWeightKg, setEstimatedWeightKg] = useState(initialWeight || 4.0);
+  const [turnaroundSpeed, setTurnaroundSpeed] = useState('next_day'); // 'next_day' or 'same_day'
   
   // Customer Info
   const [customerName, setCustomerName] = useState('');
@@ -59,8 +60,12 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
   }, [initialServiceId, initialWeight]);
 
   const currentService = services.find(s => s.id === serviceId) || services[0];
-  const minWeight = Number(currentService?.minWeightKg || 3);
-  const priceRate = Number(currentService?.pricePerKg || 65);
+  const isSameDayAvailable = currentService?.sameDayAvailable !== false;
+  const minWeight = Number(currentService?.minWeightKg || 4.0);
+  const nextDayRate = Number(currentService?.nextDayPricePerKg || currentService?.pricePerKg || 65);
+  const sameDayRate = Number(currentService?.sameDayPricePerKg || Math.round(nextDayRate * 1.45));
+  const activeSpeed = (turnaroundSpeed === 'same_day' && isSameDayAvailable) ? 'same_day' : 'next_day';
+  const priceRate = activeSpeed === 'same_day' ? sameDayRate : nextDayRate;
   const billableWeight = Math.max(Number(estimatedWeightKg), minWeight);
   const estimatedTotal = Math.round(billableWeight * priceRate);
 
@@ -98,13 +103,17 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
       contactValue: contactValue.trim(),
       email: email.trim() || `${customerName.toLowerCase().replace(/\s+/g, '')}@customer.local`,
       serviceId,
+      turnaroundSpeed: activeSpeed,
       district,
       condoName: condoName.trim(),
       roomNumber: roomNumber.trim(),
       leaveWithJuristic,
       estimatedWeightKg: Number(estimatedWeightKg),
+      pricePerKg: priceRate,
       pickupDate,
       pickupTime,
+      deliveryDate: activeSpeed === 'same_day' ? `${pickupDate} (Same Day Evening)` : 'Scheduled Next Day (24h)',
+      deliveryTime: activeSpeed === 'same_day' ? '18:00 - 20:30 (Evening Rush)' : 'TBD',
       specialInstructions: specialInstructions.trim(),
       companyTax: isCompanyTax ? {
         required: true,
@@ -263,39 +272,156 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
       <form onSubmit={handleSubmit} className="space-y-8">
         
         {/* Step 1: Select Service & Weight */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
+          <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">1</span>
-            <h2 className="text-lg font-bold text-slate-900">Service & Weight Estimation</h2>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Service & Turnaround Speed</h2>
+              <p className="text-xs text-slate-500">Select your laundry service and preferred turnaround speed. All billing is strictly by weight (KG).</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            {services.map((srv) => (
+          {/* Service Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {services.map((srv) => {
+              const srvNext = srv.nextDayPricePerKg || srv.pricePerKg || 65;
+              const srvSame = srv.sameDayPricePerKg || Math.round(srvNext * 1.45);
+              const isSelected = serviceId === srv.id;
+
+              return (
+                <div
+                  key={srv.id}
+                  onClick={() => {
+                    setServiceId(srv.id);
+                    if (srv.sameDayAvailable === false && turnaroundSpeed === 'same_day') {
+                      setTurnaroundSpeed('next_day');
+                    }
+                  }}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
+                    isSelected
+                      ? 'border-sky-600 bg-sky-50/60 shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-extrabold text-sm text-slate-900">{srv.name}</div>
+                      <div className="text-[11px] text-slate-500 font-medium">{srv.nameTh}</div>
+                    </div>
+                    {isSelected && (
+                      <div className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center shrink-0">
+                        <Icon name="check" className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-slate-200/70 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600 font-medium">Next Day:</span>
+                      <span className="font-extrabold text-sky-700">฿{srvNext} / KG</span>
+                    </div>
+                    {srv.sameDayAvailable !== false ? (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-amber-800 font-medium flex items-center gap-0.5">
+                          <span>⚡ Same Day:</span>
+                        </span>
+                        <span className="font-extrabold text-amber-700">฿{srvSame} / KG</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>⚡ Same Day:</span>
+                        <span>Next Day only</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-[11px] text-slate-400 mt-2 font-mono">
+                    Min weight: {srv.minWeightKg || 4.0} KG
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Turnaround Speed Selection */}
+          <div className="space-y-2.5 pt-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Select Turnaround Speed *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Option A: Next Day */}
               <div
-                key={srv.id}
-                onClick={() => setServiceId(srv.id)}
-                className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
-                  serviceId === srv.id
-                    ? 'border-sky-600 bg-sky-50/60 shadow-sm'
+                onClick={() => setTurnaroundSpeed('next_day')}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3.5 ${
+                  activeSpeed === 'next_day'
+                    ? 'border-sky-600 bg-sky-50/70 shadow-sm ring-1 ring-sky-500'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
               >
-                <div className="flex justify-between items-start">
-                  <div className="font-extrabold text-sm text-slate-900">{srv.name}</div>
-                  {serviceId === srv.id && (
-                    <div className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center">
-                      <Icon name="check" className="w-3.5 h-3.5" />
-                    </div>
-                  )}
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                  activeSpeed === 'next_day' ? 'border-sky-600 bg-sky-600 text-white' : 'border-slate-400'
+                }`}>
+                  {activeSpeed === 'next_day' && <Icon name="check" className="w-3.5 h-3.5" />}
                 </div>
-                <div className="text-xs text-sky-700 font-semibold mt-1">
-                  ฿{srv.pricePerKg} / KG
-                </div>
-                <div className="text-[11px] text-slate-500 mt-1">
-                  Min weight: {srv.minWeightKg} KG
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-extrabold text-slate-900 text-sm">
+                      🕒 Next Day Service
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-xs">
+                      ฿{nextDayRate} / KG
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Standard turnaround (~24h). Picked up tomorrow morning, washed, dried, neatly folded, and returned fresh next day evening.
+                  </p>
+                  <div className="mt-2 text-[11px] text-sky-700 font-semibold flex items-center gap-1">
+                    <Icon name="clock" className="w-3 h-3" />
+                    <span>Turnaround: ~24 Hours</span>
+                  </div>
                 </div>
               </div>
-            ))}
+
+              {/* Option B: Same Day Express */}
+              <div
+                onClick={() => {
+                  if (isSameDayAvailable) setTurnaroundSpeed('same_day');
+                }}
+                className={`p-4 rounded-2xl border-2 transition flex items-start gap-3.5 relative ${
+                  !isSameDayAvailable
+                    ? 'opacity-50 border-slate-200 bg-slate-50 cursor-not-allowed'
+                    : activeSpeed === 'same_day'
+                    ? 'border-amber-500 bg-amber-50/80 shadow-sm ring-1 ring-amber-500 cursor-pointer'
+                    : 'border-slate-200 hover:border-amber-300 bg-white cursor-pointer'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                  activeSpeed === 'same_day' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-400'
+                }`}>
+                  {activeSpeed === 'same_day' && <Icon name="check" className="w-3.5 h-3.5" />}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-extrabold text-slate-900 text-sm flex items-center gap-1">
+                      <span>⚡ Same Day Express</span>
+                      <span className="text-[10px] uppercase font-bold bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded">Rush</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs">
+                      ฿{sameDayRate} / KG
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Same-day express return! Picked up morning (by 11:00 AM) and delivered to your condo same evening between 18:00 - 20:30.
+                  </p>
+                  <div className="mt-2 text-[11px] text-amber-800 font-semibold flex items-center gap-1">
+                    <Icon name="clock" className="w-3 h-3" />
+                    <span>Turnaround: ~8 to 12 Hours (Same Evening Return)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Weight Slider */}
@@ -328,10 +454,14 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
             />
 
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-1 flex-wrap gap-2">
               <span>Selected: <strong>{estimatedWeightKg} KG</strong></span>
               <span>Min Billed: <strong>{minWeight} KG</strong></span>
-              <span>Rate: <strong>฿{priceRate}/KG</strong></span>
+              <span>
+                Active Rate: <strong className={activeSpeed === 'same_day' ? 'text-amber-800' : 'text-sky-700'}>
+                  ฿{priceRate}/KG ({activeSpeed === 'same_day' ? '⚡ Same Day' : '🕒 Next Day'})
+                </strong>
+              </span>
             </div>
 
             {Number(estimatedWeightKg) < minWeight && (
@@ -344,13 +474,18 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
             )}
 
             <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
-              <span className="font-semibold text-slate-700">Estimated Total:</span>
-              <span className="text-xl font-extrabold text-sky-600">
+              <div>
+                <span className="font-semibold text-slate-700 block">Estimated Total:</span>
+                <span className="text-[11px] text-slate-400">
+                  {billableWeight} KG × ฿{priceRate}/KG ({activeSpeed === 'same_day' ? 'Same Day' : 'Next Day'})
+                </span>
+              </div>
+              <span className={`text-2xl font-black ${activeSpeed === 'same_day' ? 'text-amber-600' : 'text-sky-600'}`}>
                 ฿{estimatedTotal} THB
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              * Official weight is verified on certified scales at our central Bangkok facility.
+              * Official weight is verified on certified digital scales at our central Bangkok facility.
             </p>
           </div>
         </div>
@@ -611,6 +746,29 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                 </div>
               </label>
             </div>
+
+            {/* Same Day / Next Day Schedule Banner */}
+            {activeSpeed === 'same_day' ? (
+              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-3">
+                <span className="text-xl">⚡</span>
+                <div className="text-xs text-amber-950">
+                  <span className="font-extrabold block text-sm">Same Day Express Delivery Active</span>
+                  <span className="mt-0.5 block leading-relaxed">
+                    Pickup will be conducted during your selected morning window. Your freshly washed and processed laundry will be returned to your condo front desk/Juristic the <strong>same evening between 18:00 - 20:30 (Evening Rush)</strong>.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl flex items-start gap-3">
+                <span className="text-xl">🕒</span>
+                <div className="text-xs text-sky-950">
+                  <span className="font-extrabold block text-sm">Next Day Delivery (~24 Hours)</span>
+                  <span className="mt-0.5 block leading-relaxed">
+                    Pickup on your scheduled date and delivery completed the next day fresh and sealed to your condo.
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>

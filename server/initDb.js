@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS services (
   description TEXT,
   unit VARCHAR(32) DEFAULT 'KG',
   price_per_kg NUMERIC NOT NULL,
+  next_day_price_per_kg NUMERIC,
+  same_day_price_per_kg NUMERIC,
+  same_day_available BOOLEAN DEFAULT TRUE,
   min_weight_kg NUMERIC NOT NULL DEFAULT 4.0,
   turnaround_hours INTEGER DEFAULT 24,
   popular BOOLEAN DEFAULT FALSE,
@@ -34,6 +37,7 @@ CREATE TABLE IF NOT EXISTS orders (
   min_weight_applied_kg NUMERIC DEFAULT 4.0,
   price_per_kg NUMERIC,
   total_price NUMERIC,
+  turnaround_speed VARCHAR(32) DEFAULT 'next_day',
   status VARCHAR(64) NOT NULL DEFAULT 'BOOKING_REQUESTED',
   payment_status VARCHAR(64) NOT NULL DEFAULT 'PENDING',
   payment_method VARCHAR(128),
@@ -304,6 +308,15 @@ async function initDatabase() {
   try {
     // 1. Create Schema
     await query(SCHEMA_SQL);
+    await query(`
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS next_day_price_per_kg NUMERIC;
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS same_day_price_per_kg NUMERIC;
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS same_day_available BOOLEAN DEFAULT TRUE;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS turnaround_speed VARCHAR(32) DEFAULT 'next_day';
+      UPDATE services SET next_day_price_per_kg = price_per_kg WHERE next_day_price_per_kg IS NULL;
+      UPDATE services SET same_day_price_per_kg = ROUND(price_per_kg * 1.45) WHERE same_day_price_per_kg IS NULL;
+      UPDATE services SET same_day_available = TRUE WHERE same_day_available IS NULL;
+    `).catch(err => console.warn('Column migration note:', err.message));
     console.log('✅ Tables created or verified (services, orders, incidents, settings).');
 
     // 2. Seed Services if empty

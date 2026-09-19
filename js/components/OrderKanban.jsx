@@ -179,9 +179,16 @@ export function OrderKanban({
 
                         {/* Service & Weight Pill */}
                         <div className="flex items-center justify-between gap-1.5 mb-2.5 text-[10px]">
-                          <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold truncate max-w-[140px]">
-                            {order.serviceName}
-                          </span>
+                          <div className="flex items-center gap-1 min-w-0">
+                            {order.turnaroundSpeed === 'same_day' && (
+                              <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-[9px] shrink-0">
+                                ⚡ Same Day
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold truncate">
+                              {order.serviceName}
+                            </span>
+                          </div>
 
                           {order.actualWeightKg ? (
                             <span className="font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 whitespace-nowrap">

@@ -123,11 +123,25 @@ export class LaundryStore {
     try {
       const savedServices = localStorage.getItem(STORAGE_KEYS.SERVICES);
       let loadedServices = savedServices ? JSON.parse(savedServices) : INITIAL_SERVICES;
-      // Guarantee minimum weight default is at least 4.0 KG
-      this.services = loadedServices.map(s => ({
-        ...s,
-        minWeightKg: Number(s.minWeightKg) < 4.0 ? 4.0 : Number(s.minWeightKg)
-      }));
+      // Guarantee minimum weight default is at least 4.0 KG & ensure dual pricing fields exist
+      this.services = loadedServices.map(s => {
+        const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : Number(s.pricePerKg || 65);
+        let samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : 0;
+        if (!samePrice) {
+          if (s.id === 'wash_fold') samePrice = 95;
+          else if (s.id === 'wash_iron_fold') samePrice = 145;
+          else if (s.id === 'wash_iron_hang') samePrice = 175;
+          else samePrice = Math.round(nextPrice * 1.45);
+        }
+        return {
+          ...s,
+          nextDayPricePerKg: nextPrice,
+          sameDayPricePerKg: samePrice,
+          sameDayAvailable: s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true,
+          pricePerKg: nextPrice,
+          minWeightKg: Number(s.minWeightKg) < 4.0 ? 4.0 : Number(s.minWeightKg)
+        };
+      });
 
       const savedOrders = localStorage.getItem(STORAGE_KEYS.ORDERS);
       this.orders = savedOrders ? JSON.parse(savedOrders) : INITIAL_ORDERS;
@@ -316,13 +330,26 @@ export class LaundryStore {
   async updateServiceFull(serviceId, updatedData) {
     this.services = this.services.map(srv => {
       if (srv.id === serviceId) {
+        const nextPrice = updatedData.nextDayPricePerKg !== undefined 
+          ? Number(updatedData.nextDayPricePerKg) 
+          : (updatedData.pricePerKg !== undefined ? Number(updatedData.pricePerKg) : (srv.nextDayPricePerKg || srv.pricePerKg));
+        const samePrice = updatedData.sameDayPricePerKg !== undefined 
+          ? Number(updatedData.sameDayPricePerKg) 
+          : (srv.sameDayPricePerKg || Math.round(nextPrice * 1.45));
+        const sameAvail = updatedData.sameDayAvailable !== undefined 
+          ? Boolean(updatedData.sameDayAvailable) 
+          : (srv.sameDayAvailable !== undefined ? srv.sameDayAvailable : true);
+
         return {
           ...srv,
           ...updatedData,
           name: updatedData.name ? updatedData.name.trim() : srv.name,
           nameTh: updatedData.nameTh ? updatedData.nameTh.trim() : srv.nameTh,
           description: updatedData.description !== undefined ? updatedData.description.trim() : srv.description,
-          pricePerKg: updatedData.pricePerKg !== undefined ? Number(updatedData.pricePerKg) : srv.pricePerKg,
+          pricePerKg: nextPrice,
+          nextDayPricePerKg: nextPrice,
+          sameDayPricePerKg: samePrice,
+          sameDayAvailable: sameAvail,
           minWeightKg: updatedData.minWeightKg !== undefined ? Math.max(1, Number(updatedData.minWeightKg)) : srv.minWeightKg,
           turnaroundHours: updatedData.turnaroundHours !== undefined ? Number(updatedData.turnaroundHours) : srv.turnaroundHours,
           popular: updatedData.popular !== undefined ? Boolean(updatedData.popular) : srv.popular,
@@ -360,10 +387,23 @@ export class LaundryStore {
     this.services = this.services.map(srv => {
       const draft = map.get(srv.id);
       if (!draft) return srv;
+      const nextPrice = draft.nextDayPricePerKg !== undefined 
+        ? Number(draft.nextDayPricePerKg) 
+        : (draft.pricePerKg !== undefined ? Number(draft.pricePerKg) : (srv.nextDayPricePerKg || srv.pricePerKg));
+      const samePrice = draft.sameDayPricePerKg !== undefined 
+        ? Number(draft.sameDayPricePerKg) 
+        : (srv.sameDayPricePerKg || Math.round(nextPrice * 1.45));
+      const sameAvail = draft.sameDayAvailable !== undefined 
+        ? Boolean(draft.sameDayAvailable) 
+        : (srv.sameDayAvailable !== undefined ? srv.sameDayAvailable : true);
+
       return {
         ...srv,
         ...draft,
-        pricePerKg: draft.pricePerKg !== undefined ? Number(draft.pricePerKg) : srv.pricePerKg,
+        pricePerKg: nextPrice,
+        nextDayPricePerKg: nextPrice,
+        sameDayPricePerKg: samePrice,
+        sameDayAvailable: sameAvail,
         minWeightKg: draft.minWeightKg !== undefined ? Math.max(1, Number(draft.minWeightKg)) : srv.minWeightKg,
         turnaroundHours: draft.turnaroundHours !== undefined ? Number(draft.turnaroundHours) : srv.turnaroundHours,
         features: Array.isArray(draft.features) ? draft.features : srv.features
@@ -393,13 +433,18 @@ export class LaundryStore {
   // Add a brand new service dynamically
   addService(serviceData) {
     const id = serviceData.id || serviceData.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000);
+    const nextPrice = Number(serviceData.nextDayPricePerKg || serviceData.pricePerKg) || 80;
+    const samePrice = Number(serviceData.sameDayPricePerKg) || Math.round(nextPrice * 1.45);
     const newService = {
       id,
       name: serviceData.name.trim(),
       nameTh: serviceData.nameTh ? serviceData.nameTh.trim() : serviceData.name.trim(),
       description: serviceData.description.trim(),
       unit: 'KG',
-      pricePerKg: Number(serviceData.pricePerKg) || 80,
+      pricePerKg: nextPrice,
+      nextDayPricePerKg: nextPrice,
+      sameDayPricePerKg: samePrice,
+      sameDayAvailable: serviceData.sameDayAvailable !== undefined ? Boolean(serviceData.sameDayAvailable) : true,
       minWeightKg: Number(serviceData.minWeightKg) || 4.0,
       turnaroundHours: Number(serviceData.turnaroundHours) || 24,
       popular: Boolean(serviceData.popular),
@@ -444,8 +489,12 @@ export class LaundryStore {
   // Order Management
   createOrder(orderInput) {
     const service = this.services.find(s => s.id === orderInput.serviceId) || this.services[0];
+    const isSameDay = orderInput.turnaroundSpeed === 'same_day';
+    const unitPrice = isSameDay
+      ? (Number(service.sameDayPricePerKg) || Math.round(Number(service.pricePerKg || 65) * 1.45))
+      : (Number(service.nextDayPricePerKg) || Number(service.pricePerKg || 65));
     const weightToBill = Math.max(Number(orderInput.estimatedWeightKg), Number(service.minWeightKg));
-    const calculatedTotal = Math.round(weightToBill * Number(service.pricePerKg));
+    const calculatedTotal = Math.round(weightToBill * unitPrice);
 
     const trackingNumber = 'NNL-' + Math.floor(1000 + Math.random() * 9000) + '-BK';
 
@@ -467,8 +516,9 @@ export class LaundryStore {
       estimatedWeightKg: Number(orderInput.estimatedWeightKg),
       actualWeightKg: null,
       minWeightAppliedKg: service.minWeightKg,
-      pricePerKg: service.pricePerKg,
+      pricePerKg: unitPrice,
       totalPrice: calculatedTotal,
+      turnaroundSpeed: isSameDay ? 'same_day' : 'next_day',
       status: 'BOOKING_REQUESTED',
       paymentStatus: 'PENDING', // PENDING, PAID
       paymentMethod: null,
@@ -476,8 +526,8 @@ export class LaundryStore {
       tagNumber: 'TAG-PENDING',
       pickupDate: orderInput.pickupDate,
       pickupTime: orderInput.pickupTime,
-      deliveryDate: orderInput.deliveryDate || 'Scheduled (24-48h)',
-      deliveryTime: orderInput.deliveryTime || 'TBD',
+      deliveryDate: orderInput.deliveryDate || (isSameDay ? `${orderInput.pickupDate} (Same Day Evening)` : 'Scheduled Next Day (24h)'),
+      deliveryTime: orderInput.deliveryTime || (isSameDay ? '18:00 - 20:30 (Evening Rush)' : 'TBD'),
       specialInstructions: orderInput.specialInstructions || '',
       agreedTerms: true,
       cashlessPolicyAcknowledged: true,
