@@ -1,10 +1,11 @@
 // State and LocalStorage / PostgreSQL Management for NoName Laundry
-import { INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_INCIDENTS } from './data/servicesData.js';
+import { INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_INCIDENTS, INITIAL_CUSTOMERS } from './data/servicesData.js';
 
 const STORAGE_KEYS = {
   SERVICES: 'noname_laundry_services_v2',
   ORDERS: 'noname_laundry_orders_v2',
   INCIDENTS: 'noname_laundry_incidents_v2',
+  CUSTOMERS: 'noname_laundry_customers_v2',
   SETTINGS: 'noname_laundry_settings_v2',
 };
 
@@ -132,6 +133,9 @@ export class LaundryStore {
       const savedIncidents = localStorage.getItem(STORAGE_KEYS.INCIDENTS);
       this.incidents = savedIncidents ? JSON.parse(savedIncidents) : INITIAL_INCIDENTS;
 
+      const savedCustomers = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
+      this.customers = savedCustomers ? JSON.parse(savedCustomers) : INITIAL_CUSTOMERS;
+
       const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       this.settings = savedSettings ? JSON.parse(savedSettings) : {
         storeName: 'NoName Laundry',
@@ -158,6 +162,7 @@ export class LaundryStore {
       this.services = INITIAL_SERVICES.map(s => ({ ...s, minWeightKg: 4.0 }));
       this.orders = INITIAL_ORDERS;
       this.incidents = INITIAL_INCIDENTS;
+      this.customers = INITIAL_CUSTOMERS;
     }
   }
 
@@ -178,6 +183,10 @@ export class LaundryStore {
       if (Array.isArray(data.incidents)) {
         this.incidents = data.incidents;
         this.persist(STORAGE_KEYS.INCIDENTS, this.incidents);
+      }
+      if (Array.isArray(data.customers)) {
+        this.customers = data.customers;
+        this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
       }
       if (data.settings && Object.keys(data.settings).length > 0) {
         this.settings = { ...this.settings, ...data.settings };
@@ -451,6 +460,53 @@ export class LaundryStore {
     this.persist(STORAGE_KEYS.ORDERS, this.orders);
     this.notify();
 
+    // Auto-create or link Customer in CRM
+    try {
+      const existingCust = (this.customers || []).find(c =>
+        (orderInput.customerName && c.fullName && c.fullName.trim().toLowerCase() === orderInput.customerName.trim().toLowerCase()) ||
+        (orderInput.email && c.email && c.email.trim().toLowerCase() === orderInput.email.trim().toLowerCase()) ||
+        (orderInput.contactValue && c.mobileNumber && c.mobileNumber.replace(/[^0-9]/g, '') === orderInput.contactValue.replace(/[^0-9]/g, ''))
+      );
+
+      if (existingCust) {
+        // If customer ordered at a new condo/address, add it to their saved addresses
+        const hasAddr = (existingCust.addresses || []).some(a => 
+          orderInput.condoName && (a.address.toLowerCase().includes(orderInput.condoName.toLowerCase()) || a.label.toLowerCase().includes(orderInput.condoName.toLowerCase()))
+        );
+        if (!hasAddr && orderInput.condoName) {
+          this.addCustomerAddress(existingCust.id, {
+            label: orderInput.condoName,
+            address: `${orderInput.condoName}, ${orderInput.district}`,
+            district: orderInput.district,
+            roomNumber: orderInput.roomNumber || '',
+            leaveWithJuristic: Boolean(orderInput.leaveWithJuristic),
+            isPrimary: false
+          });
+        }
+        // Update company tax if provided in booking
+        if (orderInput.companyTax?.required) {
+          this.updateCustomer(existingCust.id, { companyTax: orderInput.companyTax });
+        }
+      } else if (orderInput.customerName) {
+        this.createCustomer({
+          fullName: orderInput.customerName,
+          nickName: orderInput.nickName || orderInput.customerName.split(' ')[0],
+          gender: orderInput.gender || 'Rather not say',
+          mobileNumber: orderInput.contactChannel === 'whatsapp' || /^\+?\d{8,15}$/.test(orderInput.contactValue) ? orderInput.contactValue : '',
+          isWhatsApp: orderInput.contactChannel === 'whatsapp' || Boolean(orderInput.isWhatsApp),
+          email: orderInput.email || '',
+          lineId: orderInput.contactChannel === 'line' ? orderInput.contactValue : (orderInput.lineId || ''),
+          address: `${orderInput.condoName || ''}, ${orderInput.district || ''}`,
+          district: orderInput.district,
+          roomNumber: orderInput.roomNumber || '',
+          leaveWithJuristic: Boolean(orderInput.leaveWithJuristic),
+          companyTax: orderInput.companyTax
+        });
+      }
+    } catch (custErr) {
+      console.warn('Auto CRM sync warning:', custErr);
+    }
+
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -605,13 +661,308 @@ export class LaundryStore {
     });
   }
 
+  // ==========================================
+  // CRM & Customer Management Methods
+  // ==========================================
+
+  getEnrichedCustomers() {
+    return (this.customers || []).map(cust => {
+      // Find orders matching customer name, mobile, or email
+      const custOrders = (this.orders || []).filter(o => {
+        if (!o) return false;
+        const matchName = o.customerName && cust.fullName && 
+          o.customerName.trim().toLowerCase() === cust.fullName.trim().toLowerCase();
+        const matchEmail = o.email && cust.email && 
+          o.email.trim().toLowerCase() === cust.email.trim().toLowerCase();
+        const matchPhone = o.contactValue && cust.mobileNumber && 
+          o.contactValue.replace(/[^0-9]/g, '') === cust.mobileNumber.replace(/[^0-9]/g, '');
+        return matchName || matchEmail || matchPhone;
+      });
+
+      const activeOrders = custOrders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED');
+      const pastOrders = custOrders.filter(o => o.status === 'DELIVERED' || o.status === 'CANCELLED');
+      const totalSpend = custOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+      const totalKg = custOrders.reduce((sum, o) => sum + (Number(o.actualWeightKg || o.estimatedWeightKg) || 0), 0);
+
+      // Find incidents matching customer name, contact or orderId
+      const custIncidents = (this.incidents || []).filter(inc => {
+        if (!inc) return false;
+        const matchCustName = inc.customerName && cust.fullName &&
+          inc.customerName.trim().toLowerCase() === cust.fullName.trim().toLowerCase();
+        const matchOrderId = inc.orderId && custOrders.some(o => o.id === inc.orderId);
+        return matchCustName || matchOrderId;
+      });
+
+      const openIncidents = custIncidents.filter(i => i.status === 'pending');
+      const primaryAddress = (cust.addresses || []).find(a => a.isPrimary) || (cust.addresses || [])[0] || null;
+
+      return {
+        ...cust,
+        orders: custOrders,
+        activeOrders,
+        pastOrders,
+        totalOrders: custOrders.length,
+        totalSpend,
+        totalKg: Number(totalKg.toFixed(1)),
+        incidents: custIncidents,
+        openIncidentsCount: openIncidents.length,
+        primaryAddress
+      };
+    });
+  }
+
+  createCustomer(data) {
+    const newId = 'CUST-' + Math.floor(1000 + Math.random() * 9000);
+    const newCustomer = {
+      id: newId,
+      fullName: (data.fullName || '').trim(),
+      nickName: (data.nickName || '').trim(),
+      gender: data.gender || 'Rather not say',
+      dateOfBirth: data.dateOfBirth || '',
+      mobileNumber: (data.mobileNumber || '').trim(),
+      isWhatsApp: Boolean(data.isWhatsApp),
+      email: (data.email || '').trim().toLowerCase(),
+      lineId: (data.lineId || '').trim(),
+      pinCode: data.pinCode || '123456',
+      isVerified: Boolean(data.isVerified),
+      verifiedVia: data.verifiedVia || null,
+      companyTax: {
+        required: Boolean(data.companyTax?.required),
+        companyName: (data.companyTax?.companyName || '').trim(),
+        taxId: (data.companyTax?.taxId || '').trim(),
+        branch: (data.companyTax?.branch || '').trim(),
+        companyAddress: (data.companyTax?.companyAddress || '').trim()
+      },
+      addresses: Array.isArray(data.addresses) && data.addresses.length > 0 ? data.addresses : [
+        {
+          id: 'ADDR-' + Math.floor(100 + Math.random() * 900),
+          label: data.addressLabel || 'Home',
+          address: data.address || '',
+          district: data.district || 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+          roomNumber: data.roomNumber || '',
+          googleMapsUrl: data.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.address || data.condoName || 'Bangkok')}`,
+          leaveWithJuristic: Boolean(data.leaveWithJuristic),
+          isPrimary: true
+        }
+      ],
+      tier: data.tier || 'Regular',
+      notes: data.notes || '',
+      createdAt: new Date().toISOString()
+    };
+
+    this.customers = [newCustomer, ...(this.customers || [])];
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+
+    fetch('/api/customers', {
+      method: 'POST',
+      headers: this.getAdminAuthHeaders(),
+      body: JSON.stringify(newCustomer)
+    }).catch(err => console.warn('PostgreSQL customer sync error:', err));
+
+    return newCustomer;
+  }
+
+  updateCustomer(id, data) {
+    this.customers = (this.customers || []).map(cust => {
+      if (cust.id === id) {
+        return {
+          ...cust,
+          ...data,
+          fullName: data.fullName !== undefined ? data.fullName.trim() : cust.fullName,
+          nickName: data.nickName !== undefined ? data.nickName.trim() : cust.nickName,
+          gender: data.gender !== undefined ? data.gender : cust.gender,
+          dateOfBirth: data.dateOfBirth !== undefined ? data.dateOfBirth : cust.dateOfBirth,
+          mobileNumber: data.mobileNumber !== undefined ? data.mobileNumber.trim() : cust.mobileNumber,
+          isWhatsApp: data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : cust.isWhatsApp,
+          email: data.email !== undefined ? data.email.trim().toLowerCase() : cust.email,
+          lineId: data.lineId !== undefined ? data.lineId.trim() : cust.lineId,
+          tier: data.tier !== undefined ? data.tier : cust.tier,
+          notes: data.notes !== undefined ? data.notes : cust.notes,
+          companyTax: data.companyTax ? { ...cust.companyTax, ...data.companyTax } : cust.companyTax,
+          addresses: Array.isArray(data.addresses) ? data.addresses : cust.addresses
+        };
+      }
+      return cust;
+    });
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+
+    fetch(`/api/customers/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: this.getAdminAuthHeaders(),
+      body: JSON.stringify(data)
+    }).catch(err => console.warn('PostgreSQL update customer error:', err));
+  }
+
+  deleteCustomer(id) {
+    this.customers = (this.customers || []).filter(c => c.id !== id);
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+
+    fetch(`/api/customers/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: this.getAdminAuthHeaders()
+    }).catch(err => console.warn('PostgreSQL delete customer error:', err));
+  }
+
+  addCustomerAddress(customerId, addressData) {
+    const addrId = 'ADDR-' + Math.floor(100 + Math.random() * 900);
+    const newAddr = {
+      id: addrId,
+      label: addressData.label || 'Home',
+      address: addressData.address || '',
+      district: addressData.district || 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+      roomNumber: addressData.roomNumber || '',
+      googleMapsUrl: addressData.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressData.address || 'Bangkok')}`,
+      leaveWithJuristic: Boolean(addressData.leaveWithJuristic),
+      isPrimary: Boolean(addressData.isPrimary)
+    };
+
+    this.customers = (this.customers || []).map(cust => {
+      if (cust.id === customerId) {
+        let addresses = [...(cust.addresses || [])];
+        if (newAddr.isPrimary) {
+          addresses = addresses.map(a => ({ ...a, isPrimary: false }));
+        }
+        addresses.push(newAddr);
+        return { ...cust, addresses };
+      }
+      return cust;
+    });
+
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+    return newAddr;
+  }
+
+  updateCustomerAddress(customerId, addressId, addressData) {
+    this.customers = (this.customers || []).map(cust => {
+      if (cust.id === customerId) {
+        let addresses = (cust.addresses || []).map(a => {
+          if (a.id === addressId) {
+            const updated = {
+              ...a,
+              ...addressData,
+              googleMapsUrl: addressData.googleMapsUrl || (addressData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressData.address)}` : a.googleMapsUrl)
+            };
+            return updated;
+          }
+          return addressData.isPrimary ? { ...a, isPrimary: false } : a;
+        });
+        return { ...cust, addresses };
+      }
+      return cust;
+    });
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+  }
+
+  deleteCustomerAddress(customerId, addressId) {
+    this.customers = (this.customers || []).map(cust => {
+      if (cust.id === customerId) {
+        let addresses = (cust.addresses || []).filter(a => a.id !== addressId);
+        if (addresses.length > 0 && !addresses.some(a => a.isPrimary)) {
+          addresses[0].isPrimary = true;
+        }
+        return { ...cust, addresses };
+      }
+      return cust;
+    });
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+  }
+
+  setCustomerPin(customerId, pinCode) {
+    if (!/^\d{6}$/.test(pinCode)) {
+      throw new Error('PIN must be exactly 6 digits.');
+    }
+    this.customers = (this.customers || []).map(cust => {
+      if (cust.id === customerId) {
+        return { ...cust, pinCode };
+      }
+      return cust;
+    });
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+    return true;
+  }
+
+  verifyCustomerPin(customerIdOrContact, pinCode) {
+    const cust = (this.customers || []).find(c => 
+      c.id === customerIdOrContact ||
+      c.mobileNumber === customerIdOrContact ||
+      c.email === customerIdOrContact
+    );
+    if (!cust) return { success: false, error: 'Customer not found.' };
+    if (cust.pinCode === pinCode) {
+      return { success: true, customer: cust };
+    }
+    return { success: false, error: 'Incorrect 6-digit PIN.' };
+  }
+
+  generateOtp(channel, contact) {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+    if (!this.activeOtps) this.activeOtps = new Map();
+    const key = `${channel}:${contact.trim().toLowerCase()}`;
+    this.activeOtps.set(key, { code, expiry });
+    return { success: true, code, channel, contact, expiry };
+  }
+
+  verifyOtp(channel, contact, enteredCode) {
+    if (!this.activeOtps) return { success: false, error: 'No OTP generated.' };
+    const key = `${channel}:${contact.trim().toLowerCase()}`;
+    const entry = this.activeOtps.get(key);
+    if (!entry) {
+      // Demo fallback: accept 123456 or 888888 as universal test OTP
+      if (enteredCode === '123456' || enteredCode === '888888') {
+        return { success: true };
+      }
+      return { success: false, error: 'Expired or invalid OTP.' };
+    }
+    if (Date.now() > entry.expiry.getTime()) {
+      this.activeOtps.delete(key);
+      return { success: false, error: 'OTP has expired. Please request a new one.' };
+    }
+    if (entry.code === enteredCode.trim()) {
+      this.activeOtps.delete(key);
+      // Mark customer verified if found
+      this.customers = (this.customers || []).map(c => {
+        if (c.mobileNumber === contact || c.email === contact) {
+          return { ...c, isVerified: true, verifiedVia: channel };
+        }
+        return c;
+      });
+      this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+      this.notify();
+      return { success: true };
+    }
+    return { success: false, error: 'Incorrect verification code.' };
+  }
+
+  addCustomerNote(customerId, noteText) {
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    this.customers = (this.customers || []).map(cust => {
+      if (cust.id === customerId) {
+        const currentNotes = cust.notes ? cust.notes + `\n[${timestamp}] ${noteText}` : `[${timestamp}] ${noteText}`;
+        return { ...cust, notes: currentNotes };
+      }
+      return cust;
+    });
+    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+    this.notify();
+  }
+
   resetAllData() {
     this.services = INITIAL_SERVICES.map(s => ({ ...s, minWeightKg: 4.0 }));
     this.orders = INITIAL_ORDERS;
     this.incidents = INITIAL_INCIDENTS;
+    this.customers = INITIAL_CUSTOMERS;
     localStorage.removeItem(STORAGE_KEYS.SERVICES);
     localStorage.removeItem(STORAGE_KEYS.ORDERS);
     localStorage.removeItem(STORAGE_KEYS.INCIDENTS);
+    localStorage.removeItem(STORAGE_KEYS.CUSTOMERS);
     this.notify();
   }
 }

@@ -213,3 +213,169 @@ export const INITIAL_INCIDENTS = [
     response: 'Noted with thanks! Our finishing team has applied light starch to your blue shirt.'
   }
 ];
+
+export const GENDER_OPTIONS = ['Male', 'Female', 'Rather not say'];
+
+export const CUSTOMER_TIERS = {
+  VIP: { label: 'VIP Customer', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+  Regular: { label: 'Regular Member', color: 'bg-sky-100 text-sky-800 border-sky-200' },
+  New: { label: 'New Customer', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  Corporate: { label: 'Corporate Account', color: 'bg-amber-100 text-amber-800 border-amber-200' }
+};
+
+export const INITIAL_CUSTOMERS = [
+  {
+    id: 'CUST-8491',
+    fullName: 'Alex Thorne',
+    nickName: 'Alex',
+    gender: 'Male',
+    dateOfBirth: '1990-05-14',
+    mobileNumber: '+66 82 455 9182',
+    isWhatsApp: true,
+    email: 'alex.thorne@gmail.com',
+    lineId: 'alex_bkk',
+    pinCode: '123456',
+    isVerified: true,
+    verifiedVia: 'whatsapp',
+    companyTax: {
+      required: true,
+      companyName: 'Thorne Design & Living (Thailand) Co., Ltd.',
+      taxId: '0105562019284',
+      branch: 'Head Office (สำนักงานใหญ่)',
+      companyAddress: '8 Sukhumvit 26, Khlong Tan, Khlong Toei, Bangkok 10110'
+    },
+    addresses: [
+      {
+        id: 'ADDR-101',
+        label: 'Home (The Estelle)',
+        address: 'The Estelle Phrom Phong, 8 Sukhumvit 26, Khlong Tan',
+        district: 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+        roomNumber: 'Tower A, Room 1804',
+        googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=The+Estelle+Phrom+Phong+Sukhumvit+26+Bangkok',
+        leaveWithJuristic: true,
+        isPrimary: true
+      },
+      {
+        id: 'ADDR-102',
+        label: 'Design Studio / Office',
+        address: 'Thorne Studio, EmQuartier Building Fl 12, Sukhumvit Rd',
+        district: 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+        roomNumber: 'Unit 1204',
+        googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=EmQuartier+Building+Sukhumvit+Bangkok',
+        leaveWithJuristic: false,
+        isPrimary: false
+      }
+    ],
+    tier: 'VIP',
+    notes: 'Prefers eco-friendly detergent. Leave bag with Juristic office K. Somchai. Light starch on button-down shirts.',
+    createdAt: '2026-08-10T10:00:00Z'
+  },
+  {
+    id: 'CUST-3920',
+    fullName: 'Siriporn Tanaka',
+    nickName: 'Som',
+    gender: 'Female',
+    dateOfBirth: '1993-11-28',
+    mobileNumber: '+66 89 712 3456',
+    isWhatsApp: false,
+    email: 'siriporn.t@yahoo.co.th',
+    lineId: '@siriporn_bkk',
+    pinCode: '654321',
+    isVerified: true,
+    verifiedVia: 'sms',
+    companyTax: {
+      required: false,
+      companyName: '',
+      taxId: '',
+      branch: '',
+      companyAddress: ''
+    },
+    addresses: [
+      {
+        id: 'ADDR-201',
+        label: 'Condo (Ashton Silom)',
+        address: 'Ashton Silom, 162 Silom Rd, Suriya Wong, Bang Rak',
+        district: 'Bang Rak (Silom, Surawong)',
+        roomNumber: 'Floor 22, Room 2209',
+        googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Ashton+Silom+162+Silom+Rd+Bangkok',
+        leaveWithJuristic: false,
+        isPrimary: true
+      }
+    ],
+    tier: 'Regular',
+    notes: 'Please message via LINE before arriving. Ring room doorbell.',
+    createdAt: '2026-08-22T14:30:00Z'
+  },
+  {
+    id: 'CUST-7741',
+    fullName: 'Marcus Dupont',
+    nickName: 'Marc',
+    gender: 'Male',
+    dateOfBirth: '1985-03-02',
+    mobileNumber: '+66 92 334 8812',
+    isWhatsApp: true,
+    email: 'm.dupont@bangkokexpats.org',
+    lineId: 'm_dupont_bkk',
+    pinCode: '778899',
+    isVerified: true,
+    verifiedVia: 'email',
+    companyTax: {
+      required: true,
+      companyName: 'Bangkok Expat Cultural Services Co., Ltd.',
+      taxId: '0105559041289',
+      branch: 'Head Office',
+      companyAddress: 'Sathorn Road, Thung Maha Mek, Sathon, Bangkok 10120'
+    },
+    addresses: [
+      {
+        id: 'ADDR-301',
+        label: 'Residence (The Sukhothai)',
+        address: 'The Sukhothai Residences, 3 Sathon 1 Alley, Thung Maha Mek',
+        district: 'Sathon (Sathorn, Chong Nonsi)',
+        roomNumber: 'Penthouse B, 31st Fl',
+        googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=The+Sukhothai+Residences+Sathon+Bangkok',
+        leaveWithJuristic: true,
+        isPrimary: true
+      }
+    ],
+    tier: 'Regular',
+    notes: 'Always return on high-grade wooden hangers in breathable garment bag. Concierge desk accepts drop-offs.',
+    createdAt: '2026-07-15T09:15:00Z'
+  },
+  {
+    id: 'CUST-5510',
+    fullName: 'Chutima Wongsuwan',
+    nickName: 'Nok',
+    gender: 'Female',
+    dateOfBirth: '1998-09-19',
+    mobileNumber: '+66 81 223 9988',
+    isWhatsApp: true,
+    email: 'chutima.nok@outlook.co.th',
+    lineId: 'nok_wongsuwan',
+    pinCode: '112233',
+    isVerified: false,
+    verifiedVia: null,
+    companyTax: {
+      required: false,
+      companyName: '',
+      taxId: '',
+      branch: '',
+      companyAddress: ''
+    },
+    addresses: [
+      {
+        id: 'ADDR-401',
+        label: 'Home Condo',
+        address: 'Rhythm Sathorn, 27 Sathon Nuea Rd, Silom',
+        district: 'Bang Rak (Silom, Surawong)',
+        roomNumber: 'Tower South, Room 1408',
+        googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Rhythm+Sathorn+Bangkok',
+        leaveWithJuristic: true,
+        isPrimary: true
+      }
+    ],
+    tier: 'New',
+    notes: 'Inquired via LINE OA about comforter and curtain dry cleaning.',
+    createdAt: '2026-09-18T16:40:00Z'
+  }
+];

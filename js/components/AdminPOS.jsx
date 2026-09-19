@@ -4,6 +4,7 @@ import { ORDER_STATUSES, BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesD
 import { CONTACT_CHANNELS, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
 import { OrderKanban } from './OrderKanban.jsx';
 import { OrderDetailsModal } from './OrderDetailsModal.jsx';
+import { CustomerCRM } from './CustomerCRM.jsx';
 
 export function AdminPOS({
   adminUser,
@@ -508,6 +509,7 @@ export function AdminPOS({
       <div className="flex border-b border-slate-200 mb-6 space-x-1 overflow-x-auto">
         {[
           { id: 'orders', label: 'Order Processing & Tracking', icon: 'package', count: orders.length },
+          { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
           { id: 'services-pricing', label: 'Services & Minimum Weights', icon: 'scale', count: services.length },
           { id: 'gateway', label: 'Cashless Payment Gateway', icon: 'receipt' },
           { id: 'line-oa', label: 'LINE OA & Contact Channels', icon: 'line' },
@@ -1563,6 +1565,14 @@ export function AdminPOS({
             </button>
           </form>
         </div>
+      )}
+
+      {/* TAB 7: CUSTOMER CRM */}
+      {activeTab === 'crm' && (
+        <CustomerCRM
+          onSelectOrder={(order) => setInspectingOrderId(order.id)}
+          onCreateManualOrder={onCreateManualOrder}
+        />
       )}
 
       {/* ADD NEW SERVICE MODAL */}

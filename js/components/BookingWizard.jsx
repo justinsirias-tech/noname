@@ -10,9 +10,16 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
   
   // Customer Info
   const [customerName, setCustomerName] = useState('');
+  const [nickName, setNickName] = useState('');
   const [contactChannel, setContactChannel] = useState('line'); // default to line since very popular in Bangkok
   const [contactValue, setContactValue] = useState('');
   const [email, setEmail] = useState('');
+
+  // Thai Company Tax Info
+  const [isCompanyTax, setIsCompanyTax] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [companyTaxId, setCompanyTaxId] = useState('');
+  const [companyBranch, setCompanyBranch] = useState('Head Office (สำนักงานใหญ่)');
 
   // Bangkok Address Info
   const [district, setDistrict] = useState(BANGKOK_DISTRICTS[0]);
@@ -85,6 +92,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
     const bookingPayload = {
       customerName: customerName.trim(),
+      nickName: nickName.trim(),
       contactChannel,
       contactValue: contactValue.trim(),
       email: email.trim() || `${customerName.toLowerCase().replace(/\s+/g, '')}@customer.local`,
@@ -97,6 +105,13 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
       pickupDate,
       pickupTime,
       specialInstructions: specialInstructions.trim(),
+      companyTax: isCompanyTax ? {
+        required: true,
+        companyName: companyName.trim(),
+        taxId: companyTaxId.trim(),
+        branch: companyBranch.trim(),
+        companyAddress: `${condoName.trim()}, ${district}, Bangkok`
+      } : { required: false }
     };
 
     setTimeout(() => {
@@ -350,18 +365,33 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
           </p>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Alex Thorne / Somchai Prasert"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Alex Thorne / Somchai Prasert"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nickname / Preferred Name (ชื่อเล่น)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Alex / Som"
+                  value={nickName}
+                  onChange={(e) => setNickName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                />
+              </div>
             </div>
 
             <div>
@@ -427,6 +457,71 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
                 />
               </div>
+            </div>
+
+            {/* Thai Company Tax Invoice Section */}
+            <div className="pt-3 border-t border-slate-100">
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={isCompanyTax}
+                  onChange={(e) => setIsCompanyTax(e.target.checked)}
+                  className="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500"
+                />
+                <span className="flex items-center gap-1.5">
+                  <Icon name="building2" className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Request Thai Corporate Tax Receipt (ขอใบกำกับภาษีเต็มรูปแบบ)</span>
+                </span>
+              </label>
+
+              {isCompanyTax && (
+                <div className="mt-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <p className="text-[11px] text-slate-500">
+                    Official tax deduction receipt will be issued and synced into your customer profile.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Company Name (ชื่อนิติบุคคล) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required={isCompanyTax}
+                        placeholder="e.g. Siam Hospitality Co., Ltd."
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        13-Digit Tax ID (เลขประจำตัวผู้เสียภาษี) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required={isCompanyTax}
+                        maxLength="13"
+                        placeholder="e.g. 0105558123456"
+                        value={companyTaxId}
+                        onChange={(e) => setCompanyTaxId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Branch / Office (สำนักงานใหญ่ / เลขที่สาขา)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Head Office (สำนักงานใหญ่)"
+                      value={companyBranch}
+                      onChange={(e) => setCompanyBranch(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
