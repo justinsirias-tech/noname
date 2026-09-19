@@ -108,33 +108,7 @@ export function Navbar({ currentView, setView, onOpenContactModal }) {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="hidden sm:flex items-center gap-2.5">
-            <button
-              onClick={() => setView('crm')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition border ${
-                currentView === 'crm'
-                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
-                  : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200'
-              }`}
-              title="Open Enterprise Customer CRM Portal"
-            >
-              <Icon name="users" className="w-3.5 h-3.5" />
-              <span>CRM Portal</span>
-            </button>
-
-            <button
-              onClick={() => setView('admin')}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border ${
-                currentView === 'admin'
-                  ? 'bg-slate-900 text-white border-slate-800'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'
-              }`}
-              title="Admin Back-Office Settings & Pricing"
-            >
-              <Icon name="settings" className="w-3.5 h-3.5" />
-              <span>Admin</span>
-            </button>
-
+          <div className="hidden sm:flex items-center gap-3">
             <button
               onClick={() => setView('book')}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md shadow-sky-600/25 hover:shadow-lg hover:shadow-sky-600/30 transition transform hover:-translate-y-0.5 active:translate-y-0"
@@ -200,29 +174,6 @@ export function Navbar({ currentView, setView, onOpenContactModal }) {
           ))}
 
           <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => {
-                  setView('crm');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full text-center bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 rounded-xl border border-indigo-200 text-xs flex items-center justify-center gap-1.5"
-              >
-                <Icon name="users" className="w-3.5 h-3.5" />
-                <span>CRM Portal</span>
-              </button>
-              <button
-                onClick={() => {
-                  setView('admin');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl border border-slate-300 text-xs flex items-center justify-center gap-1.5"
-              >
-                <Icon name="settings" className="w-3.5 h-3.5" />
-                <span>Admin</span>
-              </button>
-            </div>
-
             <button
               onClick={() => {
                 setView('book');

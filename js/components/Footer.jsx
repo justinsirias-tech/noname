@@ -128,21 +128,13 @@ export function Footer({ setView }) {
             © {new Date().getFullYear()} NoName Laundry (Bangkok, Thailand). All rights reserved. Purely digital door-to-door service.
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-4">
             <button onClick={() => setView('terms')} className="hover:text-slate-300">
               Terms of Service
             </button>
             <span>•</span>
             <button onClick={() => setView('track')} className="hover:text-slate-300">
               Order Tracker
-            </button>
-            <span>•</span>
-            <button onClick={() => setView('crm')} className="hover:text-indigo-400 font-semibold text-indigo-300">
-              👥 CRM Portal
-            </button>
-            <span>•</span>
-            <button onClick={() => setView('admin')} className="hover:text-slate-300">
-              ⚙️ Admin POS
             </button>
           </div>
         </div>

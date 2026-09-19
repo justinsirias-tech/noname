@@ -456,17 +456,6 @@ export function AdminPOS({
           )}
 
           <button
-            onClick={() => {
-              if (typeof window !== 'undefined') window.location.hash = 'crm';
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 transition shadow-sm"
-            title="Open Dedicated Customer CRM Portal"
-          >
-            <Icon name="users" className="w-3.5 h-3.5" />
-            <span>Open CRM Portal ➔</span>
-          </button>
-
-          <button
             onClick={onResetData}
             className="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-600 flex items-center gap-1.5 transition"
             title="Reset store to default sample data"
