@@ -473,7 +473,7 @@ export function AdminPOS({
   }, [showAddServiceModal, inspectingOrderId]);
 
   return (
-    <div className={`mx-auto px-2 sm:px-4 lg:px-6 py-6 transition-all ${activeTab === 'crm' ? 'max-w-[1700px] w-full' : 'max-w-7xl'}`}>
+    <div className="mx-auto px-3 sm:px-6 lg:px-8 py-6 transition-all max-w-[1750px] w-full">
       
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
@@ -561,7 +561,7 @@ export function AdminPOS({
       </div>
 
       {/* Nav Tabs */}
-      <div className="flex border-b border-slate-200 mb-6 space-x-1 overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 pb-3 mb-6">
         {[
           { id: 'orders', label: 'Order Processing & Tracking', icon: 'package', count: orders.length },
           { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
@@ -569,23 +569,23 @@ export function AdminPOS({
           { id: 'services-pricing', label: 'Services & Minimum Weights', icon: 'scale', count: services.length },
           { id: 'gateway', label: 'Cashless Payment Gateway', icon: 'receipt' },
           { id: 'line-oa', label: 'LINE OA & Contact Channels', icon: 'line' },
-          { id: 'incidents', label: 'Online Support & Incidents', icon: 'messageSquare', count: pendingIncidentsCount },
+          { id: 'incidents', label: 'Online Support & Tickets', icon: 'messageSquare', count: pendingIncidentsCount },
           { id: 'new-pos', label: 'Manual POS Order', icon: 'send' }
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-3 text-xs font-bold rounded-t-xl transition whitespace-nowrap flex items-center gap-2 border-b-2 ${
+            className={`px-3.5 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 border ${
               activeTab === tab.id
-                ? 'border-sky-600 text-sky-600 bg-sky-50/50'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                ? 'border-sky-500 text-sky-700 bg-sky-50 shadow-xs ring-2 ring-sky-100'
+                : 'border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 bg-white'
             }`}
           >
-            <Icon name={tab.icon} className="w-4 h-4" />
+            <Icon name={tab.icon} className={`w-4 h-4 ${activeTab === tab.id ? 'text-sky-600' : 'text-slate-500'}`} />
             <span>{tab.label}</span>
             {tab.count !== undefined && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
-                activeTab === tab.id ? 'bg-sky-600 text-white' : 'bg-slate-200 text-slate-700'
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                activeTab === tab.id ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'
               }`}>
                 {tab.count}
               </span>

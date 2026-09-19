@@ -16,6 +16,14 @@ const KANBAN_STAGES = [
   { id: 'CANCELLED', label: 'Cancelled', icon: 'x', badgeColor: 'bg-red-100 text-red-800 border-red-300' }
 ];
 
+const WORKFLOW_PHASES = [
+  { id: 'all', label: 'All Stages', icon: 'grid', stageIds: null },
+  { id: 'intake', label: '1. Intake & Pickup', icon: 'package', stageIds: ['BOOKING_REQUESTED', 'PICKUP_SCHEDULED', 'PICKED_UP'] },
+  { id: 'processing', label: '2. Washing & Care', icon: 'sparkles', stageIds: ['WEIGHED_INSPECTED', 'IN_WASH', 'IRON_FOLD'] },
+  { id: 'delivery', label: '3. Dispatch & Delivery', icon: 'truck', stageIds: ['READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'DELIVERED'] },
+  { id: 'cancelled', label: 'Cancelled', icon: 'x', stageIds: ['CANCELLED'] }
+];
+
 export function OrderKanban({
   orders = [],
   onSelectOrder,
@@ -24,6 +32,8 @@ export function OrderKanban({
 }) {
   const [draggingOrderId, setDraggingOrderId] = useState(null);
   const [dragOverColKey, setDragOverColKey] = useState(null);
+  const [layoutMode, setLayoutMode] = useState('fit'); // 'fit' (screen-fit responsive grid, default) or 'scroll' (horizontal scroll)
+  const [selectedPhase, setSelectedPhase] = useState('all');
 
   const handleDragStart = (e, orderId) => {
     e.dataTransfer.setData('text/plain', orderId);
@@ -71,12 +81,102 @@ export function OrderKanban({
     }
   };
 
+  const getPhaseCount = (phase) => {
+    if (!phase.stageIds) return orders.length;
+    return orders.filter(o => phase.stageIds.includes(o.status)).length;
+  };
+
+  const displayedStages = selectedPhase === 'all'
+    ? KANBAN_STAGES
+    : KANBAN_STAGES.filter(stage => {
+        const phase = WORKFLOW_PHASES.find(p => p.id === selectedPhase);
+        return phase && phase.stageIds ? phase.stageIds.includes(stage.id) : true;
+      });
+
+  // Calculate container classes based on layout mode and selected phase
+  const getContainerClassName = () => {
+    if (layoutMode === 'scroll') {
+      return 'flex gap-3.5 overflow-x-auto pb-4 pt-1 snap-x scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent';
+    }
+    // Fit mode: responsive CSS grid that fits 100% within the screen width without horizontal scrollbars
+    if (selectedPhase !== 'all') {
+      if (displayedStages.length === 1) {
+        return 'grid grid-cols-1 max-w-md w-full gap-4 pt-1';
+      }
+      return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 w-full pt-1';
+    }
+    return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3.5 w-full pt-1';
+  };
+
   return (
     <div className="w-full">
       
-      {/* Kanban Board Container (Horizontal scrolling) */}
-      <div className="flex gap-4 overflow-x-auto pb-6 pt-1 snap-x scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
-        {KANBAN_STAGES.map((stage) => {
+      {/* Workflow Phase Filter & Screen Fit Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline">
+            Workflow:
+          </span>
+          {WORKFLOW_PHASES.map((phase) => {
+            const count = getPhaseCount(phase);
+            const isActive = selectedPhase === phase.id;
+            return (
+              <button
+                key={phase.id}
+                type="button"
+                onClick={() => setSelectedPhase(phase.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+                  isActive
+                    ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <Icon name={phase.icon} className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                <span>{phase.label}</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black ${
+                  isActive ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* View Mode Toggle: Screen Fit vs Wide Scroll */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setLayoutMode('fit')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              layoutMode === 'fit'
+                ? 'bg-white text-sky-700 shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+            title="Fit completely into screen without scrolling left or right"
+          >
+            <Icon name="grid" className="w-3.5 h-3.5" />
+            <span>Fit Screen</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode('scroll')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              layoutMode === 'scroll'
+                ? 'bg-white text-sky-700 shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+            title="Traditional wide horizontal scrolling board"
+          >
+            <Icon name="columns" className="w-3.5 h-3.5" />
+            <span>Wide Scroll</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Kanban Board Container */}
+      <div className={getContainerClassName()}>
+        {displayedStages.map((stage) => {
           const columnOrders = orders.filter(o => o.status === stage.id);
           const isOver = dragOverColKey === stage.id;
           const stageMeta = ORDER_STATUSES[stage.id] || { label: stage.label, color: 'bg-slate-100 text-slate-800' };
@@ -87,10 +187,12 @@ export function OrderKanban({
               onDragOver={(e) => handleDragOver(e, stage.id)}
               onDragLeave={(e) => handleDragLeave(e, stage.id)}
               onDrop={(e) => handleDrop(e, stage.id)}
-              className={`flex-shrink-0 w-80 rounded-3xl p-3.5 flex flex-col transition-all duration-200 snap-start select-none ${
+              className={`rounded-2xl p-3 flex flex-col transition-all duration-200 select-none ${
+                layoutMode === 'scroll' ? 'flex-shrink-0 w-72 sm:w-80 snap-start' : 'w-full min-w-0'
+              } ${
                 isOver
                   ? 'bg-sky-50 border-2 border-dashed border-sky-400 shadow-lg ring-4 ring-sky-100'
-                  : 'bg-slate-100/90 border border-slate-200/90 shadow-2xs hover:border-slate-300'
+                  : 'bg-slate-100/90 border border-slate-200 shadow-2xs hover:border-slate-300'
               }`}
             >
               
