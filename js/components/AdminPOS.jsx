@@ -10,6 +10,7 @@ import { FaqManager } from './FaqManager.jsx';
 export function AdminPOS({
   adminUser,
   onLogout,
+  onViewStorefront,
   services,
   orders,
   incidents,
@@ -508,6 +509,17 @@ export function AdminPOS({
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               <span>Logged in: <strong>{adminUser.username}</strong></span>
             </div>
+          )}
+
+          {onViewStorefront && (
+            <button
+              onClick={onViewStorefront}
+              className="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition shadow-2xs"
+              title="Return to customer public website"
+            >
+              <Icon name="externalLink" className="w-3.5 h-3.5 text-slate-500" />
+              <span>Customer Website</span>
+            </button>
           )}
 
           <button

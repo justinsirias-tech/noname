@@ -289,12 +289,14 @@ export function App() {
         </div>
       )}
 
-      {/* Main Navigation Bar */}
-      <Navbar
-        currentView={currentView}
-        setView={navigateTo}
-        onOpenContactModal={() => setIsContactModalOpen(true)}
-      />
+      {/* Main Navigation Bar (Hidden when in Admin Back-Office) */}
+      {currentView !== 'admin' && (
+        <Navbar
+          currentView={currentView}
+          setView={navigateTo}
+          onOpenContactModal={() => setIsContactModalOpen(true)}
+        />
+      )}
 
       {/* Main Content Router */}
       <main className="flex-1 w-full max-w-full overflow-x-hidden">
@@ -380,6 +382,7 @@ export function App() {
             <AdminPOS
               adminUser={adminUser}
               onLogout={handleAdminLogout}
+              onViewStorefront={() => navigateTo('home')}
               services={storeState.services}
               orders={storeState.orders}
               incidents={storeState.incidents}
@@ -395,21 +398,23 @@ export function App() {
         )}
       </main>
 
-      {/* Floating Action Button: Digital Support */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button
-          onClick={() => setIsContactModalOpen(true)}
-          className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-4 py-3 rounded-full shadow-xl shadow-emerald-900/20 hover:shadow-2xl transition transform hover:scale-105 active:scale-95"
-          title="Online Support (WhatsApp / LINE / Email)"
-        >
-          <div className="flex -space-x-1">
-            <Icon name="whatsapp" className="w-4 h-4 text-white" />
-            <Icon name="line" className="w-4 h-4 text-white" />
-          </div>
-          <span className="hidden sm:inline">Online Chat Support</span>
-          <span className="w-2 h-2 rounded-full bg-white animate-ping-subtle" />
-        </button>
-      </div>
+      {/* Floating Action Button: Digital Support (Hidden in Admin Back-Office) */}
+      {currentView !== 'admin' && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <button
+            onClick={() => setIsContactModalOpen(true)}
+            className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-4 py-3 rounded-full shadow-xl shadow-emerald-900/20 hover:shadow-2xl transition transform hover:scale-105 active:scale-95"
+            title="Online Support (WhatsApp / LINE / Email)"
+          >
+            <div className="flex -space-x-1">
+              <Icon name="whatsapp" className="w-4 h-4 text-white" />
+              <Icon name="line" className="w-4 h-4 text-white" />
+            </div>
+            <span className="hidden sm:inline">Online Chat Support</span>
+            <span className="w-2 h-2 rounded-full bg-white animate-ping-subtle" />
+          </button>
+        </div>
+      )}
 
       {/* Digital Support Modal */}
       <DigitalContactModal
@@ -417,8 +422,10 @@ export function App() {
         onClose={() => setIsContactModalOpen(false)}
       />
 
-      {/* Site Footer */}
-      <Footer setView={navigateTo} />
+      {/* Site Footer (Hidden in Admin Back-Office) */}
+      {currentView !== 'admin' && (
+        <Footer setView={navigateTo} />
+      )}
       
     </div>
   );
