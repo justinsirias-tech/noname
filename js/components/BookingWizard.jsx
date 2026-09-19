@@ -3,6 +3,7 @@ import { Icon } from './Icons.jsx';
 import { BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
 import { TermsModal } from './TermsModal.jsx';
 import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundryStore } from '../store.js';
+import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 
 export function BookingWizard({ services, initialServiceId, initialWeight, onBookingSuccess, onViewFullTerms }) {
   const [serviceId, setServiceId] = useState(initialServiceId || services[0]?.id || 'wash_fold');
@@ -435,14 +436,24 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   {contactChannel === 'whatsapp' ? 'WhatsApp Phone Number' : contactChannel === 'line' ? 'Your LINE ID or Phone Number' : 'Email Address'} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={contactChannel === 'whatsapp' ? '+66 81 234 5678' : contactChannel === 'line' ? '@yourlineid or 0812345678' : 'user@example.com'}
-                  value={contactValue}
-                  onChange={(e) => setContactValue(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-                />
+                {contactChannel === 'whatsapp' ? (
+                  <CountryPhoneInput
+                    defaultCountryCode="TH"
+                    value={contactValue}
+                    onChange={(val) => setContactValue(val)}
+                    placeholder="08x-xxx-xxxx"
+                    required
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    placeholder={contactChannel === 'line' ? '@yourlineid or 0812345678' : 'user@example.com'}
+                    value={contactValue}
+                    onChange={(e) => setContactValue(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                  />
+                )}
               </div>
 
               <div>

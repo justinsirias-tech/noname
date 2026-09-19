@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { BANGKOK_DISTRICTS, GENDER_OPTIONS, CUSTOMER_TIERS } from '../data/servicesData.js';
 import { laundryStore, getLineOaMessageUrl, CONTACT_CHANNELS } from '../store.js';
+import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 
 export function CustomerCRM({
   onSelectOrder,
@@ -1795,15 +1796,14 @@ export function CustomerCRM({
                       <span>🇹🇭 Default Thai Mobile *</span>
                       <span className="text-[10px] text-slate-400 font-normal">Local +66</span>
                     </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+66 8X XXX XXXX"
+                    <CountryPhoneInput
+                      defaultCountryCode="TH"
                       value={newMobile}
-                      onChange={(e) => setNewMobile(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white"
+                      onChange={(val) => setNewMobile(val)}
+                      placeholder="08x-xxx-xxxx"
+                      required
                     />
-                    <label className="flex items-center gap-2 cursor-pointer mt-1.5">
+                    <label className="flex items-center gap-2 cursor-pointer mt-2">
                       <input
                         type="checkbox"
                         checked={newIsWhatsApp}
@@ -1818,38 +1818,14 @@ export function CustomerCRM({
                   <div>
                     <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
                       <span>🌐 International Mobile (Optional)</span>
-                      <span className="text-[10px] text-slate-400 font-normal">With Country Code</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Search country name/code</span>
                     </label>
-                    <input
-                      type="tel"
-                      placeholder="e.g. +1 (415) 890-1234 or +44 ..."
+                    <CountryPhoneInput
+                      defaultCountryCode="US/CA"
                       value={newSecondaryMobile}
-                      onChange={(e) => setNewSecondaryMobile(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white"
+                      onChange={(val) => setNewSecondaryMobile(val)}
+                      placeholder="Phone number"
                     />
-                    
-                    {/* Quick Country Code Pills */}
-                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                      <span className="text-[10px] text-slate-400 font-medium">Quick Prefix:</span>
-                      {[
-                        { code: '+1 ', label: '🇺🇸 +1' },
-                        { code: '+44 ', label: '🇬🇧 +44' },
-                        { code: '+65 ', label: '🇸🇬 +65' },
-                        { code: '+81 ', label: '🇯🇵 +81' },
-                        { code: '+61 ', label: '🇦🇺 +61' },
-                        { code: '+33 ', label: '🇫🇷 +33' },
-                        { code: '+49 ', label: '🇩🇪 +49' }
-                      ].map(country => (
-                        <button
-                          key={country.code}
-                          type="button"
-                          onClick={() => setNewSecondaryMobile(country.code)}
-                          className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-mono transition"
-                        >
-                          {country.label}
-                        </button>
-                      ))}
-                    </div>
 
                     <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
                       <label className="flex items-center gap-1.5 cursor-pointer">
@@ -2397,13 +2373,12 @@ export function CustomerCRM({
                   </label>
                   <span className="text-[10px] font-mono text-slate-400">Default Local</span>
                 </div>
-                <input
-                  type="tel"
-                  required
-                  placeholder="+66 8X XXX XXXX"
+                <CountryPhoneInput
+                  defaultCountryCode="TH"
                   value={editThaiMobile}
-                  onChange={(e) => setEditThaiMobile(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white"
+                  onChange={(val) => setEditThaiMobile(val)}
+                  placeholder="08x-xxx-xxxx"
+                  required
                 />
                 <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -2439,36 +2414,12 @@ export function CustomerCRM({
                   </label>
                   <span className="text-[10px] text-slate-400">Expats / Roaming</span>
                 </div>
-                <input
-                  type="tel"
-                  placeholder="e.g. +1 (415) 890-1234 or +44 ..."
+                <CountryPhoneInput
+                  defaultCountryCode="US/CA"
                   value={editIntlMobile}
-                  onChange={(e) => setEditIntlMobile(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white"
+                  onChange={(val) => setEditIntlMobile(val)}
+                  placeholder="Phone number"
                 />
-
-                {/* Country Code Helper Pills */}
-                <div className="flex items-center gap-1 flex-wrap">
-                  <span className="text-[10px] text-slate-400 font-medium">Quick Prefix:</span>
-                  {[
-                    { code: '+1 ', label: '🇺🇸 +1' },
-                    { code: '+44 ', label: '🇬🇧 +44' },
-                    { code: '+65 ', label: '🇸🇬 +65' },
-                    { code: '+81 ', label: '🇯🇵 +81' },
-                    { code: '+61 ', label: '🇦🇺 +61' },
-                    { code: '+33 ', label: '🇫🇷 +33' },
-                    { code: '+49 ', label: '🇩🇪 +49' }
-                  ].map(country => (
-                    <button
-                      key={country.code}
-                      type="button"
-                      onClick={() => setEditIntlMobile(country.code)}
-                      className="px-1.5 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-slate-600 text-[10px] font-mono transition"
-                    >
-                      {country.label}
-                    </button>
-                  ))}
-                </div>
 
                 <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
                   <label className="flex items-center gap-2 cursor-pointer">
