@@ -136,6 +136,10 @@ export function Footer({ setView }) {
             <button onClick={() => setView('track')} className="hover:text-slate-300">
               Order Tracker
             </button>
+            <span>•</span>
+            <button onClick={() => setView('admin')} className="hover:text-slate-300 font-semibold text-sky-400">
+              ⚙️ Staff Admin
+            </button>
           </div>
         </div>
 

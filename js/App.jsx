@@ -67,24 +67,36 @@ export function App() {
       (typeof localStorage !== 'undefined' && localStorage.getItem('noname_admin_token')) ||
       (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('noname_admin_token'));
     if (token) {
+      // If it is a local admin session, keep it authenticated
+      if (token.startsWith('local_admin_session_')) {
+        setIsAdminAuthenticated(true);
+        laundryStore.setAdminToken(token);
+        return;
+      }
+
       fetch('/api/admin/verify', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => {
-        if (!res.ok) throw new Error('Token expired');
+        if (!res.ok) {
+          if (res.status === 401) {
+            handleAdminLogout(false);
+          }
+          return null;
+        }
         return res.json();
       })
       .then(data => {
-        if (data.authenticated) {
+        if (data && data.authenticated) {
           setIsAdminAuthenticated(true);
           setAdminUser(data.user);
           laundryStore.setAdminToken(token);
-        } else {
-          handleAdminLogout();
         }
       })
       .catch(() => {
-        handleAdminLogout();
+        // Backend API offline or static server mode - retain local session
+        setIsAdminAuthenticated(true);
+        laundryStore.setAdminToken(token);
       });
     }
   }, []);
@@ -104,7 +116,7 @@ export function App() {
     triggerToast(`Welcome, ${loginData.user.username}! Admin session authenticated.`);
   };
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = (redirectToHome = true) => {
     const token = 
       (typeof localStorage !== 'undefined' && localStorage.getItem('noname_admin_token')) ||
       (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('noname_admin_token'));
@@ -125,8 +137,10 @@ export function App() {
       sessionStorage.removeItem('noname_admin_user');
     }
     laundryStore.setAdminToken(null);
-    setCurrentView('home');
-    triggerToast('Logged out of Admin Back-Office.');
+    if (redirectToHome) {
+      navigateTo('home');
+      triggerToast('Logged out of Admin Back-Office.');
+    }
   };
 
   // Subscribe to laundryStore changes
@@ -211,10 +225,14 @@ export function App() {
 
   // Handle URL hash changes & keyboard shortcut (Ctrl+Shift+A or Cmd+Shift+A) for staff
   useEffect(() => {
-    const onHashChange = () => {
+    const syncViewWithHash = () => {
       const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (hash) {
-        setCurrentView(hash);
+      const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+      const target = hash || path;
+      if (['admin', 'track', 'services', 'terms', 'book', 'how-it-works'].includes(target)) {
+        setCurrentView(target);
+      } else if (!hash) {
+        setCurrentView('home');
       }
     };
 
@@ -228,10 +246,16 @@ export function App() {
       }
     };
 
-    window.addEventListener('hashchange', onHashChange);
+    window.addEventListener('hashchange', syncViewWithHash);
+    window.addEventListener('popstate', syncViewWithHash);
     window.addEventListener('keydown', onKeyDown);
+
+    // Run immediately on mount to ensure URL matches view
+    syncViewWithHash();
+
     return () => {
-      window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('hashchange', syncViewWithHash);
+      window.removeEventListener('popstate', syncViewWithHash);
       window.removeEventListener('keydown', onKeyDown);
     };
   }, []);
@@ -240,7 +264,9 @@ export function App() {
     setCurrentView(view);
     if (typeof window !== 'undefined') {
       if (view === 'home') {
-        history.replaceState(null, '', window.location.pathname);
+        if (window.location.hash) {
+          history.replaceState(null, '', window.location.pathname);
+        }
       } else {
         window.location.hash = view;
       }

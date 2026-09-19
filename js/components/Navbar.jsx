@@ -61,6 +61,18 @@ export function Navbar({ currentView, setView, onOpenContactModal }) {
               <Icon name="mail" className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Email</span>
             </a>
+            <span className="text-slate-600">|</span>
+            <button
+              onClick={() => setView('admin')}
+              className={`inline-flex items-center gap-1 font-semibold text-[11px] px-2 py-0.5 rounded transition ${
+                currentView === 'admin'
+                  ? 'bg-sky-500 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+              title="Staff & Operations Admin Back-Office"
+            >
+              <span>⚙️ Admin</span>
+            </button>
           </div>
         </div>
       </div>
