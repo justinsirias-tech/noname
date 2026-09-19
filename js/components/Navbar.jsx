@@ -9,6 +9,7 @@ export function Navbar({ currentView, setView, onOpenContactModal }) {
     { id: 'home', label: 'Home' },
     { id: 'services', label: 'Pricing & Services' },
     { id: 'how-it-works', label: 'How It Works' },
+    { id: 'faq', label: 'FAQ' },
     { id: 'track', label: 'Track Order' },
     { id: 'terms', label: 'Terms & Conditions' },
   ];

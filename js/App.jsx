@@ -11,6 +11,7 @@ import { TermsAndConditions } from './components/TermsAndConditions.jsx';
 import { AdminPOS } from './components/AdminPOS.jsx';
 import { AdminLogin } from './components/AdminLogin.jsx';
 import { DigitalContactModal } from './components/DigitalContactModal.jsx';
+import { FaqSection } from './components/FaqSection.jsx';
 import { Footer } from './components/Footer.jsx';
 import { Icon } from './components/Icons.jsx';
 
@@ -23,6 +24,7 @@ const getInitialView = () => {
     if (hash === 'services' || path === 'services') return 'services';
     if (hash === 'terms' || path === 'terms') return 'terms';
     if (hash === 'book' || path === 'book') return 'book';
+    if (hash === 'faq' || path === 'faq') return 'faq';
   }
   return 'home';
 };
@@ -229,7 +231,7 @@ export function App() {
       const hash = window.location.hash.replace('#', '').toLowerCase();
       const path = window.location.pathname.replace(/^\//, '').toLowerCase();
       const target = hash || path;
-      if (['admin', 'track', 'services', 'terms', 'book', 'how-it-works'].includes(target)) {
+      if (['admin', 'track', 'services', 'terms', 'book', 'how-it-works', 'faq'].includes(target)) {
         setCurrentView(target);
       } else if (!hash) {
         setCurrentView('home');
@@ -313,6 +315,9 @@ export function App() {
             <HowItWorks
               setView={navigateTo}
             />
+            <FaqSection
+              setView={navigateTo}
+            />
           </>
         )}
 
@@ -332,6 +337,12 @@ export function App() {
           <div className="py-8">
             <HowItWorks setView={navigateTo} />
             <DigitalSupportBanner onOpenContactModal={() => setIsContactModalOpen(true)} />
+          </div>
+        )}
+
+        {currentView === 'faq' && (
+          <div className="py-8">
+            <FaqSection setView={navigateTo} />
           </div>
         )}
 

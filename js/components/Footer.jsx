@@ -110,7 +110,13 @@ export function Footer({ setView }) {
               </a>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-1.5 items-start">
+              <button
+                onClick={() => setView('faq')}
+                className="text-xs text-sky-400 hover:text-sky-300 font-bold underline underline-offset-4"
+              >
+                ❓ Frequently Asked Questions (FAQ)
+              </button>
               <button
                 onClick={() => setView('terms')}
                 className="text-xs text-slate-300 hover:text-white underline underline-offset-4"
@@ -128,7 +134,11 @@ export function Footer({ setView }) {
             © {new Date().getFullYear()} NoName Laundry (Bangkok, Thailand). All rights reserved. Purely digital door-to-door service.
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <button onClick={() => setView('faq')} className="hover:text-slate-300 font-bold text-slate-300">
+              FAQ
+            </button>
+            <span>•</span>
             <button onClick={() => setView('terms')} className="hover:text-slate-300">
               Terms of Service
             </button>

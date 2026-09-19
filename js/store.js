@@ -1,5 +1,6 @@
 // State and LocalStorage / PostgreSQL Management for NoName Laundry
 import { INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_INCIDENTS, INITIAL_CUSTOMERS } from './data/servicesData.js';
+import { INITIAL_FAQS } from './data/faqData.js';
 
 const STORAGE_KEYS = {
   SERVICES: 'noname_laundry_services_v2',
@@ -7,6 +8,7 @@ const STORAGE_KEYS = {
   INCIDENTS: 'noname_laundry_incidents_v2',
   CUSTOMERS: 'noname_laundry_customers_v2',
   SETTINGS: 'noname_laundry_settings_v2',
+  FAQS: 'noname_laundry_faqs_v2',
 };
 
 export const CONTACT_CHANNELS = {
@@ -186,12 +188,16 @@ export class LaundryStore {
         contact: CONTACT_CHANNELS
       };
       this.syncContactChannels(this.settings);
+
+      const savedFaqs = localStorage.getItem(STORAGE_KEYS.FAQS);
+      this.faqs = savedFaqs ? JSON.parse(savedFaqs) : INITIAL_FAQS;
     } catch (e) {
       console.error('Error loading state from localStorage:', e);
       this.services = INITIAL_SERVICES.map(s => ({ ...s, minWeightKg: 4.0 }));
       this.orders = INITIAL_ORDERS;
       this.incidents = INITIAL_INCIDENTS;
       this.customers = INITIAL_CUSTOMERS;
+      this.faqs = INITIAL_FAQS;
     }
   }
 
@@ -987,15 +993,84 @@ export class LaundryStore {
     this.notify();
   }
 
+  // ==========================================
+  // FAQ MANAGEMENT
+  // ==========================================
+  getFaqs() {
+    return [...(this.faqs || [])].sort((a, b) => (a.order || 99) - (b.order || 99));
+  }
+
+  getPublishedFaqs() {
+    return this.getFaqs().filter(f => f.isPublished !== false);
+  }
+
+  addFaq(faqData) {
+    const newFaq = {
+      id: 'FAQ-' + Math.floor(100 + Math.random() * 900),
+      category: (faqData.category || 'General').trim(),
+      question: (faqData.question || '').trim(),
+      answer: (faqData.answer || '').trim(),
+      order: parseInt(faqData.order) || ((this.faqs?.length || 0) + 1),
+      isPublished: faqData.isPublished !== undefined ? Boolean(faqData.isPublished) : true,
+      createdAt: new Date().toISOString()
+    };
+    if (!this.faqs) this.faqs = [];
+    this.faqs.push(newFaq);
+    this.persist(STORAGE_KEYS.FAQS, this.faqs);
+    this.notify();
+    return newFaq;
+  }
+
+  updateFaq(faqId, updatedData) {
+    if (!this.faqs) return null;
+    const idx = this.faqs.findIndex(f => f.id === faqId);
+    if (idx === -1) return null;
+
+    this.faqs[idx] = {
+      ...this.faqs[idx],
+      category: updatedData.category !== undefined ? updatedData.category.trim() : this.faqs[idx].category,
+      question: updatedData.question !== undefined ? updatedData.question.trim() : this.faqs[idx].question,
+      answer: updatedData.answer !== undefined ? updatedData.answer.trim() : this.faqs[idx].answer,
+      order: updatedData.order !== undefined ? parseInt(updatedData.order) : this.faqs[idx].order,
+      isPublished: updatedData.isPublished !== undefined ? Boolean(updatedData.isPublished) : this.faqs[idx].isPublished,
+      updatedAt: new Date().toISOString()
+    };
+    this.persist(STORAGE_KEYS.FAQS, this.faqs);
+    this.notify();
+    return this.faqs[idx];
+  }
+
+  deleteFaq(faqId) {
+    if (!this.faqs) return false;
+    this.faqs = this.faqs.filter(f => f.id !== faqId);
+    this.persist(STORAGE_KEYS.FAQS, this.faqs);
+    this.notify();
+    return true;
+  }
+
+  toggleFaqPublish(faqId) {
+    if (!this.faqs) return false;
+    const faq = this.faqs.find(f => f.id === faqId);
+    if (faq) {
+      faq.isPublished = !faq.isPublished;
+      this.persist(STORAGE_KEYS.FAQS, this.faqs);
+      this.notify();
+      return faq.isPublished;
+    }
+    return false;
+  }
+
   resetAllData() {
     this.services = INITIAL_SERVICES.map(s => ({ ...s, minWeightKg: 4.0 }));
     this.orders = INITIAL_ORDERS;
     this.incidents = INITIAL_INCIDENTS;
     this.customers = INITIAL_CUSTOMERS;
+    this.faqs = INITIAL_FAQS;
     localStorage.removeItem(STORAGE_KEYS.SERVICES);
     localStorage.removeItem(STORAGE_KEYS.ORDERS);
     localStorage.removeItem(STORAGE_KEYS.INCIDENTS);
     localStorage.removeItem(STORAGE_KEYS.CUSTOMERS);
+    localStorage.removeItem(STORAGE_KEYS.FAQS);
     this.notify();
   }
 }

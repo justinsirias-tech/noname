@@ -5,6 +5,7 @@ import { CONTACT_CHANNELS, getLineOaAddFriendUrl, getLineQrCodeUrl, generateProm
 import { OrderKanban } from './OrderKanban.jsx';
 import { OrderDetailsModal } from './OrderDetailsModal.jsx';
 import { CustomerCRM } from './CustomerCRM.jsx';
+import { FaqManager } from './FaqManager.jsx';
 
 export function AdminPOS({
   adminUser,
@@ -525,6 +526,7 @@ export function AdminPOS({
         {[
           { id: 'orders', label: 'Order Processing & Tracking', icon: 'package', count: orders.length },
           { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
+          { id: 'faq', label: 'FAQ Manager', icon: 'helpCircle', count: laundryStore.faqs ? laundryStore.faqs.length : 0 },
           { id: 'services-pricing', label: 'Services & Minimum Weights', icon: 'scale', count: services.length },
           { id: 'gateway', label: 'Cashless Payment Gateway', icon: 'receipt' },
           { id: 'line-oa', label: 'LINE OA & Contact Channels', icon: 'line' },
@@ -1588,6 +1590,11 @@ export function AdminPOS({
           onSelectOrder={(order) => setInspectingOrderId(order.id)}
           onCreateManualOrder={onCreateManualOrder}
         />
+      )}
+
+      {/* TAB 8: FAQ MANAGEMENT */}
+      {activeTab === 'faq' && (
+        <FaqManager />
       )}
 
       {/* ADD NEW SERVICE MODAL */}
