@@ -9,7 +9,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Helper row mappers
 function mapService(row) {
@@ -82,6 +83,10 @@ function mapIncident(row) {
     contact: row.contact,
     subject: row.subject,
     message: row.message,
+    category: row.category || 'General Inquiry',
+    severity: row.severity || 'normal',
+    affectedItem: row.affected_item || '',
+    imageUrl: row.image_url || null,
     status: row.status,
     response: row.response,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
@@ -584,8 +589,8 @@ app.post('/api/incidents', async (req, res) => {
     const inc = req.body;
     const id = inc.id || ('INC-' + Math.floor(100 + Math.random() * 900));
     const result = await query(`
-      INSERT INTO incidents (id, order_id, customer_name, channel, contact, subject, message, status, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NOW())
+      INSERT INTO incidents (id, order_id, customer_name, channel, contact, subject, message, category, severity, affected_item, image_url, status, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', NOW())
       RETURNING *
     `, [
       id,
@@ -594,10 +599,15 @@ app.post('/api/incidents', async (req, res) => {
       inc.channel || 'online',
       inc.contact || '',
       inc.subject || '',
-      inc.message || ''
+      inc.message || '',
+      inc.category || 'General Inquiry',
+      inc.severity || 'normal',
+      inc.affectedItem || '',
+      inc.imageUrl || null
     ]);
     res.status(201).json(mapIncident(result.rows[0]));
   } catch (err) {
+    console.error('Error creating incident:', err);
     res.status(500).json({ error: err.message });
   }
 });

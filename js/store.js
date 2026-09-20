@@ -157,7 +157,14 @@ export class LaundryStore {
       this.orders = savedOrders ? JSON.parse(savedOrders) : INITIAL_ORDERS;
 
       const savedIncidents = localStorage.getItem(STORAGE_KEYS.INCIDENTS);
-      this.incidents = savedIncidents ? JSON.parse(savedIncidents) : INITIAL_INCIDENTS;
+      const parsedIncidents = savedIncidents ? JSON.parse(savedIncidents) : INITIAL_INCIDENTS;
+      this.incidents = parsedIncidents.map(inc => ({
+        ...inc,
+        category: inc.category || (inc.id === 'INC-101' ? 'Special Laundry Request' : 'General Inquiry'),
+        severity: inc.severity || 'normal',
+        affectedItem: inc.affectedItem !== undefined ? inc.affectedItem : (inc.id === 'INC-101' ? 'Blue button-down shirt' : ''),
+        imageUrl: inc.imageUrl || null
+      }));
 
       const savedCustomers = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
       const parsedCusts = savedCustomers ? JSON.parse(savedCustomers) : INITIAL_CUSTOMERS;
@@ -773,6 +780,10 @@ export class LaundryStore {
       contact: incidentInput.contact,
       subject: incidentInput.subject,
       message: incidentInput.message,
+      category: incidentInput.category || 'General Inquiry',
+      severity: incidentInput.severity || 'normal',
+      affectedItem: incidentInput.affectedItem || '',
+      imageUrl: incidentInput.imageUrl || null,
       status: 'pending',
       createdAt: now.toISOString(),
       response: null

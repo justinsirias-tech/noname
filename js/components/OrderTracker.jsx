@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { ORDER_STATUSES } from '../data/servicesData.js';
+import { ORDER_STATUSES, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES } from '../data/servicesData.js';
 import { CONTACT_CHANNELS, getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
+import { ImageUploadZone } from './IncidentImageAttachment.jsx';
 
 export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
   const [searchQuery, setSearchQuery] = useState(initialTrackingId || '');
@@ -9,6 +10,10 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
   
   // Incident Form State
   const [showIncidentForm, setShowIncidentForm] = useState(false);
+  const [incidentCategory, setIncidentCategory] = useState(INCIDENT_CATEGORIES[0]);
+  const [incidentSeverity, setIncidentSeverity] = useState('normal');
+  const [incidentAffectedItem, setIncidentAffectedItem] = useState('');
+  const [incidentImageData, setIncidentImageData] = useState(null);
   const [incidentSubject, setIncidentSubject] = useState('');
   const [incidentMessage, setIncidentMessage] = useState('');
   const [incidentSubmitted, setIncidentSubmitted] = useState(false);
@@ -74,6 +79,10 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
       customerName: activeOrder.customerName,
       channel: activeOrder.contactChannel,
       contact: activeOrder.contactValue,
+      category: incidentCategory,
+      severity: incidentSeverity,
+      affectedItem: incidentAffectedItem.trim(),
+      imageUrl: incidentImageData,
       subject: incidentSubject.trim(),
       message: incidentMessage.trim()
     });
@@ -81,6 +90,10 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
     setIncidentSubmitted(true);
     setIncidentSubject('');
     setIncidentMessage('');
+    setIncidentCategory(INCIDENT_CATEGORIES[0]);
+    setIncidentSeverity('normal');
+    setIncidentAffectedItem('');
+    setIncidentImageData(null);
     setTimeout(() => {
       setShowIncidentForm(false);
       setIncidentSubmitted(false);
@@ -680,10 +693,71 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
                   </div>
                 ) : (
                   <>
-                    <div className="text-xs font-bold text-slate-700">
-                      Reporting regarding Order: <span className="font-mono text-sky-600">{activeOrder.id}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <div>
+                        Reporting regarding Order: <span className="font-mono text-sky-600">{activeOrder.id}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-normal">
+                        Customer: <strong>{activeOrder.customerName}</strong> ({activeOrder.contactChannel.toUpperCase()})
+                      </div>
                     </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Issue Category */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Issue Category / Type <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={incidentCategory}
+                          onChange={(e) => setIncidentCategory(e.target.value)}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-sky-500 font-semibold text-slate-800"
+                        >
+                          {INCIDENT_CATEGORIES.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Severity / Urgency Level */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Urgency Level
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {INCIDENT_SEVERITIES.map(sev => (
+                            <button
+                              key={sev.key}
+                              type="button"
+                              onClick={() => setIncidentSeverity(sev.key)}
+                              className={`py-2 px-2 rounded-xl text-xs font-bold transition border text-center ${
+                                incidentSeverity === sev.key
+                                  ? sev.badgeClass + ' ring-2 ring-offset-1 ring-slate-400 font-extrabold shadow-xs'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              {sev.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Affected Garment / Item Description */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Affected Garment / Item Description
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. White silk button shirt, Navy linen trousers, King-size duvet cover"
+                        value={incidentAffectedItem}
+                        onChange={(e) => setIncidentAffectedItem(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500"
+                      />
+                    </div>
+
+                    {/* Subject */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Topic / Subject <span className="text-red-500">*</span>
@@ -691,24 +765,36 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Question about weighed KG / Special iron request / Delivery update"
+                        placeholder="e.g. Coffee stain treatment on collar / Urgent delivery schedule inquiry"
                         value={incidentSubject}
                         onChange={(e) => setIncidentSubject(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500"
                       />
                     </div>
 
+                    {/* Detailed Message */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Detailed Message <span className="text-red-500">*</span>
+                        Detailed Explanation / Instructions <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         rows="3"
                         required
-                        placeholder="Describe your question or incident in detail..."
+                        placeholder="Please describe the issue in detail. For stain treatment, specify what caused it if known (coffee, oil, wine)..."
                         value={incidentMessage}
                         onChange={(e) => setIncidentMessage(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500"
+                      />
+                    </div>
+
+                    {/* Image Attachment Dropzone */}
+                    <div className="pt-1">
+                      <ImageUploadZone
+                        imageData={incidentImageData}
+                        onImageSelected={(dataUrl) => setIncidentImageData(dataUrl)}
+                        onImageRemoved={() => setIncidentImageData(null)}
+                        label="Attach Photo Evidence / Garment Image"
+                        hint="Upload a clear photo of the garment, stain spot, care label, or packaging."
                       />
                     </div>
 

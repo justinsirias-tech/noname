@@ -218,6 +218,10 @@ export const INITIAL_INCIDENTS = [
     customerName: 'Alex Thorne',
     channel: 'whatsapp',
     contact: '+66 82 455 9182',
+    category: 'Special Laundry Request',
+    severity: 'normal',
+    affectedItem: 'Blue button-down shirt',
+    imageUrl: null,
     subject: 'Special instruction: Extra starch on blue shirt',
     message: 'Hi NoName team, could you ensure light starch on the blue button-down shirt included in the bag? Thanks!',
     status: 'resolved',
@@ -225,6 +229,21 @@ export const INITIAL_INCIDENTS = [
     response: 'Noted with thanks! Our finishing team has applied light starch to your blue shirt.'
   }
 ];
+
+export const INCIDENT_CATEGORIES = [
+  { id: 'stain_treatment', label: 'Stain / Soil Spot Treatment', icon: 'sparkles', badgeColor: 'bg-purple-100 text-purple-800 border-purple-200' },
+  { id: 'garment_damage', label: 'Garment Damage / Torn / Missing Button', icon: 'alertCircle', badgeColor: 'bg-rose-100 text-rose-800 border-rose-200' },
+  { id: 'delivery_schedule', label: 'Delivery Timing / Condo Drop-off', icon: 'truck', badgeColor: 'bg-blue-100 text-blue-800 border-blue-200' },
+  { id: 'weight_billing', label: 'Scale Weight / Pricing Inquiry', icon: 'scale', badgeColor: 'bg-amber-100 text-amber-800 border-amber-200' },
+  { id: 'special_care', label: 'Special Laundry / Ironing Request', icon: 'checkCircle', badgeColor: 'bg-teal-100 text-teal-800 border-teal-200' },
+  { id: 'general_inquiry', label: 'General Inquiry / Other', icon: 'helpCircle', badgeColor: 'bg-slate-100 text-slate-800 border-slate-200' }
+];
+
+export const INCIDENT_SEVERITIES = {
+  normal: { label: 'Normal Priority', color: 'bg-sky-100 text-sky-800 border-sky-200' },
+  urgent: { label: 'Urgent (In-Progress)', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+  critical: { label: 'Critical (Damaged / Missing)', color: 'bg-rose-100 text-rose-800 border-rose-200' }
+};
 
 export const GENDER_OPTIONS = ['Male', 'Female', 'Rather not say'];
 

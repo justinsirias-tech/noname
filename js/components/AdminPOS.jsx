@@ -6,6 +6,7 @@ import { OrderKanban } from './OrderKanban.jsx';
 import { OrderDetailsModal } from './OrderDetailsModal.jsx';
 import { CustomerCRM } from './CustomerCRM.jsx';
 import { FaqManager } from './FaqManager.jsx';
+import { IncidentImageLightbox } from './IncidentImageAttachment.jsx';
 
 export function AdminPOS({
   adminUser,
@@ -458,11 +459,17 @@ export function AdminPOS({
     return matchesStatus && matchesSearch;
   });
 
+  // Incident Photo Evidence Lightbox State
+  const [incidentLightboxImg, setIncidentLightboxImg] = useState(null);
+  const [incidentLightboxTitle, setIncidentLightboxTitle] = useState('Incident Photo Evidence');
+
   // ESC key listener to close modals
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
-        if (showAddServiceModal) {
+        if (incidentLightboxImg) {
+          setIncidentLightboxImg(null);
+        } else if (showAddServiceModal) {
           setShowAddServiceModal(false);
         } else if (inspectingOrderId) {
           setInspectingOrderId(null);
@@ -471,7 +478,7 @@ export function AdminPOS({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAddServiceModal, inspectingOrderId]);
+  }, [incidentLightboxImg, showAddServiceModal, inspectingOrderId]);
 
   return (
     <div className="mx-auto px-3 sm:px-6 lg:px-8 py-6 transition-all max-w-[1750px] w-full">
@@ -1517,12 +1524,26 @@ export function AdminPOS({
                 incidents.map((inc) => (
                   <div key={inc.id} className="p-5 hover:bg-slate-50 transition space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-slate-900 text-xs">{inc.id}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono font-bold text-slate-900 text-xs bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{inc.id}</span>
                         <span className="text-slate-400">•</span>
                         <span className="font-bold text-slate-800 text-xs">Order: {inc.orderId}</span>
+                        {inc.category && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                            {inc.category}
+                          </span>
+                        )}
+                        {inc.severity && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            inc.severity === 'critical' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                            inc.severity === 'urgent' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                            'bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}>
+                            {inc.severity.toUpperCase()} URGENCY
+                          </span>
+                        )}
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          inc.status === 'resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          inc.status === 'resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
                         }`}>
                           {inc.status}
                         </span>
@@ -1533,12 +1554,61 @@ export function AdminPOS({
                       </div>
                     </div>
 
+                    {/* Affected Garment / Item Pill */}
+                    {inc.affectedItem && (
+                      <div className="flex items-center gap-2 text-xs bg-slate-50 p-2 rounded-xl border border-slate-200 text-slate-700">
+                        <Icon name="tag" className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>Affected Item / Garment: <strong className="text-slate-900">{inc.affectedItem}</strong></span>
+                      </div>
+                    )}
+
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{inc.subject}</h4>
-                      <p className="text-xs text-slate-600 mt-1 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <p className="text-xs text-slate-600 mt-1 bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed">
                         "{inc.message}"
                       </p>
                     </div>
+
+                    {/* Attached Photo Evidence Thumbnail */}
+                    {inc.imageUrl && (
+                      <div className="p-3 bg-white rounded-xl border border-slate-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 flex items-center gap-1">
+                            <Icon name="camera" className="w-3 h-3 text-sky-600" />
+                            <span>Customer Photo Evidence</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIncidentLightboxImg(inc.imageUrl);
+                              setIncidentLightboxTitle(`Evidence: ${inc.id} - ${inc.subject}`);
+                            }}
+                            className="text-[11px] text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1"
+                          >
+                            <Icon name="zoomIn" className="w-3 h-3" />
+                            <span>View Full Resolution</span>
+                          </button>
+                        </div>
+                        <div
+                          onClick={() => {
+                            setIncidentLightboxImg(inc.imageUrl);
+                            setIncidentLightboxTitle(`Evidence: ${inc.id} - ${inc.subject}`);
+                          }}
+                          className="relative group w-32 h-24 sm:w-44 sm:h-32 rounded-xl overflow-hidden cursor-pointer border border-slate-300 bg-slate-900 shadow-2xs hover:shadow-md transition"
+                          title="Click to view full photo"
+                        >
+                          <img
+                            src={inc.imageUrl}
+                            alt={`Evidence for ${inc.id}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                            <Icon name="zoomIn" className="w-4 h-4" />
+                            <span>Inspect</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {inc.response && (
                       <div className="text-xs text-emerald-800 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
@@ -1985,6 +2055,15 @@ export function AdminPOS({
           onMarkPaid={(orderId, method) => laundryStore.markOrderPaid(orderId, method)}
         />
       )}
+
+      {/* Incident Photo Evidence Lightbox Modal */}
+      <IncidentImageLightbox
+        isOpen={Boolean(incidentLightboxImg)}
+        onClose={() => setIncidentLightboxImg(null)}
+        imageUrl={incidentLightboxImg}
+        title={incidentLightboxTitle}
+        caption="High-resolution evidence inspection for ticket investigation."
+      />
 
     </div>
   );

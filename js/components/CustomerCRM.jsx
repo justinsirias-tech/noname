@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { BANGKOK_DISTRICTS, GENDER_OPTIONS, CUSTOMER_TIERS } from '../data/servicesData.js';
+import { BANGKOK_DISTRICTS, GENDER_OPTIONS, CUSTOMER_TIERS, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES } from '../data/servicesData.js';
 import { laundryStore, getLineOaMessageUrl, CONTACT_CHANNELS } from '../store.js';
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
+import { ImageUploadZone, IncidentImageLightbox } from './IncidentImageAttachment.jsx';
 
 export function CustomerCRM({
   onSelectOrder,
@@ -71,10 +72,18 @@ export function CustomerCRM({
 
   // Log Issue / Ticket Modal inside Customer Detail
   const [showLogIssueModal, setShowLogIssueModal] = useState(false);
+  const [issueCategory, setIssueCategory] = useState(INCIDENT_CATEGORIES[0]);
+  const [issueSeverity, setIssueSeverity] = useState('normal');
+  const [issueAffectedItem, setIssueAffectedItem] = useState('');
+  const [issueImageData, setIssueImageData] = useState(null);
   const [issueSubject, setIssueSubject] = useState('');
   const [issueMessage, setIssueMessage] = useState('');
   const [issueChannel, setIssueChannel] = useState('whatsapp');
   const [issueOrderId, setIssueOrderId] = useState('');
+
+  // Image Lightbox Preview
+  const [lightboxImg, setLightboxImg] = useState(null);
+  const [lightboxTitle, setLightboxTitle] = useState('Incident Photo Evidence');
 
   // OTP Simulator Modal
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -112,11 +121,13 @@ export function CustomerCRM({
     });
   }, []);
 
-  // System-wide ESC Key listener to close open profile or modal
+  // System-wide ESC Key listener to close open profile, modal, or lightbox
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
-        if (showEditPhonesModal) {
+        if (lightboxImg) {
+          setLightboxImg(null);
+        } else if (showEditPhonesModal) {
           setShowEditPhonesModal(false);
         } else if (showPinModal) {
           setShowPinModal(false);
@@ -135,7 +146,7 @@ export function CustomerCRM({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showEditPhonesModal, showPinModal, showOtpModal, showLogIssueModal, showAddAddressForm, showAddModal, selectedCustomer]);
+  }, [lightboxImg, showEditPhonesModal, showPinModal, showOtpModal, showLogIssueModal, showAddAddressForm, showAddModal, selectedCustomer]);
 
   // Calculate Age from Date of Birth
   const calculateAge = (dobString) => {
@@ -337,6 +348,10 @@ export function CustomerCRM({
       customerName: selectedCustomer.fullName,
       channel: issueChannel,
       contact: issueChannel === 'whatsapp' ? selectedCustomer.mobileNumber : (selectedCustomer.lineId || selectedCustomer.email),
+      category: issueCategory,
+      severity: issueSeverity,
+      affectedItem: issueAffectedItem.trim(),
+      imageUrl: issueImageData,
       subject: issueSubject.trim(),
       message: issueMessage.trim()
     });
@@ -345,6 +360,10 @@ export function CustomerCRM({
     setShowLogIssueModal(false);
     setIssueSubject('');
     setIssueMessage('');
+    setIssueCategory(INCIDENT_CATEGORIES[0]);
+    setIssueSeverity('normal');
+    setIssueAffectedItem('');
+    setIssueImageData(null);
     showToast('Customer issue ticket recorded into history.');
   };
 
@@ -1634,16 +1653,30 @@ export function CustomerCRM({
                     {selectedCustomer.incidents.map(inc => (
                       <div
                         key={inc.id}
-                        className={`p-4 rounded-2xl border transition space-y-2 ${
+                        className={`p-4 rounded-2xl border transition space-y-3 ${
                           inc.status === 'pending'
                             ? 'bg-amber-50/60 border-amber-300'
                             : 'bg-white border-slate-200'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-slate-900">{inc.id}</span>
-                            <span className="font-bold text-slate-800">{inc.subject}</span>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 text-[11px]">{inc.id}</span>
+                            <span className="font-bold text-slate-900 text-sm">{inc.subject}</span>
+                            {inc.category && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                                {inc.category}
+                              </span>
+                            )}
+                            {inc.severity && (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                inc.severity === 'critical' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                                inc.severity === 'urgent' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                'bg-slate-100 text-slate-700 border border-slate-200'
+                              }`}>
+                                {inc.severity.toUpperCase()} URGENCY
+                              </span>
+                            )}
                           </div>
 
                           <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
@@ -1655,10 +1688,59 @@ export function CustomerCRM({
                           </span>
                         </div>
 
+                        {/* Affected Garment / Item Pill */}
+                        {inc.affectedItem && (
+                          <div className="flex items-center gap-2 text-xs bg-white p-2 rounded-xl border border-slate-200 text-slate-700">
+                            <Icon name="tag" className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span>Affected Item / Garment: <strong className="text-slate-900">{inc.affectedItem}</strong></span>
+                          </div>
+                        )}
+
                         <div className="p-3 bg-slate-50/90 rounded-xl text-slate-700 leading-relaxed">
-                          <span className="font-bold text-slate-500 block text-[10px] uppercase">Customer Message:</span>
+                          <span className="font-bold text-slate-500 block text-[10px] uppercase">Customer Message / Detail:</span>
                           "{inc.message}"
                         </div>
+
+                        {/* Attached Photo Evidence Thumbnail */}
+                        {inc.imageUrl && (
+                          <div className="p-3 bg-white rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] uppercase font-bold text-slate-500 flex items-center gap-1">
+                                <Icon name="camera" className="w-3 h-3 text-sky-600" />
+                                <span>Attached Photo Evidence</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLightboxImg(inc.imageUrl);
+                                  setLightboxTitle(`Evidence: ${inc.id} - ${inc.subject}`);
+                                }}
+                                className="text-[11px] text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1"
+                              >
+                                <Icon name="zoomIn" className="w-3 h-3" />
+                                <span>View High-Res Photo</span>
+                              </button>
+                            </div>
+                            <div
+                              onClick={() => {
+                                setLightboxImg(inc.imageUrl);
+                                setLightboxTitle(`Evidence: ${inc.id} - ${inc.subject}`);
+                              }}
+                              className="relative group w-32 h-24 sm:w-40 sm:h-28 rounded-xl overflow-hidden cursor-pointer border border-slate-300 bg-slate-900 shadow-2xs hover:shadow-md transition"
+                              title="Click to view full photo"
+                            >
+                              <img
+                                src={inc.imageUrl}
+                                alt={`Evidence for ${inc.id}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              />
+                              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                                <Icon name="zoomIn" className="w-4 h-4" />
+                                <span>Inspect</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {inc.response ? (
                           <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-emerald-900 leading-relaxed">
@@ -1673,7 +1755,7 @@ export function CustomerCRM({
 
                         <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-100 flex items-center justify-between">
                           <span>Channel: <strong>{(inc.channel || 'chat').toUpperCase()}</strong> • {inc.contact}</span>
-                          <span>Logged: {inc.createdAt ? inc.createdAt.substring(0, 16) : 'Recently'}</span>
+                          <span>Logged: {inc.createdAt ? inc.createdAt.substring(0, 16).replace('T', ' ') : 'Recently'}</span>
                         </div>
                       </div>
                     ))}
@@ -2253,34 +2335,98 @@ export function CustomerCRM({
           onClick={() => setShowLogIssueModal(false)}
         >
           <div 
-            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4"
+            className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-black text-slate-900 text-base">Record Customer Issue / Request</h3>
+              <div>
+                <h3 className="font-black text-slate-900 text-base">Record Customer Issue / Request</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Log support ticket or special garment treatment for <strong>{selectedCustomer.fullName}</strong></p>
+              </div>
               <button onClick={() => setShowLogIssueModal(false)} className="text-slate-400 hover:text-slate-700 flex items-center gap-1" title="Close (Esc)">
                 <span className="text-[10px] font-mono font-bold px-1 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleLogIssueSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Source Channel *</label>
-                <select
-                  value={issueChannel}
-                  onChange={(e) => setIssueChannel(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
-                >
-                  <option value="whatsapp">WhatsApp Inquiry</option>
-                  <option value="line">LINE Official Account</option>
-                  <option value="email">Email Support</option>
-                </select>
+            <form onSubmit={handleLogIssueSubmit} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Source Channel *</label>
+                  <select
+                    value={issueChannel}
+                    onChange={(e) => setIssueChannel(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
+                  >
+                    <option value="whatsapp">WhatsApp Inquiry</option>
+                    <option value="line">LINE Official Account</option>
+                    <option value="email">Email Support</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Related Order ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. NNL-8491-BK"
+                    value={issueOrderId}
+                    onChange={(e) => setIssueOrderId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Category */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Issue Category *</label>
+                  <select
+                    value={issueCategory}
+                    onChange={(e) => setIssueCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold"
+                  >
+                    {INCIDENT_CATEGORIES.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Urgency */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Urgency Level</label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {INCIDENT_SEVERITIES.map(sev => (
+                      <button
+                        key={sev.key}
+                        type="button"
+                        onClick={() => setIssueSeverity(sev.key)}
+                        className={`py-1.5 px-1 rounded-lg text-[11px] font-bold border transition text-center ${
+                          issueSeverity === sev.key
+                            ? sev.badgeClass + ' ring-2 ring-slate-400 font-extrabold shadow-2xs'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {sev.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Subject / Category *</label>
+                <label className="block font-bold text-slate-700 mb-1">Affected Garment / Item Description</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Blue silk dress, White button-down shirt, Pillowcase"
+                  value={issueAffectedItem}
+                  onChange={(e) => setIssueAffectedItem(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Topic / Subject Title *</label>
                 <input
                   type="text"
                   required
@@ -2288,17 +2434,6 @@ export function CustomerCRM({
                   value={issueSubject}
                   onChange={(e) => setIssueSubject(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Related Order ID (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. NNL-8491-BK"
-                  value={issueOrderId}
-                  onChange={(e) => setIssueOrderId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono"
                 />
               </div>
 
@@ -2311,6 +2446,16 @@ export function CustomerCRM({
                   value={issueMessage}
                   onChange={(e) => setIssueMessage(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+
+              <div>
+                <ImageUploadZone
+                  imageData={issueImageData}
+                  onImageSelected={(url) => setIssueImageData(url)}
+                  onImageRemoved={() => setIssueImageData(null)}
+                  label="Attach Customer Photo Evidence / Image"
+                  hint="Upload customer's photo of stain, care tag, fabric defect, or order packaging."
                 />
               </div>
 
@@ -2465,6 +2610,15 @@ export function CustomerCRM({
           </div>
         </div>
       )}
+
+      {/* Incident Photo Evidence Lightbox Modal */}
+      <IncidentImageLightbox
+        isOpen={Boolean(lightboxImg)}
+        onClose={() => setLightboxImg(null)}
+        imageUrl={lightboxImg}
+        title={lightboxTitle}
+        caption="Photo evidence logged for incident investigation."
+      />
 
     </div>
   );
