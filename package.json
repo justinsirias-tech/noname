@@ -6,9 +6,10 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "build": "npx esbuild js/index.jsx --bundle --outfile=dist/app.js --format=esm --external:react --external:react-dom --external:react-dom/client --minify",
+    "build": "node build.js",
+    "vercel-build": "node build.js",
     "db:init": "node server/initDb.js",
-    "serve": "npx serve ."
+    "serve": "npx serve public"
   },
   "dependencies": {
     "cors": "^2.8.5",

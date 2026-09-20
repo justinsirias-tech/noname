@@ -763,10 +763,14 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(` NoName Laundry Bangkok Server running on port ${PORT}`);
-  console.log(` Connected to Google Cloud SQL (PostgreSQL)`);
-  console.log(` Local URL: http://localhost:${PORT}`);
-  console.log(`====================================================`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(` NoName Laundry Bangkok Server running on port ${PORT}`);
+    console.log(` Connected to Google Cloud SQL (PostgreSQL)`);
+    console.log(` Local URL: http://localhost:${PORT}`);
+    console.log(`====================================================`);
+  });
+}
+
+module.exports = app;
