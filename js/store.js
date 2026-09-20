@@ -688,30 +688,57 @@ export class LaundryStore {
     return newOrder;
   }
 
-  updateOrderStatus(orderId, newStatus, note = '', actualWeightKg = null, tagNumber = null) {
+  updateOrderStatus(orderId, newStatus, note = '', actualWeightKg = null, tagNumber = null, serviceUpdates = {}) {
     const now = new Date();
     const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
 
     this.orders = this.orders.map(order => {
       if (order.id === orderId) {
-        let updated = { ...order, status: newStatus };
+        let updated = { ...order, status: newStatus || order.status };
         
         if (tagNumber && tagNumber.trim()) {
           updated.tagNumber = tagNumber.trim();
         }
 
-        if (actualWeightKg !== null && actualWeightKg !== undefined && actualWeightKg !== '') {
-          const actualKg = Number(actualWeightKg);
-          updated.actualWeightKg = actualKg;
-          // Recalculate price: maximum of actual weight or minimum weight
-          const billableKg = Math.max(actualKg, updated.minWeightAppliedKg || 4.0);
-          updated.totalPrice = Math.round(billableKg * updated.pricePerKg);
+        if (serviceUpdates.serviceId) {
+          updated.serviceId = serviceUpdates.serviceId;
+        }
+        if (serviceUpdates.serviceName) {
+          updated.serviceName = serviceUpdates.serviceName;
+        }
+        if (serviceUpdates.turnaroundSpeed) {
+          updated.turnaroundSpeed = serviceUpdates.turnaroundSpeed;
+        }
+        if (serviceUpdates.pricePerKg !== undefined && serviceUpdates.pricePerKg !== null) {
+          updated.pricePerKg = Number(serviceUpdates.pricePerKg);
+        }
+        if (serviceUpdates.minWeightAppliedKg !== undefined && serviceUpdates.minWeightAppliedKg !== null) {
+          updated.minWeightAppliedKg = Number(serviceUpdates.minWeightAppliedKg);
+        }
+        if (serviceUpdates.deliveryDate) {
+          updated.deliveryDate = serviceUpdates.deliveryDate;
+        }
+        if (serviceUpdates.deliveryTime) {
+          updated.deliveryTime = serviceUpdates.deliveryTime;
         }
 
+        if (actualWeightKg !== null && actualWeightKg !== undefined && actualWeightKg !== '') {
+          updated.actualWeightKg = Number(actualWeightKg);
+        }
+
+        const effectiveKg = updated.actualWeightKg !== null && updated.actualWeightKg !== undefined
+          ? Number(updated.actualWeightKg)
+          : Number(updated.estimatedWeightKg || 4.0);
+        const billableKg = Math.max(effectiveKg, updated.minWeightAppliedKg || 4.0);
+        
+        updated.totalPrice = (serviceUpdates.totalPrice !== undefined && serviceUpdates.totalPrice !== null)
+          ? Number(serviceUpdates.totalPrice)
+          : Math.round(billableKg * Number(updated.pricePerKg));
+
         const newTimelineEvent = {
-          status: newStatus,
+          status: updated.status,
           timestamp: timestampStr,
-          note: note || ('Status updated to ' + newStatus.replace(/_/g, ' ') + '.')
+          note: note || (`Order updated to ${updated.status.replace(/_/g, ' ')}.`)
         };
 
         updated.timeline = [...(order.timeline || []), newTimelineEvent];
@@ -726,7 +753,13 @@ export class LaundryStore {
     fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newStatus, note, actualWeightKg, tagNumber })
+      body: JSON.stringify({
+        newStatus,
+        note,
+        actualWeightKg,
+        tagNumber,
+        ...serviceUpdates
+      })
     }).catch(err => {
       console.warn('Failed to sync order status to PostgreSQL:', err);
     });

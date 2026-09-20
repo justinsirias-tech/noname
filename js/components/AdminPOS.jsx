@@ -2044,12 +2044,13 @@ export function AdminPOS({
       {inspectingOrder && (
         <OrderDetailsModal
           order={inspectingOrder}
+          services={services}
           onClose={() => setInspectingOrderId(null)}
-          onUpdateOrder={async (orderId, newStatus, note, actualWeightKg, tagNumber) => {
+          onUpdateOrder={async (orderId, newStatus, note, actualWeightKg, tagNumber, serviceUpdates) => {
             if (onUpdateOrderStatus) {
-              await onUpdateOrderStatus(orderId, newStatus, note, actualWeightKg, tagNumber);
+              await onUpdateOrderStatus(orderId, newStatus, note, actualWeightKg, tagNumber, serviceUpdates);
             } else {
-              await laundryStore.updateOrderStatus(orderId, newStatus, note, actualWeightKg, tagNumber);
+              await laundryStore.updateOrderStatus(orderId, newStatus, note, actualWeightKg, tagNumber, serviceUpdates);
             }
           }}
           onMarkPaid={(orderId, method) => laundryStore.markOrderPaid(orderId, method)}

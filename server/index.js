@@ -476,7 +476,20 @@ app.post('/api/orders', async (req, res) => {
 app.patch('/api/orders/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const { newStatus, note, actualWeightKg, tagNumber } = req.body;
+    const {
+      newStatus,
+      note,
+      actualWeightKg,
+      tagNumber,
+      serviceId,
+      serviceName,
+      turnaroundSpeed,
+      pricePerKg,
+      minWeightAppliedKg,
+      totalPrice,
+      deliveryDate,
+      deliveryTime
+    } = req.body;
 
     const existingRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
     if (existingRes.rows.length === 0) {
@@ -487,20 +500,32 @@ app.patch('/api/orders/:id/status', async (req, res) => {
     const now = new Date();
     const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
 
+    const targetStatus = newStatus || currentOrder.status;
+    const targetServiceId = serviceId || currentOrder.service_id;
+    const targetServiceName = serviceName || currentOrder.service_name;
+    const targetTurnaround = turnaroundSpeed || currentOrder.turnaround_speed;
+    const targetPricePerKg = (pricePerKg !== undefined && pricePerKg !== null) ? Number(pricePerKg) : Number(currentOrder.price_per_kg);
+    const targetMinWeight = (minWeightAppliedKg !== undefined && minWeightAppliedKg !== null) ? Number(minWeightAppliedKg) : Number(currentOrder.min_weight_applied_kg || 4.0);
+
     let updatedActualKg = currentOrder.actual_weight_kg;
-    let updatedTotal = currentOrder.total_price;
     if (actualWeightKg !== undefined && actualWeightKg !== null && actualWeightKg !== '') {
       updatedActualKg = Number(actualWeightKg);
-      const billableKg = Math.max(updatedActualKg, Number(currentOrder.min_weight_applied_kg || 4.0));
-      updatedTotal = Math.round(billableKg * Number(currentOrder.price_per_kg));
     }
 
+    const effectiveKg = updatedActualKg !== null ? updatedActualKg : Number(currentOrder.estimated_weight_kg || 4.0);
+    const billableKg = Math.max(effectiveKg, targetMinWeight);
+    const calculatedTotal = Math.round(billableKg * targetPricePerKg);
+    const finalTotalPrice = (totalPrice !== undefined && totalPrice !== null) ? Number(totalPrice) : calculatedTotal;
+
     const updatedTagNumber = (tagNumber && tagNumber.trim()) ? tagNumber.trim() : currentOrder.tag_number;
+    const targetDeliveryDate = deliveryDate || currentOrder.delivery_date;
+    const targetDeliveryTime = deliveryTime || currentOrder.delivery_time;
+
     const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
     const newTimelineEvent = {
-      status: newStatus,
+      status: targetStatus,
       timestamp: timestampStr,
-      note: note || (`Status updated to ${newStatus.replace(/_/g, ' ')}.`)
+      note: note || (`Order updated to ${targetStatus.replace(/_/g, ' ')}.`)
     };
     const updatedTimeline = [...currentTimeline, newTimelineEvent];
 
@@ -510,15 +535,29 @@ app.patch('/api/orders/:id/status', async (req, res) => {
           actual_weight_kg = $2,
           total_price = $3,
           tag_number = $4,
-          timeline = $5,
+          service_id = $5,
+          service_name = $6,
+          turnaround_speed = $7,
+          price_per_kg = $8,
+          min_weight_applied_kg = $9,
+          delivery_date = $10,
+          delivery_time = $11,
+          timeline = $12,
           updated_at = NOW()
-      WHERE id = $6
+      WHERE id = $13
       RETURNING *
     `, [
-      newStatus,
+      targetStatus,
       updatedActualKg,
-      updatedTotal,
+      finalTotalPrice,
       updatedTagNumber,
+      targetServiceId,
+      targetServiceName,
+      targetTurnaround,
+      targetPricePerKg,
+      targetMinWeight,
+      targetDeliveryDate,
+      targetDeliveryTime,
       JSON.stringify(updatedTimeline),
       id
     ]);

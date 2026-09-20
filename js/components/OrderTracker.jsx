@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { ORDER_STATUSES, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES } from '../data/servicesData.js';
+import { ORDER_STATUSES, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES, INITIAL_SERVICES } from '../data/servicesData.js';
 import { CONTACT_CHANNELS, getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
 import { ImageUploadZone } from './IncidentImageAttachment.jsx';
 
@@ -18,24 +18,33 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
   const [incidentMessage, setIncidentMessage] = useState('');
   const [incidentSubmitted, setIncidentSubmitted] = useState(false);
 
+  // Customer Service & Turnaround Change Modal State
+  const [showServiceChangeModal, setShowServiceChangeModal] = useState(false);
+  const [trackerServiceId, setTrackerServiceId] = useState('');
+  const [trackerTurnaroundSpeed, setTrackerTurnaroundSpeed] = useState('');
+  const [trackerUpdating, setTrackerUpdating] = useState(false);
+  const [trackerSuccessMsg, setTrackerSuccessMsg] = useState('');
+
   // LINE OA Desktop QR Code toggle
   const [showLineQr, setShowLineQr] = useState(false);
 
   // Cashless Payment Gateway Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // ESC key listener to close payment modal
+  // ESC key listener to close modals
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
-        if (showPaymentModal) {
+        if (showServiceChangeModal) {
+          setShowServiceChangeModal(false);
+        } else if (showPaymentModal) {
           setShowPaymentModal(false);
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showPaymentModal]);
+  }, [showServiceChangeModal, showPaymentModal]);
 
   const [paymentTab, setPaymentTab] = useState('promptpay'); // 'promptpay', 'card'
   const [cardNumber, setCardNumber] = useState('');
@@ -100,6 +109,81 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
     }, 3000);
   };
 
+  const getRateForSpeed = (srv, speed) => {
+    if (!srv) return 65;
+    if (speed === 'same_day') {
+      return srv.sameDayPricePerKg !== undefined ? Number(srv.sameDayPricePerKg) : Math.round((srv.standardPricePerKg || srv.pricePerKg || 65) * 1.75);
+    }
+    if (speed === 'next_day_24h' || speed === 'next_day') {
+      return srv.nextDayPricePerKg !== undefined ? Number(srv.nextDayPricePerKg) : Math.round((srv.standardPricePerKg || srv.pricePerKg || 65) * 1.3);
+    }
+    return Number(srv.standardPricePerKg !== undefined ? srv.standardPricePerKg : (srv.pricePerKg || 65));
+  };
+
+  const calculateSuggestedDelivery = (order, speed) => {
+    if (!order?.pickupDate) return { date: order?.deliveryDate || '', time: order?.deliveryTime || '' };
+    try {
+      const parts = order.pickupDate.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        if (speed === 'same_day') {
+          return { date: order.pickupDate, time: 'Before 18:00 (Same Day Express)' };
+        } else if (speed === 'next_day_24h' || speed === 'next_day') {
+          d.setDate(d.getDate() + 1);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return { date: `${yyyy}-${mm}-${dd}`, time: order.pickupTime || '14:00 - 16:00 (Next Day)' };
+        } else {
+          d.setDate(d.getDate() + 2);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return { date: `${yyyy}-${mm}-${dd}`, time: order.pickupTime || '14:00 - 16:00 (Standard 48h)' };
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+    return { date: order?.deliveryDate || '', time: order?.deliveryTime || '' };
+  };
+
+  const handleConfirmCustomerServiceChange = async () => {
+    if (!activeOrder) return;
+    const allServices = laundryStore.services?.length ? laundryStore.services : INITIAL_SERVICES;
+    const srv = allServices.find(s => s.id === trackerServiceId) || allServices[0];
+    const newSpeed = trackerTurnaroundSpeed || activeOrder.turnaroundSpeed || 'standard_48h';
+    const rate = getRateForSpeed(srv, newSpeed);
+    const weight = activeOrder.actualWeightKg !== null && activeOrder.actualWeightKg !== undefined
+      ? activeOrder.actualWeightKg
+      : (activeOrder.estimatedWeightKg || 4.0);
+    const minWeight = srv.minWeightKg || 4.0;
+    const billableKg = Math.max(weight, minWeight);
+    const newTotal = Math.round(billableKg * rate);
+    const delivery = calculateSuggestedDelivery(activeOrder, newSpeed);
+
+    setTrackerUpdating(true);
+    const speedLabel = newSpeed === 'same_day' ? 'Same Day Express (<18:00)' : (newSpeed === 'next_day_24h' || newSpeed === 'next_day') ? 'Next Day (24h)' : 'Standard (48h)';
+    const note = `Customer modified service to "${srv.name}" (${speedLabel}) online before payment. Rate: ฿${rate}/kg, Total: ฿${newTotal} THB.`;
+    
+    const serviceUpdates = {
+      serviceId: srv.id,
+      serviceName: srv.name,
+      turnaroundSpeed: newSpeed,
+      pricePerKg: rate,
+      minWeightAppliedKg: minWeight,
+      deliveryDate: delivery.date,
+      deliveryTime: delivery.time,
+      totalPrice: newTotal
+    };
+
+    laundryStore.updateOrderStatus(activeOrder.id, activeOrder.status, note, null, null, serviceUpdates);
+    setTrackerUpdating(false);
+    setShowServiceChangeModal(false);
+    setTrackerSuccessMsg(`Service updated to ${srv.name} (${speedLabel})! Your invoice total has been updated to ฿${newTotal} THB.`);
+    setTimeout(() => setTrackerSuccessMsg(''), 6000);
+  };
+
   const handleSimulatePayment = (methodName) => {
     if (!activeOrder) return;
     setIsProcessingPayment(true);
@@ -139,6 +223,235 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       
+      {/* CUSTOMER SERVICE & TURNAROUND SPEED CHANGE MODAL */}
+      {showServiceChangeModal && activeOrder && (() => {
+        const allServices = laundryStore.services?.length ? laundryStore.services : INITIAL_SERVICES;
+        const selectedSrv = allServices.find(s => s.id === trackerServiceId) || allServices[0];
+        const selectedSpeed = trackerTurnaroundSpeed || activeOrder.turnaroundSpeed || 'standard_48h';
+        const effectiveRate = getRateForSpeed(selectedSrv, selectedSpeed);
+        const weight = activeOrder.actualWeightKg !== null && activeOrder.actualWeightKg !== undefined
+          ? activeOrder.actualWeightKg
+          : (activeOrder.estimatedWeightKg || 4.0);
+        const minWeight = selectedSrv?.minWeightKg || 4.0;
+        const billableKg = Math.max(weight, minWeight);
+        const newTotal = Math.round(billableKg * effectiveRate);
+        const priceDiff = newTotal - (activeOrder.totalPrice || 0);
+        const estDelivery = calculateSuggestedDelivery(activeOrder, selectedSpeed);
+        const isSameDaySupported = selectedSrv.sameDayAvailable !== false && selectedSrv.turnaroundRates?.same_day?.available !== false;
+
+        return (
+          <div 
+            className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+            onClick={() => setShowServiceChangeModal(false)}
+          >
+            <div 
+              className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs uppercase font-extrabold text-amber-600 tracking-wider">
+                      Flexible Service Adjustments
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                      Pre-Payment
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 mt-0.5">
+                    Change Service or Turnaround Speed
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Order <strong>#{activeOrder.id}</strong> • Update your order specs before completing cashless checkout
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowServiceChangeModal(false)}
+                  className="p-1 text-slate-400 hover:text-slate-800 flex items-center gap-1"
+                  title="Close (Esc)"
+                >
+                  <span className="hidden sm:inline text-[10px] font-mono font-bold px-1 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
+                  <Icon name="x" className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Step 1: Select Service */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  1. Choose Laundry Service Plan
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {allServices.map(srv => {
+                    const isSelected = (srv.id === trackerServiceId);
+                    const srvRate = getRateForSpeed(srv, selectedSpeed);
+                    return (
+                      <button
+                        key={srv.id}
+                        type="button"
+                        onClick={() => {
+                          setTrackerServiceId(srv.id);
+                          if (srv.sameDayAvailable === false && selectedSpeed === 'same_day') {
+                            setTrackerTurnaroundSpeed('next_day_24h');
+                          }
+                        }}
+                        className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between ${
+                          isSelected
+                            ? 'border-sky-500 bg-sky-50/80 ring-2 ring-sky-500/20 shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-extrabold text-slate-900">{srv.name}</span>
+                            {isSelected && <Icon name="check" className="w-4 h-4 text-sky-600 shrink-0" />}
+                          </div>
+                          {srv.nameTh && <div className="text-[10px] text-slate-400">{srv.nameTh}</div>}
+                          <div className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-tight">
+                            {srv.description}
+                          </div>
+                        </div>
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 text-xs font-bold text-sky-700">
+                          ฿{srvRate}/kg
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Step 2: Choose Turnaround Speed */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  2. Choose Turnaround Delivery Speed
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Standard 48h */}
+                  <button
+                    type="button"
+                    onClick={() => setTrackerTurnaroundSpeed('standard_48h')}
+                    className={`p-3 rounded-2xl border text-left transition ${
+                      selectedSpeed === 'standard_48h'
+                        ? 'border-sky-500 bg-sky-50/80 ring-2 ring-sky-500/20 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-slate-900">Standard</span>
+                      {selectedSpeed === 'standard_48h' && <Icon name="check" className="w-4 h-4 text-sky-600" />}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-semibold mt-0.5">48 Hours</div>
+                    <div className="text-[11px] font-bold text-sky-700 mt-2">
+                      ฿{getRateForSpeed(selectedSrv, 'standard_48h')}/kg
+                    </div>
+                  </button>
+
+                  {/* Next Day 24h */}
+                  <button
+                    type="button"
+                    onClick={() => setTrackerTurnaroundSpeed('next_day_24h')}
+                    className={`p-3 rounded-2xl border text-left transition ${
+                      selectedSpeed === 'next_day_24h' || selectedSpeed === 'next_day'
+                        ? 'border-sky-500 bg-sky-50/80 ring-2 ring-sky-500/20 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-slate-900">Next Day</span>
+                      {(selectedSpeed === 'next_day_24h' || selectedSpeed === 'next_day') && (
+                        <Icon name="check" className="w-4 h-4 text-sky-600" />
+                      )}
+                    </div>
+                    <div className="text-[11px] text-amber-600 font-bold mt-0.5">⚡ 24 Hours</div>
+                    <div className="text-[11px] font-bold text-sky-700 mt-2">
+                      ฿{getRateForSpeed(selectedSrv, 'next_day_24h')}/kg
+                    </div>
+                  </button>
+
+                  {/* Same Day */}
+                  <button
+                    type="button"
+                    disabled={!isSameDaySupported}
+                    onClick={() => isSameDaySupported && setTrackerTurnaroundSpeed('same_day')}
+                    className={`p-3 rounded-2xl border text-left transition ${
+                      !isSameDaySupported
+                        ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200'
+                        : selectedSpeed === 'same_day'
+                        ? 'border-sky-500 bg-sky-50/80 ring-2 ring-sky-500/20 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-slate-900">Same Day</span>
+                      {selectedSpeed === 'same_day' && <Icon name="check" className="w-4 h-4 text-sky-600" />}
+                    </div>
+                    <div className="text-[11px] text-red-600 font-extrabold mt-0.5">
+                      {isSameDaySupported ? '🚀 Before 18:00' : 'Not Available'}
+                    </div>
+                    <div className="text-[11px] font-bold text-sky-700 mt-2">
+                      {isSameDaySupported ? `฿${getRateForSpeed(selectedSrv, 'same_day')}/kg` : '—'}
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Price & Schedule Comparison Summary */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Certified / Intake Weight:</span>
+                  <span className="font-bold text-slate-800">
+                    {weight} KG (Billable: {billableKg} KG with Min {minWeight} KG)
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Updated Unit Rate:</span>
+                  <span className="font-bold text-slate-800">฿{effectiveRate} THB / KG</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Estimated Delivery:</span>
+                  <span className="font-bold text-sky-700">{estDelivery.date} ({estDelivery.time})</span>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] text-slate-500 font-semibold">New Total Invoice</div>
+                    {priceDiff !== 0 && (
+                      <div className={`text-[10px] font-bold ${priceDiff > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {priceDiff > 0 ? `+฿${priceDiff} THB from previous` : `-฿${Math.abs(priceDiff)} THB from previous`}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-2xl font-black text-slate-900">
+                    ฿{newTotal} <span className="text-xs font-bold text-slate-500">THB</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowServiceChangeModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={trackerUpdating}
+                  onClick={handleConfirmCustomerServiceChange}
+                  className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold shadow-md transition flex items-center gap-2"
+                >
+                  <Icon name="check" className="w-4 h-4" />
+                  <span>{trackerUpdating ? 'Updating Order...' : `Confirm & Update Invoice (฿${newTotal} THB)`}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* 3RD-PARTY CASHLESS PAYMENT GATEWAY MODAL */}
       {showPaymentModal && activeOrder && (
         <div 
@@ -373,6 +686,23 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
       ) : (
         <div className="space-y-6">
           
+          {/* Pre-Payment Update Success Notification Toast */}
+          {trackerSuccessMsg && (
+            <div className="p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-md flex items-center justify-between gap-3 animate-fadeIn">
+              <div className="flex items-center gap-2.5">
+                <Icon name="check" className="w-5 h-5 text-emerald-200 shrink-0" />
+                <span>{trackerSuccessMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTrackerSuccessMsg('')}
+                className="p-1 hover:bg-emerald-700 rounded-lg text-emerald-100 transition"
+              >
+                <Icon name="x" className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Main Status Card */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
             
@@ -403,6 +733,21 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
                     </span>
                   )}
                   <span>• Tag: <code>{activeOrder.tagNumber}</code></span>
+                  {!isPaid && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTrackerServiceId(activeOrder.serviceId || 'wash_fold');
+                        setTrackerTurnaroundSpeed(activeOrder.turnaroundSpeed || 'standard_48h');
+                        setShowServiceChangeModal(true);
+                      }}
+                      className="px-2.5 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-extrabold text-[10px] transition inline-flex items-center gap-1 shadow-xs"
+                      title="Flexible pre-payment plan revision"
+                    >
+                      <Icon name="clock" className="w-3 h-3 text-amber-600" />
+                      <span>Change Service / Speed</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -589,14 +934,29 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
                     <span>Payment Complete</span>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowPaymentModal(true)}
-                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/30 transition flex items-center justify-center gap-2"
-                  >
-                    <Icon name="receipt" className="w-4 h-4" />
-                    <span>Pay ฿{activeOrder.totalPrice} THB (PromptPay / Card)</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTrackerServiceId(activeOrder.serviceId || 'wash_fold');
+                        setTrackerTurnaroundSpeed(activeOrder.turnaroundSpeed || 'standard_48h');
+                        setShowServiceChangeModal(true);
+                      }}
+                      className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition flex items-center justify-center gap-2"
+                      title="Adjust service plan or turnaround speed before payment"
+                    >
+                      <Icon name="clock" className="w-4 h-4 text-amber-400" />
+                      <span>Change Service / Speed</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPaymentModal(true)}
+                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/30 transition flex items-center justify-center gap-2"
+                    >
+                      <Icon name="receipt" className="w-4 h-4" />
+                      <span>Pay ฿{activeOrder.totalPrice} THB (PromptPay / Card)</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

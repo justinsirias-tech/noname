@@ -194,9 +194,9 @@ export function App() {
   };
 
   // Update Order Status in POS
-  const handleUpdateOrderStatus = (orderId, status, note, actualWeightKg, tagNumber) => {
-    laundryStore.updateOrderStatus(orderId, status, note, actualWeightKg, tagNumber);
-    triggerToast(`Order ${orderId} updated to ${status.replace(/_/g, ' ')}`);
+  const handleUpdateOrderStatus = (orderId, status, note, actualWeightKg, tagNumber, serviceUpdates = {}) => {
+    laundryStore.updateOrderStatus(orderId, status, note, actualWeightKg, tagNumber, serviceUpdates);
+    triggerToast(`Order ${orderId} updated successfully`);
   };
 
   // Create manual POS order
