@@ -634,6 +634,16 @@ app.patch('/api/incidents/:id/resolve', requireAdminAuth, async (req, res) => {
   }
 });
 
+app.delete('/api/incidents/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM incidents WHERE id = $1', [id]);
+    res.json({ success: true, deletedId: id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 6. Settings API
 app.get('/api/settings', async (req, res) => {
   try {
