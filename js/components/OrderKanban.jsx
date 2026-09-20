@@ -27,6 +27,7 @@ const WORKFLOW_PHASES = [
 export function OrderKanban({
   orders = [],
   onSelectOrder,
+  onOpenInvoice,
   onUpdateOrderStatus,
   onMarkPaid
 }) {
@@ -314,6 +315,19 @@ export function OrderKanban({
                           </span>
 
                           <div className="flex items-center gap-1.5">
+                            {onOpenInvoice && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenInvoice(order);
+                                }}
+                                className="p-1 rounded-md text-slate-400 hover:text-sky-700 hover:bg-sky-50 transition"
+                                title="Generate & Send Tax Invoice / Payment Link"
+                              >
+                                <Icon name="fileText" className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             {isPaid ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
                                 <Icon name="check" className="w-2.5 h-2.5" /> PAID

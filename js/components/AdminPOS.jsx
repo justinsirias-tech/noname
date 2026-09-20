@@ -4,6 +4,7 @@ import { ORDER_STATUSES, BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesD
 import { CONTACT_CHANNELS, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
 import { OrderKanban } from './OrderKanban.jsx';
 import { OrderDetailsModal } from './OrderDetailsModal.jsx';
+import { InvoiceModal } from './InvoiceModal.jsx';
 import { CustomerCRM } from './CustomerCRM.jsx';
 import { FaqManager } from './FaqManager.jsx';
 import { IncidentImageLightbox } from './IncidentImageAttachment.jsx';
@@ -29,6 +30,7 @@ export function AdminPOS({
   const [ordersViewMode, setOrdersViewMode] = useState('kanban'); // 'kanban' or 'table'
   const [inspectingOrderId, setInspectingOrderId] = useState(null);
   const inspectingOrder = orders.find(o => o.id === inspectingOrderId) || null;
+  const [invoiceModalOrder, setInvoiceModalOrder] = useState(null);
 
   // Service Full Drafts State (Pricing, Min Weight, Description, Features Sublist)
   const buildInitialDrafts = (srvList) =>
@@ -467,7 +469,9 @@ export function AdminPOS({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
-        if (incidentLightboxImg) {
+        if (invoiceModalOrder) {
+          setInvoiceModalOrder(null);
+        } else if (incidentLightboxImg) {
           setIncidentLightboxImg(null);
         } else if (showAddServiceModal) {
           setShowAddServiceModal(false);
@@ -478,7 +482,7 @@ export function AdminPOS({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [incidentLightboxImg, showAddServiceModal, inspectingOrderId]);
+  }, [invoiceModalOrder, incidentLightboxImg, showAddServiceModal, inspectingOrderId]);
 
   return (
     <div className="mx-auto px-3 sm:px-6 lg:px-8 py-6 transition-all max-w-[1750px] w-full">
@@ -679,6 +683,7 @@ export function AdminPOS({
             <OrderKanban
               orders={filteredOrders}
               onSelectOrder={(order) => setInspectingOrderId(order.id)}
+              onOpenInvoice={(order) => setInvoiceModalOrder(order)}
               onUpdateOrderStatus={onUpdateOrderStatus}
               onMarkPaid={(orderId, method) => laundryStore.markOrderPaid(orderId, method)}
             />
@@ -796,6 +801,17 @@ export function AdminPOS({
                                 className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold transition"
                               >
                                 View Details
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setInvoiceModalOrder(order);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-2xs inline-flex items-center gap-1"
+                                title="Create & Send Invoice / Payment Link"
+                              >
+                                <Icon name="fileText" className="w-3 h-3" />
+                                <span>Invoice</span>
                               </button>
                               {!isPaid && (
                                 <button
@@ -2065,6 +2081,18 @@ export function AdminPOS({
         title={incidentLightboxTitle}
         caption="High-resolution evidence inspection for ticket investigation."
       />
+
+      {/* Standalone Tax Invoice & Cashless Payment Request Modal */}
+      {invoiceModalOrder && (
+        <InvoiceModal
+          order={invoiceModalOrder}
+          onClose={() => setInvoiceModalOrder(null)}
+          onMarkPaid={(orderId, method) => {
+            laundryStore.markOrderPaid(orderId, method);
+            setInvoiceModalOrder(null);
+          }}
+        />
+      )}
 
     </div>
   );

@@ -613,6 +613,47 @@ app.patch('/api/orders/:id/pay', async (req, res) => {
   }
 });
 
+app.post('/api/orders/:id/invoice/send', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { channel = 'email', recipient = '', note = '' } = req.body;
+
+    const existingRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const currentOrder = existingRes.rows[0];
+    const now = new Date();
+    const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
+    const auditNote = note || `Official Tax Invoice (INV-${id}) & Cashless Payment Link dispatched via ${channel.toUpperCase()}${recipient ? ' (' + recipient + ')' : ''}. Total: ฿${currentOrder.total_price} THB.`;
+
+    const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
+    const newTimelineEvent = {
+      status: currentOrder.status,
+      timestamp: timestampStr,
+      note: auditNote
+    };
+
+    const result = await query(`
+      UPDATE orders
+      SET timeline = $1,
+          updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `, [JSON.stringify([...currentTimeline, newTimelineEvent]), id]);
+
+    res.json({
+      success: true,
+      message: `Invoice dispatched via ${channel.toUpperCase()}`,
+      order: mapOrder(result.rows[0])
+    });
+  } catch (err) {
+    console.error('Error logging invoice dispatch:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 5. Incidents API
 app.get('/api/incidents', async (req, res) => {
   try {

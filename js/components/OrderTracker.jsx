@@ -4,7 +4,7 @@ import { ORDER_STATUSES, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES, INITIAL_SERVI
 import { CONTACT_CHANNELS, getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
 import { ImageUploadZone } from './IncidentImageAttachment.jsx';
 
-export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
+export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = false, onReportIncident }) {
   const [searchQuery, setSearchQuery] = useState(initialTrackingId || '');
   const [selectedOrderId, setSelectedOrderId] = useState(initialTrackingId || orders[0]?.id || '');
   
@@ -29,7 +29,17 @@ export function OrderTracker({ orders, initialTrackingId, onReportIncident }) {
   const [showLineQr, setShowLineQr] = useState(false);
 
   // Cashless Payment Gateway Modal State
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(Boolean(initialOpenPayment));
+
+  useEffect(() => {
+    if (initialTrackingId) {
+      setSearchQuery(initialTrackingId);
+      setSelectedOrderId(initialTrackingId);
+    }
+    if (initialOpenPayment) {
+      setShowPaymentModal(true);
+    }
+  }, [initialTrackingId, initialOpenPayment]);
 
   // ESC key listener to close modals
   useEffect(() => {

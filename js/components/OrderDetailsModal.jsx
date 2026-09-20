@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { ORDER_STATUSES, INITIAL_SERVICES } from '../data/servicesData.js';
 import { getLineOaAddFriendUrl, laundryStore } from '../store.js';
+import { InvoiceModal } from './InvoiceModal.jsx';
 
 export function OrderDetailsModal({
   order,
@@ -12,16 +13,22 @@ export function OrderDetailsModal({
 }) {
   if (!order) return null;
 
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
   // ESC key listener to close modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' || e.key === 'Esc') {
-        onClose();
+        if (showInvoiceModal) {
+          setShowInvoiceModal(false);
+        } else {
+          onClose();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [showInvoiceModal, onClose]);
 
   // Available services list
   const allServices = (services && services.length > 0) ? services : (laundryStore.services || INITIAL_SERVICES);
@@ -78,6 +85,21 @@ export function OrderDetailsModal({
 
   const meta = ORDER_STATUSES[editStatus] || { label: editStatus, color: 'bg-slate-100 text-slate-800' };
   const isPaid = order.paymentStatus === 'PAID';
+
+  // Live order snapshot for invoice generation
+  const activeOrderForInvoice = {
+    ...order,
+    serviceId: activeSrv?.id || order.serviceId,
+    serviceName: activeSrv?.name || order.serviceName,
+    turnaroundSpeed: editTurnaroundSpeed,
+    actualWeightKg: editWeight !== '' && editWeight !== null && editWeight !== undefined ? Number(editWeight) : order.actualWeightKg,
+    pricePerKg: currentRate,
+    minWeightAppliedKg: activeMinWeight,
+    totalPrice: previewPrice,
+    deliveryDate: editDeliveryDate || order.deliveryDate,
+    deliveryTime: editDeliveryTime || order.deliveryTime,
+    tagNumber: editTag || order.tagNumber
+  };
 
   const calculateSuggestedDelivery = (speed) => {
     if (!order.pickupDate) return { date: order.deliveryDate || '', time: order.deliveryTime || '' };
@@ -260,14 +282,26 @@ export function OrderDetailsModal({
             )}
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5"
-            title="Close Order Details (Esc)"
-          >
-            <span className="hidden sm:inline text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">ESC</span>
-            <Icon name="x" className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowInvoiceModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+              title="Create & Send Tax Invoice / Payment Link"
+            >
+              <Icon name="fileText" className="w-3.5 h-3.5" />
+              <span>Invoice & Pay Link</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5"
+              title="Close Order Details (Esc)"
+            >
+              <span className="hidden sm:inline text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">ESC</span>
+              <Icon name="x" className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Scrollable Body */}
@@ -311,7 +345,7 @@ export function OrderDetailsModal({
                 </div>
 
                 {/* Direct Customer Action Link */}
-                <div className="pt-2 border-t border-slate-200/80 flex items-center gap-2">
+                <div className="pt-2 border-t border-slate-200/80 flex items-center gap-2 flex-wrap">
                   <a
                     href={getCustomerChatUrl()}
                     target="_blank"
@@ -322,6 +356,16 @@ export function OrderDetailsModal({
                     <span>Open Customer Chat ({order.contactChannel.toUpperCase()})</span>
                     <Icon name="externalLink" className="w-3 h-3 text-slate-400" />
                   </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowInvoiceModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition"
+                    title="Generate & Send Official Invoice to Customer"
+                  >
+                    <Icon name="fileText" className="w-3.5 h-3.5" />
+                    <span>Send Invoice & Pay Link</span>
+                  </button>
                 </div>
               </div>
 
@@ -619,7 +663,17 @@ export function OrderDetailsModal({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setShowInvoiceModal(true)}
+                      className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 text-xs font-bold shadow-2xs transition flex items-center gap-1.5"
+                      title="Generate Tax Invoice & Cashless Payment Request"
+                    >
+                      <Icon name="fileText" className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Invoice / Pay Link</span>
+                    </button>
+
                     {isPaid ? (
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">
                         <Icon name="check" className="w-3.5 h-3.5 text-emerald-600" />
@@ -863,6 +917,15 @@ export function OrderDetailsModal({
         </div>
 
       </div>
+
+      {/* Official Tax Invoice & Cashless Payment Modal */}
+      {showInvoiceModal && (
+        <InvoiceModal
+          order={activeOrderForInvoice}
+          onClose={() => setShowInvoiceModal(false)}
+          onMarkPaid={onMarkPaid}
+        />
+      )}
     </div>
   );
 }

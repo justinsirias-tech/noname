@@ -15,22 +15,39 @@ import { FaqSection } from './components/FaqSection.jsx';
 import { Footer } from './components/Footer.jsx';
 import { Icon } from './components/Icons.jsx';
 
-const getInitialView = () => {
-  if (typeof window !== 'undefined') {
+const getInitialUrlParams = () => {
+  if (typeof window === 'undefined') return { view: 'home', trackingId: '', openPayment: false };
+  try {
+    const url = new URL(window.location.href);
+    const trackId = url.searchParams.get('track') || url.searchParams.get('order') || url.searchParams.get('id') || '';
+    const payParam = url.searchParams.get('pay');
     const hash = window.location.hash.replace('#', '').toLowerCase();
     const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-    if (hash === 'admin' || path === 'admin') return 'admin';
-    if (hash === 'track' || path === 'track') return 'track';
-    if (hash === 'services' || path === 'services') return 'services';
-    if (hash === 'terms' || path === 'terms') return 'terms';
-    if (hash === 'book' || path === 'book') return 'book';
-    if (hash === 'faq' || path === 'faq') return 'faq';
+
+    const openPayment = payParam === '1' || payParam === 'true' || hash === 'pay';
+    let view = 'home';
+    if (trackId || hash === 'track' || path === 'track') {
+      view = 'track';
+    } else if (hash === 'admin' || path === 'admin') {
+      view = 'admin';
+    } else if (hash === 'services' || path === 'services') {
+      view = 'services';
+    } else if (hash === 'terms' || path === 'terms') {
+      view = 'terms';
+    } else if (hash === 'book' || path === 'book') {
+      view = 'book';
+    } else if (hash === 'faq' || path === 'faq') {
+      view = 'faq';
+    }
+    return { view, trackingId: trackId, openPayment };
+  } catch (e) {
+    return { view: 'home', trackingId: '', openPayment: false };
   }
-  return 'home';
 };
 
 export function App() {
-  const [currentView, setCurrentView] = useState(getInitialView);
+  const initialParams = getInitialUrlParams();
+  const [currentView, setCurrentView] = useState(initialParams.view);
   const [storeState, setStoreState] = useState(() => ({
     services: [...laundryStore.services],
     orders: [...laundryStore.orders],
@@ -57,7 +74,8 @@ export function App() {
   // Booking Flow parameters
   const [bookingPrefillService, setBookingPrefillService] = useState(null);
   const [bookingPrefillWeight, setBookingPrefillWeight] = useState(null);
-  const [activeTrackingId, setActiveTrackingId] = useState('');
+  const [activeTrackingId, setActiveTrackingId] = useState(initialParams.trackingId);
+  const [initialOpenPayment, setInitialOpenPayment] = useState(initialParams.openPayment);
 
   // Modals & Notifications
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -228,14 +246,29 @@ export function App() {
   // Handle URL hash changes & keyboard shortcut (Ctrl+Shift+A or Cmd+Shift+A) for staff
   useEffect(() => {
     const syncViewWithHash = () => {
-      const hash = window.location.hash.replace('#', '').toLowerCase();
-      const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-      const target = hash || path;
-      if (['admin', 'track', 'services', 'terms', 'book', 'how-it-works', 'faq'].includes(target)) {
-        setCurrentView(target);
-      } else if (!hash) {
-        setCurrentView('home');
-      }
+      try {
+        const url = new URL(window.location.href);
+        const trackId = url.searchParams.get('track') || url.searchParams.get('order') || url.searchParams.get('id');
+        const payParam = url.searchParams.get('pay');
+        const hash = window.location.hash.replace('#', '').toLowerCase();
+        const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+
+        if (trackId) {
+          setActiveTrackingId(trackId);
+          setCurrentView('track');
+          if (payParam === '1' || payParam === 'true' || hash === 'pay') {
+            setInitialOpenPayment(true);
+          }
+          return;
+        }
+
+        const target = hash || path;
+        if (['admin', 'track', 'services', 'terms', 'book', 'how-it-works', 'faq'].includes(target)) {
+          setCurrentView(target);
+        } else if (!hash) {
+          setCurrentView('home');
+        }
+      } catch (e) {}
     };
 
     const onKeyDown = (e) => {
@@ -362,6 +395,7 @@ export function App() {
           <OrderTracker
             orders={storeState.orders}
             initialTrackingId={activeTrackingId}
+            initialOpenPayment={initialOpenPayment}
             onReportIncident={handleReportIncident}
           />
         )}
