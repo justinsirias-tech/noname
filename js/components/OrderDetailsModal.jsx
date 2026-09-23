@@ -698,6 +698,33 @@ export function OrderDetailsModal({
                   </div>
                 </div>
 
+                {/* Accounting & Reconciliation Audit Status Bar */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase">Audit Status:</span>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                      order.reconciliationStatus === 'RECONCILED'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : order.reconciliationStatus === 'DISCREPANCY'
+                        ? 'bg-rose-100 text-rose-800 border-rose-300'
+                        : 'bg-amber-100 text-amber-800 border-amber-300'
+                    }`}>
+                      <Icon name={order.reconciliationStatus === 'RECONCILED' ? 'checkCircle2' : (order.reconciliationStatus === 'DISCREPANCY' ? 'alertTriangle' : 'clock')} className="w-3 h-3" />
+                      <span>{order.reconciliationStatus || 'UNRECONCILED'}</span>
+                    </span>
+                    {order.bankAccountRef && (
+                      <span className="font-mono text-[11px] text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                        Ref: {order.bankAccountRef}
+                      </span>
+                    )}
+                  </div>
+                  {order.reconciliationNotes && (
+                    <div className="text-[10px] text-slate-500 italic">
+                      "{order.reconciliationNotes}"
+                    </div>
+                  )}
+                </div>
+
                 {/* Pickup & Delivery Windows */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
                   <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-sky-100">

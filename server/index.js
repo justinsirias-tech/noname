@@ -12,6 +12,23 @@ app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
+// Ensure PostgreSQL schema has reconciliation columns
+async function ensureDatabaseSchema() {
+  try {
+    await query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciliation_status VARCHAR(64) DEFAULT 'UNRECONCILED';
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciled_at TIMESTAMPTZ;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciled_by VARCHAR(128);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciliation_notes TEXT;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS bank_account_ref VARCHAR(128);
+    `);
+    console.log('[POSTGRES] Orders reconciliation columns verified.');
+  } catch (err) {
+    console.warn('[POSTGRES WARNING] Could not verify reconciliation schema:', err.message);
+  }
+}
+ensureDatabaseSchema();
+
 // Helper row mappers
 function mapService(row) {
   if (!row) return null;
@@ -68,6 +85,11 @@ function mapOrder(row) {
     specialInstructions: row.special_instructions,
     agreedTerms: Boolean(row.agreed_terms),
     cashlessPolicyAcknowledged: Boolean(row.cashless_policy_acknowledged),
+    reconciliationStatus: row.reconciliation_status || 'UNRECONCILED',
+    reconciledAt: row.reconciled_at ? new Date(row.reconciled_at).toISOString() : null,
+    reconciledBy: row.reconciled_by || null,
+    reconciliationNotes: row.reconciliation_notes || '',
+    bankAccountRef: row.bank_account_ref || '',
     timeline: Array.isArray(row.timeline) ? row.timeline : [],
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
   };
@@ -613,6 +635,208 @@ app.patch('/api/orders/:id/pay', async (req, res) => {
   }
 });
 
+// Single Order Reconciliation
+app.patch('/api/orders/:id/reconcile', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      reconciliationStatus = 'RECONCILED',
+      reconciliationNotes = '',
+      bankAccountRef = '',
+      reconciledBy = 'admin'
+    } = req.body;
+
+    const existingRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const currentOrder = existingRes.rows[0];
+    const now = new Date();
+    const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
+
+    const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
+    const newTimelineEvent = {
+      status: `RECON_${reconciliationStatus}`,
+      timestamp: timestampStr,
+      note: `Transaction marked as ${reconciliationStatus} by ${reconciledBy}.${bankAccountRef ? ` Bank/Batch Ref: ${bankAccountRef}.` : ''}${reconciliationNotes ? ` Notes: ${reconciliationNotes}` : ''}`
+    };
+
+    const isReconciled = reconciliationStatus === 'RECONCILED';
+    const reconciledAtVal = isReconciled ? now : (reconciliationStatus === 'UNRECONCILED' ? null : currentOrder.reconciled_at);
+
+    const result = await query(`
+      UPDATE orders
+      SET reconciliation_status = $1,
+          reconciled_at = $2,
+          reconciled_by = $3,
+          reconciliation_notes = $4,
+          bank_account_ref = $5,
+          timeline = $6,
+          updated_at = NOW()
+      WHERE id = $7
+      RETURNING *
+    `, [
+      reconciliationStatus,
+      reconciledAtVal,
+      reconciledBy,
+      reconciliationNotes,
+      bankAccountRef,
+      JSON.stringify([...currentTimeline, newTimelineEvent]),
+      id
+    ]);
+
+    res.json(mapOrder(result.rows[0]));
+  } catch (err) {
+    console.error('Error reconciling order:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Batch Order Reconciliation
+app.post('/api/orders/batch-reconcile', async (req, res) => {
+  try {
+    const {
+      orderIds = [],
+      reconciliationStatus = 'RECONCILED',
+      bankAccountRef = '',
+      notes = '',
+      reconciledBy = 'admin'
+    } = req.body;
+
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({ error: 'orderIds array is required' });
+    }
+
+    const now = new Date();
+    const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
+    const isReconciled = reconciliationStatus === 'RECONCILED';
+    const reconciledAtVal = isReconciled ? now : null;
+
+    const updatedOrders = [];
+
+    for (const orderId of orderIds) {
+      const existingRes = await query('SELECT * FROM orders WHERE id = $1', [orderId]);
+      if (existingRes.rows.length === 0) continue;
+
+      const currentOrder = existingRes.rows[0];
+      const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
+      const newTimelineEvent = {
+        status: `RECON_${reconciliationStatus}`,
+        timestamp: timestampStr,
+        note: `Batch ${reconciliationStatus} by ${reconciledBy}.${bankAccountRef ? ` Batch Ref: ${bankAccountRef}.` : ''}${notes ? ` Notes: ${notes}` : ''}`
+      };
+
+      const result = await query(`
+        UPDATE orders
+        SET reconciliation_status = $1,
+            reconciled_at = $2,
+            reconciled_by = $3,
+            reconciliation_notes = COALESCE($4, reconciliation_notes),
+            bank_account_ref = COALESCE($5, bank_account_ref),
+            timeline = $6,
+            updated_at = NOW()
+        WHERE id = $7
+        RETURNING *
+      `, [
+        reconciliationStatus,
+        reconciledAtVal,
+        reconciledBy,
+        notes || currentOrder.reconciliation_notes,
+        bankAccountRef || currentOrder.bank_account_ref,
+        JSON.stringify([...currentTimeline, newTimelineEvent]),
+        orderId
+      ]);
+
+      if (result.rows.length > 0) {
+        updatedOrders.push(mapOrder(result.rows[0]));
+      }
+    }
+
+    res.json({ success: true, count: updatedOrders.length, orders: updatedOrders });
+  } catch (err) {
+    console.error('Error batch reconciling orders:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Sales & Reconciliation Summary Report API
+app.get('/api/reports/sales-reconciliation', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let sql = 'SELECT * FROM orders WHERE 1=1';
+    const params = [];
+
+    if (startDate) {
+      params.push(startDate);
+      sql += ` AND created_at >= $${params.length}`;
+    }
+    if (endDate) {
+      params.push(endDate);
+      sql += ` AND created_at <= $${params.length}`;
+    }
+
+    sql += ' ORDER BY created_at DESC';
+    const result = await query(sql, params);
+    const orders = result.rows.map(mapOrder);
+
+    let grossRevenue = 0;
+    let collectedRevenue = 0;
+    let pendingReceivables = 0;
+    let reconciledTotal = 0;
+    let unreconciledTotal = 0;
+    let discrepancyCount = 0;
+
+    const breakdownByMethod = {};
+    const breakdownByService = {};
+
+    for (const o of orders) {
+      const price = Number(o.totalPrice) || 0;
+      grossRevenue += price;
+
+      if (o.paymentStatus === 'PAID') {
+        collectedRevenue += price;
+        const method = o.paymentMethod || 'PromptPay QR';
+        breakdownByMethod[method] = (breakdownByMethod[method] || 0) + price;
+
+        if (o.reconciliationStatus === 'RECONCILED') {
+          reconciledTotal += price;
+        } else {
+          unreconciledTotal += price;
+        }
+      } else {
+        pendingReceivables += price;
+      }
+
+      if (o.reconciliationStatus === 'DISCREPANCY') {
+        discrepancyCount++;
+      }
+
+      const srv = o.serviceName || 'Wash / Fold';
+      breakdownByService[srv] = (breakdownByService[srv] || 0) + price;
+    }
+
+    res.json({
+      summary: {
+        totalOrders: orders.length,
+        grossRevenue,
+        collectedRevenue,
+        pendingReceivables,
+        reconciledTotal,
+        unreconciledTotal,
+        reconciledPercent: collectedRevenue > 0 ? Math.round((reconciledTotal / collectedRevenue) * 100) : 0,
+        discrepancyCount
+      },
+      breakdownByMethod,
+      breakdownByService,
+      orders
+    });
+  } catch (err) {
+    console.error('Error generating sales report:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/orders/:id/invoice/send', async (req, res) => {
   try {
     const { id } = req.params;
@@ -764,13 +988,27 @@ app.get('*', (req, res) => {
 });
 
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`====================================================`);
-    console.log(` NoName Laundry Bangkok Server running on port ${PORT}`);
-    console.log(` Connected to Google Cloud SQL (PostgreSQL)`);
-    console.log(` Local URL: http://localhost:${PORT}`);
-    console.log(`====================================================`);
-  });
+  function startServer(portToTry) {
+    const server = app.listen(portToTry, () => {
+      console.log(`====================================================`);
+      console.log(` NoName Laundry Bangkok Server running on port ${portToTry}`);
+      console.log(` Connected to Google Cloud SQL (PostgreSQL)`);
+      console.log(` Local URL: http://localhost:${portToTry}`);
+      console.log(`====================================================`);
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        const nextPort = Number(portToTry) + 1;
+        console.warn(`[SERVER WARNING] Port ${portToTry} is in use. Falling back to port ${nextPort}...`);
+        startServer(nextPort);
+      } else {
+        console.error('[SERVER ERROR]', err);
+      }
+    });
+  }
+
+  startServer(PORT);
 }
 
 module.exports = app;

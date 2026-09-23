@@ -51,6 +51,11 @@ CREATE TABLE IF NOT EXISTS orders (
   special_instructions TEXT,
   agreed_terms BOOLEAN DEFAULT TRUE,
   cashless_policy_acknowledged BOOLEAN DEFAULT TRUE,
+  reconciliation_status VARCHAR(64) DEFAULT 'UNRECONCILED',
+  reconciled_at TIMESTAMPTZ,
+  reconciled_by VARCHAR(128),
+  reconciliation_notes TEXT,
+  bank_account_ref VARCHAR(128),
   timeline JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

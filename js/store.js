@@ -803,6 +803,110 @@ export class LaundryStore {
     });
   }
 
+  // Single Order Reconciliation
+  reconcileOrder(orderId, {
+    reconciliationStatus = 'RECONCILED',
+    reconciliationNotes = '',
+    bankAccountRef = '',
+    reconciledBy = 'admin'
+  } = {}) {
+    const now = new Date();
+    const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
+    const isReconciled = reconciliationStatus === 'RECONCILED';
+
+    this.orders = this.orders.map(order => {
+      if (order.id === orderId) {
+        return {
+          ...order,
+          reconciliationStatus,
+          reconciledAt: isReconciled ? now.toISOString() : (reconciliationStatus === 'UNRECONCILED' ? null : order.reconciledAt),
+          reconciledBy,
+          reconciliationNotes,
+          bankAccountRef,
+          timeline: [
+            ...(order.timeline || []),
+            {
+              status: `RECON_${reconciliationStatus}`,
+              timestamp: timestampStr,
+              note: `Transaction marked as ${reconciliationStatus} by ${reconciledBy}.${bankAccountRef ? ` Bank/Batch Ref: ${bankAccountRef}.` : ''}${reconciliationNotes ? ` Notes: ${reconciliationNotes}` : ''}`
+            }
+          ]
+        };
+      }
+      return order;
+    });
+
+    this.persist(STORAGE_KEYS.ORDERS, this.orders);
+    this.notify();
+
+    return fetch(`/api/orders/${encodeURIComponent(orderId)}/reconcile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reconciliationStatus,
+        reconciliationNotes,
+        bankAccountRef,
+        reconciledBy
+      })
+    }).then(res => res.json()).catch(err => {
+      console.warn('Failed to sync reconciliation to PostgreSQL:', err);
+    });
+  }
+
+  // Batch Order Reconciliation
+  batchReconcileOrders(orderIds = [], {
+    reconciliationStatus = 'RECONCILED',
+    bankAccountRef = '',
+    notes = '',
+    reconciledBy = 'admin'
+  } = {}) {
+    if (!orderIds.length) return Promise.resolve();
+
+    const now = new Date();
+    const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
+    const isReconciled = reconciliationStatus === 'RECONCILED';
+    const idSet = new Set(orderIds);
+
+    this.orders = this.orders.map(order => {
+      if (idSet.has(order.id)) {
+        return {
+          ...order,
+          reconciliationStatus,
+          reconciledAt: isReconciled ? now.toISOString() : (reconciliationStatus === 'UNRECONCILED' ? null : order.reconciledAt),
+          reconciledBy,
+          reconciliationNotes: notes || order.reconciliationNotes,
+          bankAccountRef: bankAccountRef || order.bankAccountRef,
+          timeline: [
+            ...(order.timeline || []),
+            {
+              status: `RECON_${reconciliationStatus}`,
+              timestamp: timestampStr,
+              note: `Batch ${reconciliationStatus} by ${reconciledBy}.${bankAccountRef ? ` Batch Ref: ${bankAccountRef}.` : ''}${notes ? ` Notes: ${notes}` : ''}`
+            }
+          ]
+        };
+      }
+      return order;
+    });
+
+    this.persist(STORAGE_KEYS.ORDERS, this.orders);
+    this.notify();
+
+    return fetch('/api/orders/batch-reconcile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderIds,
+        reconciliationStatus,
+        bankAccountRef,
+        notes,
+        reconciledBy
+      })
+    }).then(res => res.json()).catch(err => {
+      console.warn('Failed to sync batch reconciliation to PostgreSQL:', err);
+    });
+  }
+
   createIncident(incidentInput) {
     const now = new Date();
     const newInc = {

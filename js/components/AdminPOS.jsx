@@ -8,6 +8,7 @@ import { InvoiceModal } from './InvoiceModal.jsx';
 import { CustomerCRM } from './CustomerCRM.jsx';
 import { FaqManager } from './FaqManager.jsx';
 import { IncidentImageLightbox } from './IncidentImageAttachment.jsx';
+import { SalesReconciliation } from './SalesReconciliation.jsx';
 
 export function AdminPOS({
   adminUser,
@@ -187,6 +188,7 @@ export function AdminPOS({
   const pendingWeighCount = orders.filter(o => o.status === 'PICKED_UP' || (o.status !== 'DELIVERED' && !o.actualWeightKg)).length;
   const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
   const pendingIncidentsCount = incidents.filter(i => i.status === 'pending').length;
+  const unreconciledPaidCount = orders.filter(o => o.paymentStatus === 'PAID' && o.reconciliationStatus !== 'RECONCILED').length;
 
   const handleOpenOrderModal = (order) => {
     setInspectingOrderId(order.id);
@@ -488,7 +490,7 @@ export function AdminPOS({
     <div className="mx-auto px-3 sm:px-6 lg:px-8 py-6 transition-all max-w-[1750px] w-full">
       
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 print:hidden">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono text-xs font-bold">
@@ -556,7 +558,7 @@ export function AdminPOS({
       </div>
 
       {/* KPI Stats Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 my-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 my-6 print:hidden">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <div className="text-[11px] font-bold uppercase text-slate-400">Total Jobs</div>
           <div className="text-2xl font-black text-slate-900 mt-1">{totalOrdersCount}</div>
@@ -584,9 +586,10 @@ export function AdminPOS({
       </div>
 
       {/* Nav Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 pb-3 mb-6">
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 pb-3 mb-6 print:hidden">
         {[
           { id: 'orders', label: 'Order Processing & Tracking', icon: 'package', count: orders.length },
+          { id: 'sales-reconciliation', label: 'Sales & Reconciliation', icon: 'calculator', count: unreconciledPaidCount },
           { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
           { id: 'faq', label: 'FAQ Manager', icon: 'helpCircle', count: laundryStore.faqs ? laundryStore.faqs.length : 0 },
           { id: 'services-pricing', label: 'Services & Minimum Weights', icon: 'scale', count: services.length },
@@ -836,6 +839,20 @@ export function AdminPOS({
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB: SALES REPORTING & RECONCILIATION */}
+      {activeTab === 'sales-reconciliation' && (
+        <SalesReconciliation
+          orders={orders}
+          services={services}
+          adminUser={adminUser}
+          onReconcileOrder={(orderId, reconData) => laundryStore.reconcileOrder(orderId, reconData)}
+          onBatchReconcileOrders={(orderIds, reconData) => laundryStore.batchReconcileOrders(orderIds, reconData)}
+          onMarkPaid={(orderId, method) => laundryStore.markOrderPaid(orderId, method)}
+          onUpdateServicePricing={onUpdateServicePricing}
+          onNavigateToServices={() => setActiveTab('services-pricing')}
+        />
       )}
 
       {/* TAB 2: SERVICES & MINIMUM WEIGHT CONFIGURATION */}
