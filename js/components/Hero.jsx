@@ -67,6 +67,16 @@ export function Hero({ services, setView, onSelectServiceForBooking }) {
             </button>
           </div>
 
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+            <span>New customer?</span>
+            <button
+              onClick={() => setView('register')}
+              className="font-bold text-sky-600 hover:text-sky-700 underline decoration-sky-300 underline-offset-2 transition"
+            >
+              Register member profile for 1-click pickup &rarr;
+            </button>
+          </div>
+
           <div className="mt-4 flex items-center justify-center gap-4 text-xs text-slate-500">
             <span className="flex items-center gap-1">
               <Icon name="check" className="w-4 h-4 text-emerald-600" /> 48h Standard (24h &amp; Same Day Available)

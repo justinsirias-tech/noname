@@ -71,6 +71,10 @@ CREATE TABLE IF NOT EXISTS incidents (
   message TEXT,
   status VARCHAR(64) DEFAULT 'pending',
   response TEXT,
+  category VARCHAR(128) DEFAULT 'General Inquiry',
+  severity VARCHAR(64) DEFAULT 'normal',
+  affected_item VARCHAR(255),
+  image_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -92,9 +96,34 @@ CREATE TABLE IF NOT EXISTS admin_users (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS customers (
+  id VARCHAR(64) PRIMARY KEY,
+  full_name VARCHAR(255) NOT NULL,
+  nick_name VARCHAR(128),
+  gender VARCHAR(32) DEFAULT 'Rather not say',
+  date_of_birth VARCHAR(64),
+  mobile_number VARCHAR(64) NOT NULL,
+  is_whatsapp BOOLEAN DEFAULT TRUE,
+  secondary_mobile VARCHAR(64),
+  is_secondary_whatsapp BOOLEAN DEFAULT FALSE,
+  email VARCHAR(255),
+  line_id VARCHAR(128),
+  pin_code VARCHAR(16) DEFAULT '123456',
+  is_verified BOOLEAN DEFAULT FALSE,
+  verified_via VARCHAR(32),
+  tier VARCHAR(32) DEFAULT 'Regular',
+  notes TEXT,
+  company_tax JSONB DEFAULT '{}'::jsonb,
+  addresses JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_name);
 CREATE INDEX IF NOT EXISTS idx_orders_contact ON orders(contact_value);
+CREATE INDEX IF NOT EXISTS idx_customers_mobile ON customers(mobile_number);
+CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 `;
 
 const INITIAL_SERVICES = [

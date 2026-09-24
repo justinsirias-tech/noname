@@ -12,6 +12,9 @@ import { AdminPOS } from './components/AdminPOS.jsx';
 import { AdminLogin } from './components/AdminLogin.jsx';
 import { DigitalContactModal } from './components/DigitalContactModal.jsx';
 import { FaqSection } from './components/FaqSection.jsx';
+import { CustomerRegister } from './components/CustomerRegister.jsx';
+import { CustomerLogin } from './components/CustomerLogin.jsx';
+import { CustomerPortal } from './components/CustomerPortal.jsx';
 import { Footer } from './components/Footer.jsx';
 import { Icon } from './components/Icons.jsx';
 
@@ -30,12 +33,18 @@ const getInitialUrlParams = () => {
       view = 'track';
     } else if (hash === 'admin' || path === 'admin') {
       view = 'admin';
+    } else if (hash === 'login' || path === 'login') {
+      view = 'login';
+    } else if (hash === 'portal' || path === 'portal' || hash === 'account' || path === 'account') {
+      view = 'portal';
     } else if (hash === 'services' || path === 'services') {
       view = 'services';
     } else if (hash === 'terms' || path === 'terms') {
       view = 'terms';
     } else if (hash === 'book' || path === 'book') {
       view = 'book';
+    } else if (hash === 'register' || path === 'register') {
+      view = 'register';
     } else if (hash === 'faq' || path === 'faq') {
       view = 'faq';
     }
@@ -71,9 +80,13 @@ export function App() {
     }
   });
 
+  // Customer Authentication & Profile State
+  const [currentCustomer, setCurrentCustomer] = useState(() => laundryStore.getCurrentCustomer());
+
   // Booking Flow parameters
   const [bookingPrefillService, setBookingPrefillService] = useState(null);
   const [bookingPrefillWeight, setBookingPrefillWeight] = useState(null);
+  const [prefillCustomer, setPrefillCustomer] = useState(null);
   const [activeTrackingId, setActiveTrackingId] = useState(initialParams.trackingId);
   const [initialOpenPayment, setInitialOpenPayment] = useState(initialParams.openPayment);
 
@@ -172,6 +185,7 @@ export function App() {
         incidents: [...laundryStore.incidents],
         settings: { ...laundryStore.settings }
       });
+      setCurrentCustomer(laundryStore.getCurrentCustomer());
     });
     return unsubscribe;
   }, []);
@@ -328,6 +342,7 @@ export function App() {
           currentView={currentView}
           setView={navigateTo}
           onOpenContactModal={() => setIsContactModalOpen(true)}
+          customer={currentCustomer}
         />
       )}
 
@@ -386,8 +401,72 @@ export function App() {
             services={storeState.services}
             initialServiceId={bookingPrefillService}
             initialWeight={bookingPrefillWeight}
+            initialCustomer={prefillCustomer || currentCustomer}
             onBookingSuccess={handleBookingSuccess}
             onViewFullTerms={() => navigateTo('terms')}
+          />
+        )}
+
+        {currentView === 'login' && (
+          <CustomerLogin
+            onLoginSuccess={(customer) => {
+              setCurrentCustomer(customer);
+              triggerToast(`ยินดีต้อนรับคุณ ${customer.nickName || customer.fullName}!`);
+              navigateTo('portal');
+            }}
+            onNavigateToRegister={() => navigateTo('register')}
+            onNavigateHome={() => navigateTo('home')}
+          />
+        )}
+
+        {currentView === 'portal' && (
+          !currentCustomer ? (
+            <CustomerLogin
+              onLoginSuccess={(customer) => {
+                setCurrentCustomer(customer);
+                triggerToast(`ยินดีต้อนรับคุณ ${customer.nickName || customer.fullName}!`);
+                navigateTo('portal');
+              }}
+              onNavigateToRegister={() => navigateTo('register')}
+              onNavigateHome={() => navigateTo('home')}
+            />
+          ) : (
+            <CustomerPortal
+              customer={currentCustomer}
+              orders={storeState.orders}
+              onNavigateToBook={(cust) => {
+                setPrefillCustomer(cust);
+                navigateTo('book');
+              }}
+              onNavigateToTrack={(trackingId) => {
+                setActiveTrackingId(trackingId);
+                navigateTo('track');
+              }}
+              onLogout={() => {
+                laundryStore.logoutCustomer();
+                setCurrentCustomer(null);
+                triggerToast('ออกจากระบบเรียบร้อยแล้ว');
+                navigateTo('home');
+              }}
+              onNavigateHome={() => navigateTo('home')}
+            />
+          )
+        )}
+
+        {currentView === 'register' && (
+          <CustomerRegister
+            onRegisterSuccess={(customer) => {
+              laundryStore.setCurrentCustomer(customer);
+              setCurrentCustomer(customer);
+              triggerToast(`ยินดีต้อนรับคุณ ${customer.fullName}! ลงทะเบียนและเข้าสู่ระบบเรียบร้อยแล้ว`);
+            }}
+            onNavigateToBook={(customer) => {
+              laundryStore.setCurrentCustomer(customer);
+              setCurrentCustomer(customer);
+              setPrefillCustomer(customer);
+              navigateTo('book');
+            }}
+            onNavigateHome={() => navigateTo('home')}
           />
         )}
 

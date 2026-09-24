@@ -135,6 +135,10 @@ export function Footer({ setView }) {
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
+            <button onClick={() => setView('register')} className="hover:text-slate-300 font-bold text-sky-400">
+              Sign Up / Register
+            </button>
+            <span>•</span>
             <button onClick={() => setView('faq')} className="hover:text-slate-300 font-bold text-slate-300">
               FAQ
             </button>

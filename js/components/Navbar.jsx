@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS } from '../store.js';
 
-export function Navbar({ currentView, setView, onOpenContactModal }) {
+export function Navbar({ currentView, setView, onOpenContactModal, customer }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -10,6 +10,10 @@ export function Navbar({ currentView, setView, onOpenContactModal }) {
     { id: 'services', label: 'Pricing & Services' },
     { id: 'how-it-works', label: 'How It Works' },
     { id: 'faq', label: 'FAQ' },
+    ...(customer 
+      ? [{ id: 'portal', label: 'My Account' }] 
+      : [{ id: 'register', label: 'Register' }]
+    ),
     { id: 'track', label: 'Track Order' },
     { id: 'terms', label: 'Terms & Conditions' },
   ];
@@ -121,10 +125,53 @@ export function Navbar({ currentView, setView, onOpenContactModal }) {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2">
+            {customer ? (
+              <button
+                onClick={() => setView('portal')}
+                className={`inline-flex items-center gap-2 font-bold text-xs px-3.5 py-2.5 rounded-xl transition border shadow-xs ${
+                  currentView === 'portal'
+                    ? 'bg-sky-50 text-sky-800 border-sky-300 ring-2 ring-sky-500/20'
+                    : 'text-slate-800 bg-white hover:bg-slate-50 border-slate-200'
+                }`}
+                title="ไปยังหน้าโปรไฟล์และคำสั่งซื้อของฉัน"
+              >
+                <div className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">
+                  👤
+                </div>
+                <span>คุณ {customer.nickName || customer.fullName.split(' ')[0]}</span>
+                <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-extrabold">
+                  {customer.tier || 'Member'}
+                </span>
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setView('login')}
+                  className={`inline-flex items-center gap-1.5 font-bold text-xs px-3 py-2.5 rounded-xl transition border shadow-xs ${
+                    currentView === 'login'
+                      ? 'bg-sky-50 text-sky-700 border-sky-300'
+                      : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <span>🔑 เข้าสู่ระบบ</span>
+                </button>
+                <button
+                  onClick={() => setView('register')}
+                  className={`inline-flex items-center gap-1.5 font-bold text-xs px-3 py-2.5 rounded-xl transition border shadow-xs ${
+                    currentView === 'register'
+                      ? 'bg-sky-50 text-sky-700 border-sky-300'
+                      : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <span>ลงทะเบียน</span>
+                </button>
+              </>
+            )}
+
             <button
               onClick={() => setView('book')}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md shadow-sky-600/25 hover:shadow-lg hover:shadow-sky-600/30 transition transform hover:-translate-y-0.5 active:translate-y-0"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-bold text-sm px-4 sm:px-5 py-2.5 rounded-xl shadow-md shadow-sky-600/25 hover:shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0"
             >
               <span>Book Pickup</span>
               <Icon name="chevronRight" className="w-4 h-4" />
@@ -132,10 +179,25 @@ export function Navbar({ currentView, setView, onOpenContactModal }) {
           </div>
 
           {/* Mobile menu hamburger button */}
-          <div className="flex items-center gap-2 sm:hidden">
+          <div className="flex items-center gap-1.5 sm:hidden">
+            {customer ? (
+              <button
+                onClick={() => setView('portal')}
+                className="bg-sky-50 text-sky-700 border border-sky-200 font-bold text-xs px-2.5 py-1.5 rounded-lg shadow-2xs"
+              >
+                คุณ {customer.nickName || customer.fullName.split(' ')[0]}
+              </button>
+            ) : (
+              <button
+                onClick={() => setView('login')}
+                className="bg-white border border-slate-200 text-slate-700 font-bold text-xs px-2.5 py-1.5 rounded-lg shadow-2xs"
+              >
+                Login
+              </button>
+            )}
             <button
               onClick={() => setView('book')}
-              className="bg-sky-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm"
+              className="bg-sky-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-2xs"
             >
               Book
             </button>

@@ -207,6 +207,7 @@ export class LaundryStore {
         lineOaId: '@nonamelaundry',
         whatsappNumber: '+66 94 882 1920',
         supportEmail: 'support@nonamelaundry.com',
+        googleMapsApiKey: '',
         paymentGateway: {
           provider: 'Omise / Opn Payments (Thailand)',
           merchantName: 'NoName Laundry Bangkok Co., Ltd.',
@@ -306,6 +307,27 @@ export class LaundryStore {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || `Failed to save settings (HTTP ${res.status})`);
+    }
+    const json = await res.json();
+    return json;
+  }
+
+  async updateGoogleMapsSettings(apiKey) {
+    this.settings = {
+      ...this.settings,
+      googleMapsApiKey: (apiKey || '').trim()
+    };
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
+    this.notify();
+
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: this.getAdminAuthHeaders(),
+      body: JSON.stringify(this.settings)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Failed to save Google Maps settings (HTTP ${res.status})`);
     }
     const json = await res.json();
     return json;
@@ -1206,6 +1228,69 @@ export class LaundryStore {
       return { success: true, customer: cust };
     }
     return { success: false, error: 'Incorrect 6-digit PIN.' };
+  }
+
+  getCurrentCustomer() {
+    if (this.currentCustomer) return this.currentCustomer;
+    try {
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('noname_customer_session') : null;
+      if (saved) {
+        this.currentCustomer = JSON.parse(saved);
+        return this.currentCustomer;
+      }
+    } catch (e) {
+      console.warn('Error reading customer session:', e);
+    }
+    return null;
+  }
+
+  setCurrentCustomer(customer) {
+    this.currentCustomer = customer;
+    if (typeof localStorage !== 'undefined') {
+      if (customer) {
+        localStorage.setItem('noname_customer_session', JSON.stringify(customer));
+      } else {
+        localStorage.removeItem('noname_customer_session');
+      }
+    }
+    this.notify();
+  }
+
+  async loginCustomer(identifier, pinCode) {
+    try {
+      const res = await fetch('/api/customers/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, pinCode })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูล');
+      }
+      this.setCurrentCustomer(data.customer);
+      if (Array.isArray(data.orders) && data.orders.length > 0) {
+        // sync any fresh orders from database
+        const existingIds = new Set(this.orders.map(o => o.id));
+        const newOrders = data.orders.filter(o => !existingIds.has(o.id));
+        if (newOrders.length > 0) {
+          this.orders = [...newOrders, ...this.orders];
+          this.persist(STORAGE_KEYS.ORDERS, this.orders);
+        }
+      }
+      return data;
+    } catch (err) {
+      // Offline fallback: check local store
+      const localRes = this.verifyCustomerPin(identifier, pinCode);
+      if (localRes.success) {
+        this.setCurrentCustomer(localRes.customer);
+        return { success: true, customer: localRes.customer };
+      }
+      throw err;
+    }
+  }
+
+  logoutCustomer() {
+    this.setCurrentCustomer(null);
   }
 
   generateOtp(channel, contact) {

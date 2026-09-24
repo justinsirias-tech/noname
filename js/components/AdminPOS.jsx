@@ -25,7 +25,8 @@ export function AdminPOS({
   onResolveIncident,
   onResetData
 }) {
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'services-pricing', 'gateway', 'line-oa', 'incidents', 'new-pos'
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'sales-reconciliation', 'crm', 'faq', 'services-pricing', 'settings', 'incidents', 'new-pos'
+  const [settingsSubTab, setSettingsSubTab] = useState('google-maps'); // 'google-maps', 'line-oa', 'gateway', 'security'
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchFilter, setSearchFilter] = useState('');
   const [ordersViewMode, setOrdersViewMode] = useState('kanban'); // 'kanban' or 'table'
@@ -103,6 +104,13 @@ export function AdminPOS({
   const [channelErrorMsg, setChannelErrorMsg] = useState('');
   const [channelSaving, setChannelSaving] = useState(false);
 
+  // Google Maps & Places API Settings State
+  const [googleMapsKey, setGoogleMapsKey] = useState(laundryStore.settings?.googleMapsApiKey || '');
+  const [mapsSuccessMsg, setMapsSuccessMsg] = useState('');
+  const [mapsErrorMsg, setMapsErrorMsg] = useState('');
+  const [mapsSaving, setMapsSaving] = useState(false);
+  const [showMapsKey, setShowMapsKey] = useState(false);
+
   // Automatically synchronize settings form fields whenever remote settings change
   useEffect(() => {
     if (settings) {
@@ -116,8 +124,16 @@ export function AdminPOS({
       if (settings.lineOaId) setAdminLineOa(settings.lineOaId);
       if (settings.whatsappNumber) setAdminWhatsapp(settings.whatsappNumber);
       if (settings.supportEmail) setAdminEmail(settings.supportEmail);
+      if (settings.googleMapsApiKey !== undefined) setGoogleMapsKey(settings.googleMapsApiKey || '');
     }
   }, [settings]);
+
+  // Synchronize activeTab aliases to settingsSubTab
+  useEffect(() => {
+    if (activeTab === 'gateway') setSettingsSubTab('gateway');
+    if (activeTab === 'line-oa') setSettingsSubTab('line-oa');
+    if (activeTab === 'google-maps') setSettingsSubTab('google-maps');
+  }, [activeTab]);
 
   // Admin Password Management State
   const [currentPwd, setCurrentPwd] = useState('');
@@ -593,8 +609,7 @@ export function AdminPOS({
           { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
           { id: 'faq', label: 'FAQ Manager', icon: 'helpCircle', count: laundryStore.faqs ? laundryStore.faqs.length : 0 },
           { id: 'services-pricing', label: 'Services & Minimum Weights', icon: 'scale', count: services.length },
-          { id: 'gateway', label: 'Cashless Payment Gateway', icon: 'receipt' },
-          { id: 'line-oa', label: 'LINE OA & Contact Channels', icon: 'line' },
+          { id: 'settings', label: 'Settings', icon: 'settings' },
           { id: 'incidents', label: 'Online Support & Tickets', icon: 'messageSquare', count: pendingIncidentsCount },
           { id: 'new-pos', label: 'Manual POS Order', icon: 'send' }
         ].map((tab) => (
@@ -1208,120 +1223,9 @@ export function AdminPOS({
         </div>
       )}
 
-      {/* TAB 3: 3RD-PARTY CASHLESS GATEWAY CONFIG */}
-      {activeTab === 'gateway' && (
-        <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-2">
-              <Icon name="receipt" className="w-3.5 h-3.5 text-emerald-600" />
-              <span>100% Cashless Gateway Architecture</span>
-            </div>
-            <h2 className="text-xl font-black text-slate-900">
-              3rd-Party Payment Gateway Integration
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              NoName Laundry is strictly cashless. All payments are collected digitally via Thai 3rd-party payment gateways (PromptPay QR, Credit Cards, Mobile Banking).
-            </p>
-          </div>
 
-          {gatewaySuccessMsg && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" />
-              <span>{gatewaySuccessMsg}</span>
-            </div>
-          )}
-
-          {gatewayErrorMsg && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
-              <Icon name="alertCircle" className="w-4 h-4 text-red-600" />
-              <span>{gatewayErrorMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSaveGatewaySettings} className="space-y-5 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Active Payment Gateway Provider *
-              </label>
-              <select
-                value={gatewayProvider}
-                onChange={(e) => setGatewayProvider(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold bg-white text-slate-900"
-              >
-                <option value="Omise / Opn Payments (Thailand)">Omise / Opn Payments (Recommended for Thailand)</option>
-                <option value="Stripe (Thailand)">Stripe Payments (Thailand)</option>
-                <option value="2C2P Thailand">2C2P Payment Gateway</option>
-                <option value="GB Prime Pay">GB Prime Pay (Thai QR PromptPay)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Registered Merchant Legal Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={merchantName}
-                onChange={(e) => setMerchantName(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-semibold"
-              />
-            </div>
-
-            {/* Payment Methods */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-              <div className="font-bold text-slate-800 text-xs uppercase tracking-wide">
-                Enabled Cashless Methods:
-              </div>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={promptpayEnabled}
-                  onChange={(e) => setPromptpayEnabled(e.target.checked)}
-                  className="w-4 h-4 text-sky-600 rounded"
-                />
-                <div>
-                  <span className="font-bold text-slate-900 block">Thai PromptPay QR (Instant Mobile Scan)</span>
-                  <span className="text-[11px] text-slate-500">Generates instant dynamic QR for mobile banking apps (KBANK, SCB, BBL, KTB).</span>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={cardEnabled}
-                  onChange={(e) => setCardEnabled(e.target.checked)}
-                  className="w-4 h-4 text-sky-600 rounded"
-                />
-                <div>
-                  <span className="font-bold text-slate-900 block">Credit & Debit Cards (Visa, Mastercard, JCB)</span>
-                  <span className="text-[11px] text-slate-500">Secure 3D-Secure 2.0 gateway processing with tokenization.</span>
-                </div>
-              </label>
-            </div>
-
-            {/* Strict Cashless Policy Enforcer */}
-            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs flex items-start gap-3">
-              <Icon name="shieldAlert" className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <strong>Cashless Policy Active:</strong> Cash on Delivery (COD) is strictly disabled across all customer touchpoints. Couriers do not carry cash pouches.
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={gatewaySaving}
-              className="w-full py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-md transition"
-            >
-              {gatewaySaving ? 'Saving to Database...' : 'Save Payment Gateway Settings'}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* TAB 4: LINE OA & CHANNELS */}
-      {activeTab === 'line-oa' && (
+      {/* LEGACY TAB: LINE OA (SUPERSEDED BY SETTINGS HUB) */}
+      {false && (
         <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <div className="inline-flex items-center gap-2.5">
@@ -1443,6 +1347,117 @@ export function AdminPOS({
             </button>
           </form>
 
+          {/* Google Maps & Places API Configuration */}
+          <div className="pt-6 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+                  <span>📍</span>
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Google Maps & Places API Configuration
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Powers real-time condominium & Bangkok address auto-search in Registration & Booking Wizard.
+                  </p>
+                </div>
+              </div>
+
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto ${
+                googleMapsKey ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${googleMapsKey ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                <span>{googleMapsKey ? 'Places API Configured' : 'Not Configured (Manual Input)'}</span>
+              </span>
+            </div>
+
+            {mapsSuccessMsg && (
+              <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <Icon name="check" className="w-4 h-4 text-emerald-600" />
+                <span>{mapsSuccessMsg}</span>
+              </div>
+            )}
+
+            {mapsErrorMsg && (
+              <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+                <span className="text-rose-600 font-bold text-sm">⚠️</span>
+                <span>{mapsErrorMsg}</span>
+              </div>
+            )}
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setMapsSaving(true);
+                setMapsSuccessMsg('');
+                setMapsErrorMsg('');
+                try {
+                  await laundryStore.updateGoogleMapsSettings(googleMapsKey.trim());
+                  setMapsSuccessMsg('Google Maps API Key saved to database and synchronized successfully!');
+                  setTimeout(() => setMapsSuccessMsg(''), 5000);
+                } catch (err) {
+                  console.error('Error saving Google Maps settings:', err);
+                  setMapsErrorMsg(`Failed to save Google Maps settings: ${err.message}`);
+                } finally {
+                  setMapsSaving(false);
+                }
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Google Cloud Places API Key (AIzaSy...)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showMapsKey ? 'text' : 'password'}
+                    placeholder="AIzaSy..."
+                    value={googleMapsKey}
+                    onChange={(e) => setGoogleMapsKey(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm bg-white text-slate-900 pr-24 outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMapsKey(!showMapsKey)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-[11px]"
+                  >
+                    {showMapsKey ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <div className="mt-2 p-3 bg-sky-50 rounded-xl border border-sky-100 text-[11px] text-sky-900 space-y-1 leading-relaxed">
+                  <div>• <strong>Features Enabled:</strong> Real-time condominium search dropdown, auto-fill Bangkok District (วัฒนา, คลองเตย, สาทร ฯลฯ), and auto-detect Google Maps coordinates.</div>
+                  <div>• <strong>Security Best Practice:</strong> In Google Cloud Console, restrict this API Key to <em>HTTP Referrers</em> (e.g. <code>http://localhost:*</code>, <code>https://*.vercel.app/*</code>, and your production domain).</div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={mapsSaving}
+                  className="flex-1 py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-xs shadow-md transition"
+                >
+                  {mapsSaving ? 'Saving to Database...' : 'Save Google Maps API Key'}
+                </button>
+                {googleMapsKey && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to clear the Google Maps API Key? Address input will revert to standard manual text.')) {
+                        setGoogleMapsKey('');
+                        await laundryStore.updateGoogleMapsSettings('');
+                        setMapsSuccessMsg('Google Maps API Key cleared.');
+                      }
+                    }}
+                    className="px-4 py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-600 font-bold text-xs transition"
+                  >
+                    Clear Key
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
           {/* Admin Account Security & Password Management */}
           <div className="pt-6 border-t border-slate-200">
             <div className="flex items-center gap-2.5 mb-4">
@@ -1534,6 +1549,536 @@ export function AdminPOS({
               </button>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* TAB: SETTINGS HUB */}
+      {(activeTab === 'settings' || activeTab === 'google-maps' || activeTab === 'gateway' || activeTab === 'line-oa') && (
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Settings Hub Header with Sub-tabs */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-bold mb-2">
+                <Icon name="settings" className="w-3.5 h-3.5 text-slate-600" />
+                <span>Admin Settings &amp; Configuration</span>
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                Settings (การตั้งค่าระบบ)
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                จัดการ Google Maps API, ช่องทางติดต่อ LINE OA, ระบบชำระเงิน Gateway และรหัสผ่านผู้ดูแลระบบ
+              </p>
+            </div>
+
+            {/* Sub-tab pills */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setSettingsSubTab('google-maps')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  settingsSubTab === 'google-maps'
+                    ? 'bg-white text-sky-700 shadow-xs ring-1 ring-slate-200'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>📍 Google Maps API</span>
+                <span className={`w-2 h-2 rounded-full ${googleMapsKey ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSettingsSubTab('line-oa')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  settingsSubTab === 'line-oa'
+                    ? 'bg-white text-emerald-700 shadow-xs ring-1 ring-slate-200'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Icon name="line" className="w-3.5 h-3.5 text-emerald-600" />
+                <span>LINE OA &amp; Contacts</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSettingsSubTab('gateway')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  settingsSubTab === 'gateway'
+                    ? 'bg-white text-purple-700 shadow-xs ring-1 ring-slate-200'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Icon name="receipt" className="w-3.5 h-3.5 text-purple-600" />
+                <span>Cashless Gateway</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSettingsSubTab('security')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  settingsSubTab === 'security'
+                    ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Icon name="shield" className="w-3.5 h-3.5 text-slate-700" />
+                <span>Admin Password</span>
+              </button>
+            </div>
+          </div>
+
+          {/* SUB-SECTION 1: GOOGLE MAPS & PLACES API */}
+          {settingsSubTab === 'google-maps' && (
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-sky-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                    <Icon name="mapPin" className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">
+                      Google Maps &amp; Places API Configuration
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      ระบบค้นหาชื่อคอนโดและที่อยู่จัดส่งอัตโนมัติ (Condo Auto-Search &amp; District Detection)
+                    </p>
+                  </div>
+                </div>
+
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold self-start sm:self-auto ${
+                  googleMapsKey ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${googleMapsKey ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  <span>{googleMapsKey ? 'Places API Active' : 'Not Configured (Manual Input)'}</span>
+                </span>
+              </div>
+
+              {mapsSuccessMsg && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                  <Icon name="check" className="w-4 h-4 text-emerald-600" />
+                  <span>{mapsSuccessMsg}</span>
+                </div>
+              )}
+
+              {mapsErrorMsg && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+                  <span className="text-rose-600 font-bold text-sm">⚠️</span>
+                  <span>{mapsErrorMsg}</span>
+                </div>
+              )}
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setMapsSaving(true);
+                  setMapsSuccessMsg('');
+                  setMapsErrorMsg('');
+                  try {
+                    await laundryStore.updateGoogleMapsSettings(googleMapsKey.trim());
+                    setMapsSuccessMsg('Google Maps API Key saved to database and synchronized successfully!');
+                    setTimeout(() => setMapsSuccessMsg(''), 5000);
+                  } catch (err) {
+                    console.error('Error saving Google Maps settings:', err);
+                    setMapsErrorMsg(`Failed to save Google Maps settings: ${err.message}`);
+                  } finally {
+                    setMapsSaving(false);
+                  }
+                }}
+                className="space-y-5 text-xs"
+              >
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1.5 text-sm">
+                    Google Cloud Places API Key (AIzaSy...)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showMapsKey ? 'text' : 'password'}
+                      placeholder="AIzaSy..."
+                      value={googleMapsKey}
+                      onChange={(e) => setGoogleMapsKey(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 font-mono text-sm bg-white text-slate-900 pr-24 outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowMapsKey(!showMapsKey)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs"
+                    >
+                      {showMapsKey ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-slate-400 text-[11px]">
+                    วาง API Key ที่ได้จาก Google Cloud Console (เปิดใช้งาน Places API และ Maps JavaScript API)
+                  </p>
+                </div>
+
+                <div className="p-4 bg-sky-50/80 rounded-2xl border border-sky-200/80 text-xs text-sky-950 space-y-2 leading-relaxed">
+                  <div className="font-bold flex items-center gap-1.5 text-sky-900">
+                    <Icon name="checkCircle" className="w-4 h-4 text-sky-600" />
+                    <span>ประโยชน์และการใช้งาน API Key นี้:</span>
+                  </div>
+                  <div>• <strong>หน้าสมัครสมาชิกลูกค้า (#register):</strong> เมื่อลูกค้าพิมพ์ชื่อคอนโด เช่น Ideo, Ashton, The Estelle ระบบจะค้นหาและเติมชื่อเขตในกรุงเทพฯ อัตโนมัติ</div>
+                  <div>• <strong>หน้าจองซักผ้า (#book):</strong> ลูกค้าสามารถพิมพ์ชื่อคอนโดแล้วเลือกจากหมุด Google Maps พร้อมเก็บพิกัด GPS สำหรับพนักงานขับรถรับส่งผ้า</div>
+                  <div>• <strong>บันทึกแล้วทำงานทันที:</strong> เมื่อกดปุ่ม Save ด้านล่าง ระบบจะโหลดใช้งาน Key ให้ทันทีโดยไม่ต้องรีสตาร์ตเซิร์ฟเวอร์</div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={mapsSaving}
+                    className="flex-1 py-3.5 px-5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
+                  >
+                    <Icon name="check" className="w-4 h-4" />
+                    <span>{mapsSaving ? 'Saving to Database...' : 'Save Google Maps API Key'}</span>
+                  </button>
+                  {googleMapsKey && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบ Google Maps API Key? ระบบค้นหาจะเปลี่ยนเป็นช่องกรอกข้อความธรรมดา')) {
+                          setGoogleMapsKey('');
+                          await laundryStore.updateGoogleMapsSettings('');
+                          setMapsSuccessMsg('Google Maps API Key cleared.');
+                        }
+                      }}
+                      className="px-5 py-3.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-600 font-bold text-xs transition"
+                    >
+                      Clear Key
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* SUB-SECTION 2: LINE OA & CONTACTS */}
+          {settingsSubTab === 'line-oa' && (
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <div className="inline-flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-green-500 text-white flex items-center justify-center font-bold">
+                    <Icon name="line" className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      LINE Official Account &amp; Contact Configuration
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Configure your business LINE OA ID so customers can add and message your official account with 1 click.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {channelSuccessMsg && (
+                <div className="p-3.5 rounded-xl bg-green-50 border border-green-200 text-green-800 text-xs font-bold flex items-center gap-2">
+                  <Icon name="check" className="w-4 h-4 text-green-600" />
+                  <span>{channelSuccessMsg}</span>
+                </div>
+              )}
+
+              {channelErrorMsg && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
+                  <Icon name="alertCircle" className="w-4 h-4 text-red-600" />
+                  <span>{channelErrorMsg}</span>
+                </div>
+              )}
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setChannelSaving(true);
+                  setChannelSuccessMsg('');
+                  setChannelErrorMsg('');
+                  try {
+                    await laundryStore.updateLineOaSettings(adminLineOa.trim(), adminWhatsapp.trim(), adminEmail.trim());
+                    setChannelSuccessMsg('LINE OA and contact settings saved to Google Cloud PostgreSQL successfully!');
+                    setTimeout(() => setChannelSuccessMsg(''), 5000);
+                  } catch (err) {
+                    console.error('Error saving line OA settings:', err);
+                    setChannelErrorMsg(`Failed to save contact settings: ${err.message}`);
+                  } finally {
+                    setChannelSaving(false);
+                  }
+                }}
+                className="space-y-4 text-xs"
+              >
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    LINE Official Account ID (with @ symbol) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="@nonamelaundry"
+                    value={adminLineOa}
+                    onChange={(e) => setAdminLineOa(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold bg-white text-green-700 text-sm"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Generated Add-Friend Link: <code className="text-green-800 font-bold">{getLineOaAddFriendUrl(adminLineOa)}</code>
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      WhatsApp Official Phone Number *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="+66 94 882 1920"
+                      value={adminWhatsapp}
+                      onChange={(e) => setAdminWhatsapp(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Customer Support Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="support@nonamelaundry.com"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                {/* QR Code Live Preview */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+                  <img
+                    src={getLineQrCodeUrl(adminLineOa)}
+                    alt="LINE QR Code Preview"
+                    className="w-24 h-24 rounded-lg border border-slate-300 bg-white"
+                  />
+                  <div>
+                    <div className="font-bold text-slate-800 text-xs">Customer QR Code Preview</div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      This dynamic QR code is displayed to desktop customers on booking completion and on the tracking portal.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={channelSaving}
+                  className="w-full py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-md transition"
+                >
+                  {channelSaving ? 'Saving to Database...' : 'Save LINE OA & Contact Settings'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* SUB-SECTION 3: CASHLESS PAYMENT GATEWAY */}
+          {settingsSubTab === 'gateway' && (
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-2">
+                  <Icon name="receipt" className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>100% Cashless Gateway Architecture</span>
+                </div>
+                <h2 className="text-xl font-black text-slate-900">
+                  3rd-Party Payment Gateway Integration
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  NoName Laundry is strictly cashless. All payments are collected digitally via Thai 3rd-party payment gateways (PromptPay QR, Credit Cards, Mobile Banking).
+                </p>
+              </div>
+
+              {gatewaySuccessMsg && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                  <Icon name="check" className="w-4 h-4 text-emerald-600" />
+                  <span>{gatewaySuccessMsg}</span>
+                </div>
+              )}
+
+              {gatewayErrorMsg && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
+                  <Icon name="alertCircle" className="w-4 h-4 text-red-600" />
+                  <span>{gatewayErrorMsg}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveGatewaySettings} className="space-y-5 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Active Payment Gateway Provider *
+                  </label>
+                  <select
+                    value={gatewayProvider}
+                    onChange={(e) => setGatewayProvider(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold bg-white text-slate-900"
+                  >
+                    <option value="Omise / Opn Payments (Thailand)">Omise / Opn Payments (Recommended for Thailand)</option>
+                    <option value="Stripe (Thailand)">Stripe Payments (Thailand)</option>
+                    <option value="2C2P Thailand">2C2P Payment Gateway</option>
+                    <option value="GB Prime Pay">GB Prime Pay (Thai QR PromptPay)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Registered Merchant Legal Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={merchantName}
+                    onChange={(e) => setMerchantName(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-semibold"
+                  />
+                </div>
+
+                {/* Payment Methods */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="font-bold text-slate-800 text-xs uppercase tracking-wide">
+                    Enabled Cashless Methods:
+                  </div>
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={promptpayEnabled}
+                      onChange={(e) => setPromptpayEnabled(e.target.checked)}
+                      className="w-4 h-4 text-sky-600 rounded"
+                    />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Thai PromptPay QR (Instant Mobile Scan)</span>
+                      <span className="text-[11px] text-slate-500">Generates instant dynamic QR for mobile banking apps (KBANK, SCB, BBL, KTB).</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={cardEnabled}
+                      onChange={(e) => setCardEnabled(e.target.checked)}
+                      className="w-4 h-4 text-sky-600 rounded"
+                    />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Credit &amp; Debit Cards (Visa, Mastercard, JCB)</span>
+                      <span className="text-[11px] text-slate-500">Secure 3D-Secure 2.0 gateway processing with tokenization.</span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Strict Cashless Policy Enforcer */}
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs flex items-start gap-3">
+                  <Icon name="shieldAlert" className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Cashless Policy Active:</strong> Cash on Delivery (COD) is strictly disabled across all customer touchpoints. Couriers do not carry cash pouches.
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={gatewaySaving}
+                  className="w-full py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-md transition"
+                >
+                  {gatewaySaving ? 'Saving to Database...' : 'Save Payment Gateway Settings'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* SUB-SECTION 4: ADMIN PASSWORD & SECURITY */}
+          {settingsSubTab === 'security' && (
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+              <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
+                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                  <Icon name="lock" className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Admin Account &amp; Security
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Update your administrator password to secure POS operations.
+                  </p>
+                </div>
+              </div>
+
+              {pwdSuccessMsg && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                  <Icon name="check" className="w-4 h-4 text-emerald-600" />
+                  <span>{pwdSuccessMsg}</span>
+                </div>
+              )}
+
+              {pwdErrorMsg && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+                  <span className="text-rose-600 font-bold text-sm">⚠️</span>
+                  <span>{pwdErrorMsg}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Current Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={currentPwd}
+                    onChange={(e) => setCurrentPwd(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm bg-white text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      New Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Minimum 6 characters"
+                      value={newPwd}
+                      onChange={(e) => setNewPwd(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm bg-white text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Confirm New Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Re-enter new password"
+                      value={confirmPwd}
+                      onChange={(e) => setConfirmPwd(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-sm bg-white text-slate-900 outline-none focus:ring-2 focus:ring-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={pwdLoading}
+                  className="w-full py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+                >
+                  {pwdLoading ? (
+                    <span>Updating Password in PostgreSQL...</span>
+                  ) : (
+                    <>
+                      <Icon name="shield" className="w-4 h-4" />
+                      <span>Update Admin Password</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 

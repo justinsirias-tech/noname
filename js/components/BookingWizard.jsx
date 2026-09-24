@@ -4,30 +4,38 @@ import { BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
 import { TermsModal } from './TermsModal.jsx';
 import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundryStore } from '../store.js';
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
+import { GooglePlaceAutocompleteInput } from './GooglePlaceAutocompleteInput.jsx';
+import { LocationPicker } from './LocationPicker.jsx';
 
-export function BookingWizard({ services, initialServiceId, initialWeight, onBookingSuccess, onViewFullTerms }) {
+export function BookingWizard({ services, initialServiceId, initialWeight, initialCustomer, onBookingSuccess, onViewFullTerms }) {
   const [serviceId, setServiceId] = useState(initialServiceId || services[0]?.id || 'wash_fold');
   const [estimatedWeightKg, setEstimatedWeightKg] = useState(initialWeight || 4.0);
   const [turnaroundSpeed, setTurnaroundSpeed] = useState('standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
-  // Customer Info
-  const [customerName, setCustomerName] = useState('');
-  const [nickName, setNickName] = useState('');
-  const [contactChannel, setContactChannel] = useState('line'); // default to line since very popular in Bangkok
-  const [contactValue, setContactValue] = useState('');
-  const [email, setEmail] = useState('');
+  // Customer Info (prefilled from initialCustomer if available)
+  const [customerName, setCustomerName] = useState(initialCustomer?.fullName || '');
+  const [nickName, setNickName] = useState(initialCustomer?.nickName || '');
+  const [contactChannel, setContactChannel] = useState(
+    initialCustomer?.lineId ? 'line' : (initialCustomer?.mobileNumber ? 'whatsapp' : 'line')
+  );
+  const [contactValue, setContactValue] = useState(
+    initialCustomer?.lineId || initialCustomer?.mobileNumber || ''
+  );
+  const [email, setEmail] = useState(initialCustomer?.email || '');
 
   // Thai Company Tax Info
-  const [isCompanyTax, setIsCompanyTax] = useState(false);
-  const [companyName, setCompanyName] = useState('');
-  const [companyTaxId, setCompanyTaxId] = useState('');
-  const [companyBranch, setCompanyBranch] = useState('Head Office (สำนักงานใหญ่)');
+  const [isCompanyTax, setIsCompanyTax] = useState(Boolean(initialCustomer?.companyTax?.required));
+  const [companyName, setCompanyName] = useState(initialCustomer?.companyTax?.companyName || '');
+  const [companyTaxId, setCompanyTaxId] = useState(initialCustomer?.companyTax?.taxId || '');
+  const [companyBranch, setCompanyBranch] = useState(initialCustomer?.companyTax?.branch || 'Head Office (สำนักงานใหญ่)');
 
   // Bangkok Address Info
-  const [district, setDistrict] = useState(BANGKOK_DISTRICTS[0]);
-  const [condoName, setCondoName] = useState('');
-  const [roomNumber, setRoomNumber] = useState('');
-  const [leaveWithJuristic, setLeaveWithJuristic] = useState(true);
+  const primaryAddr = initialCustomer?.addresses?.[0];
+  const [district, setDistrict] = useState(primaryAddr?.district || BANGKOK_DISTRICTS[0]);
+  const [condoName, setCondoName] = useState(primaryAddr?.label || primaryAddr?.address || '');
+  const [roomNumber, setRoomNumber] = useState(primaryAddr?.roomNumber || '');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState(primaryAddr?.googleMapsUrl || '');
+  const [leaveWithJuristic, setLeaveWithJuristic] = useState(primaryAddr?.leaveWithJuristic !== undefined ? primaryAddr.leaveWithJuristic : true);
 
   // Schedule Info
   const tomorrow = new Date();
@@ -122,6 +130,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
       district,
       condoName: condoName.trim(),
       roomNumber: roomNumber.trim(),
+      googleMapsUrl: googleMapsUrl ? googleMapsUrl.trim() : '',
       leaveWithJuristic,
       estimatedWeightKg: Number(estimatedWeightKg),
       pricePerKg: priceRate,
@@ -762,17 +771,33 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Condominium / Building / House Name <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Condominium / Building / House Name <span className="text-red-500">*</span></span>
+                  <span className="text-[10px] text-sky-600 font-semibold">Auto-detects District</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn"
+                <GooglePlaceAutocompleteInput
                   value={condoName}
                   onChange={(e) => setCondoName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                  onPlaceSelect={(place) => {
+                    setCondoName(place.condoName);
+                    if (place.district) setDistrict(place.district);
+                    if (place.googleMapsUrl) setGoogleMapsUrl(place.googleMapsUrl);
+                  }}
+                  placeholder="e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn"
+                  required
                 />
+                {googleMapsUrl && (
+                  <div className="mt-1">
+                    <a
+                      href={googleMapsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-sky-600 hover:text-sky-700 underline font-medium"
+                    >
+                      <span>📍 View confirmed location on Google Maps</span>
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -788,6 +813,23 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                 />
               </div>
             </div>
+
+            {/* Interactive Location Picker: Share GPS or Pin on Map */}
+            <LocationPicker
+              value={googleMapsUrl}
+              onChange={(url) => setGoogleMapsUrl(url)}
+              onLocationSelect={({ lat, lng, googleMapsUrl: newUrl, district: detectedDistrict, condoName: detectedCondo }) => {
+                setGoogleMapsUrl(newUrl);
+                if (detectedDistrict) {
+                  setDistrict(detectedDistrict);
+                }
+                if (detectedCondo && (!condoName || condoName.trim() === '')) {
+                  setCondoName(detectedCondo);
+                }
+              }}
+              initialDistrict={district}
+              label="Google Maps Location & Condo Pin (ตำแหน่งคอนโด หรือแชร์พิกัด GPS)"
+            />
 
             {/* Condo Juristic Dropoff Checkbox */}
             <div className="p-4 bg-sky-50/60 rounded-2xl border border-sky-200/80">

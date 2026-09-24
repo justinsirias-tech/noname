@@ -21,8 +21,131 @@ async function ensureDatabaseSchema() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciled_by VARCHAR(128);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciliation_notes TEXT;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS bank_account_ref VARCHAR(128);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id VARCHAR(64);
     `);
-    console.log('[POSTGRES] Orders reconciliation columns verified.');
+    console.log('[POSTGRES] Orders reconciliation and customer_id columns verified.');
+
+    // Ensure initial demo customers are present
+    const custCount = await query('SELECT count(*) FROM customers');
+    if (parseInt(custCount.rows[0].count, 10) === 0) {
+      console.log('[POSTGRES] Seeding initial customer accounts...');
+      const sampleCustomers = [
+        {
+          id: 'CUST-8491',
+          fullName: 'Alex Thorne',
+          nickName: 'Alex',
+          gender: 'Male',
+          dateOfBirth: '1990-05-14',
+          mobileNumber: '+66 82 455 9182',
+          isWhatsApp: true,
+          email: 'alex.thorne@gmail.com',
+          lineId: 'alex_bkk',
+          pinCode: '123456',
+          tier: 'VIP',
+          addresses: [
+            {
+              id: 'ADDR-101',
+              label: 'Home (The Estelle Phrom Phong)',
+              address: 'The Estelle Phrom Phong, 8 Sukhumvit 26, Khlong Tan',
+              district: 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+              roomNumber: 'Tower A, Room 1804',
+              googleMapsUrl: 'https://www.google.com/maps?q=13.736717,100.560632',
+              leaveWithJuristic: true,
+              isPrimary: true
+            }
+          ]
+        },
+        {
+          id: 'CUST-3920',
+          fullName: 'Siriporn Tanaka',
+          nickName: 'Som',
+          gender: 'Female',
+          dateOfBirth: '1993-11-28',
+          mobileNumber: '+66 89 712 3456',
+          isWhatsApp: true,
+          email: 'siriporn.t@yahoo.co.th',
+          lineId: '@siriporn_bkk',
+          pinCode: '654321',
+          tier: 'Gold',
+          addresses: [
+            {
+              id: 'ADDR-201',
+              label: 'Condo (Ashton Silom)',
+              address: 'Ashton Silom, 162 Silom Rd, Suriya Wong, Bang Rak',
+              district: 'Bang Rak (Silom, Surawong)',
+              roomNumber: 'Floor 22, Room 2209',
+              googleMapsUrl: 'https://www.google.com/maps?q=13.725800,100.528300',
+              leaveWithJuristic: false,
+              isPrimary: true
+            }
+          ]
+        },
+        {
+          id: 'CUST-7741',
+          fullName: 'Marcus Dupont',
+          nickName: 'Marc',
+          gender: 'Male',
+          dateOfBirth: '1985-03-02',
+          mobileNumber: '+66 92 334 8812',
+          isWhatsApp: false,
+          email: 'm.dupont@bangkokexpats.org',
+          lineId: 'm_dupont_bkk',
+          pinCode: '778899',
+          tier: 'VIP',
+          addresses: [
+            {
+              id: 'ADDR-301',
+              label: 'Residence (The Sukhothai Residences)',
+              address: 'The Sukhothai Residences, 3 Sathon 1 Alley, Thung Maha Mek',
+              district: 'Sathon (Sathorn, Chong Nonsi)',
+              roomNumber: 'Penthouse B, 31st Fl',
+              googleMapsUrl: 'https://www.google.com/maps?q=13.723100,100.540100',
+              leaveWithJuristic: true,
+              isPrimary: true
+            }
+          ]
+        },
+        {
+          id: 'CUST-5510',
+          fullName: 'Chutima Wongsuwan',
+          nickName: 'Nok',
+          gender: 'Female',
+          dateOfBirth: '1998-09-19',
+          mobileNumber: '+66 81 223 9988',
+          isWhatsApp: true,
+          email: 'chutima.nok@outlook.co.th',
+          lineId: 'nok_wongsuwan',
+          pinCode: '112233',
+          tier: 'Regular',
+          addresses: [
+            {
+              id: 'ADDR-401',
+              label: 'Home (Rhythm Sathorn)',
+              address: 'Rhythm Sathorn, 27 Sathon Nuea Rd, Silom',
+              district: 'Bang Rak (Silom, Surawong)',
+              roomNumber: 'Tower South, Room 1408',
+              googleMapsUrl: 'https://www.google.com/maps?q=13.719600,100.517300',
+              leaveWithJuristic: true,
+              isPrimary: true
+            }
+          ]
+        }
+      ];
+
+      for (const sc of sampleCustomers) {
+        await query(`
+          INSERT INTO customers (
+            id, full_name, nick_name, gender, date_of_birth, mobile_number,
+            is_whatsapp, email, line_id, pin_code, tier, addresses, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, NOW())
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          sc.id, sc.fullName, sc.nickName, sc.gender, sc.dateOfBirth, sc.mobileNumber,
+          sc.isWhatsApp, sc.email, sc.lineId, sc.pinCode, sc.tier, JSON.stringify(sc.addresses)
+        ]);
+      }
+      console.log('[POSTGRES] Seeded 4 sample customer accounts.');
+    }
   } catch (err) {
     console.warn('[POSTGRES WARNING] Could not verify reconciliation schema:', err.message);
   }
@@ -57,6 +180,7 @@ function mapOrder(row) {
   if (!row) return null;
   return {
     id: row.id,
+    customerId: row.customer_id || null,
     customerName: row.customer_name,
     contactChannel: row.contact_channel,
     contactValue: row.contact_value,
@@ -111,6 +235,31 @@ function mapIncident(row) {
     imageUrl: row.image_url || null,
     status: row.status,
     response: row.response,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
+  };
+}
+
+function mapCustomer(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    nickName: row.nick_name || '',
+    gender: row.gender || 'Rather not say',
+    dateOfBirth: row.date_of_birth || '',
+    mobileNumber: row.mobile_number,
+    isWhatsApp: Boolean(row.is_whatsapp),
+    secondaryMobile: row.secondary_mobile || '',
+    isSecondaryWhatsApp: Boolean(row.is_secondary_whatsapp),
+    email: row.email || '',
+    lineId: row.line_id || '',
+    pinCode: row.pin_code || '123456',
+    isVerified: Boolean(row.is_verified),
+    verifiedVia: row.verified_via || null,
+    tier: row.tier || 'Regular',
+    notes: row.notes || '',
+    companyTax: typeof row.company_tax === 'string' ? JSON.parse(row.company_tax) : (row.company_tax || {}),
+    addresses: typeof row.addresses === 'string' ? JSON.parse(row.addresses) : (Array.isArray(row.addresses) ? row.addresses : []),
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
   };
 }
@@ -226,23 +375,26 @@ app.post('/api/admin/change-password', requireAdminAuth, async (req, res) => {
 // 2. Full State for instant hydration
 app.get('/api/state', async (req, res) => {
   try {
-    const [servicesRes, ordersRes, incidentsRes, settingsRes] = await Promise.all([
+    const [servicesRes, ordersRes, incidentsRes, settingsRes, customersRes] = await Promise.all([
       query('SELECT * FROM services ORDER BY price_per_kg ASC'),
       query('SELECT * FROM orders ORDER BY created_at DESC'),
       query('SELECT * FROM incidents ORDER BY created_at DESC'),
-      query("SELECT value FROM settings WHERE key = 'app_config'")
+      query("SELECT value FROM settings WHERE key = 'app_config'"),
+      query('SELECT * FROM customers ORDER BY created_at DESC').catch(() => ({ rows: [] }))
     ]);
 
     const services = servicesRes.rows.map(mapService);
     const orders = ordersRes.rows.map(mapOrder);
     const incidents = incidentsRes.rows.map(mapIncident);
     const settings = settingsRes.rows.length > 0 ? settingsRes.rows[0].value : null;
+    const customers = customersRes.rows.map(mapCustomer);
 
     res.json({
       services,
       orders,
       incidents,
-      settings
+      settings,
+      customers
     });
   } catch (err) {
     console.error('Error fetching /api/state:', err);
@@ -974,6 +1126,320 @@ app.post('/api/settings', requireAdminAuth, async (req, res) => {
     res.json({ success: true, settings: updatedSettings });
   } catch (err) {
     console.error('[POSTGRES ERROR] Updating settings:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 7. Customers API
+app.get('/api/customers', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM customers ORDER BY created_at DESC');
+    res.json(result.rows.map(mapCustomer));
+  } catch (err) {
+    console.error('Error fetching customers:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Customer Authentication (Login via Mobile/ID + 6-digit PIN)
+app.post('/api/customers/login', async (req, res) => {
+  try {
+    const { identifier, pinCode } = req.body;
+    if (!identifier || !pinCode) {
+      return res.status(400).json({ error: 'กรุณากรอกเบอร์มือถือ (หรือ Customer ID) และรหัส PIN 6 หลัก' });
+    }
+
+    const cleanInput = identifier.trim();
+    const digitsOnly = cleanInput.replace(/\D/g, '');
+    const last8Digits = digitsOnly.length >= 8 ? digitsOnly.slice(-8) : digitsOnly;
+
+    // Search query matching ID, email, or mobile number
+    const custRes = await query(`
+      SELECT * FROM customers 
+      WHERE LOWER(id) = LOWER($1)
+         OR LOWER(email) = LOWER($1)
+         OR LOWER(mobile_number) = LOWER($1)
+         OR ($2 <> '' AND regexp_replace(mobile_number, '[^0-9]', '', 'g') LIKE '%' || $2)
+      LIMIT 1
+    `, [cleanInput, last8Digits]);
+
+    if (custRes.rows.length === 0) {
+      return res.status(401).json({ error: 'ไม่พบบัญชีลูกค้า กรุณาตรวจสอบเบอร์มือถือหรือลงทะเบียนใหม่' });
+    }
+
+    const row = custRes.rows[0];
+    const customerPin = (row.pin_code || '123456').trim();
+    if (customerPin !== pinCode.trim()) {
+      return res.status(401).json({ error: 'รหัส PIN 6 หลักไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' });
+    }
+
+    const customer = mapCustomer(row);
+
+    // Fetch this customer's laundry orders
+    const ordersRes = await query(`
+      SELECT * FROM orders 
+      WHERE customer_id = $1 
+         OR LOWER(customer_name) = LOWER($2)
+         OR contact_value = $3
+      ORDER BY created_at DESC
+    `, [customer.id, customer.fullName, customer.mobileNumber]);
+
+    const orders = ordersRes.rows.map(mapOrder);
+    const token = 'cust_session_' + Buffer.from(`${customer.id}:${Date.now()}`).toString('base64');
+
+    res.json({
+      success: true,
+      token,
+      customer,
+      orders
+    });
+  } catch (err) {
+    console.error('Customer login error:', err);
+    res.status(500).json({ error: 'Internal server error during login' });
+  }
+});
+
+// Get Customer Orders
+app.get('/api/customers/:id/orders', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const custRes = await query('SELECT * FROM customers WHERE id = $1', [id]);
+    if (custRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    const customer = mapCustomer(custRes.rows[0]);
+
+    const ordersRes = await query(`
+      SELECT * FROM orders 
+      WHERE customer_id = $1 
+         OR LOWER(customer_name) = LOWER($2)
+         OR contact_value = $3
+      ORDER BY created_at DESC
+    `, [customer.id, customer.fullName, customer.mobileNumber]);
+
+    res.json(ordersRes.rows.map(mapOrder));
+  } catch (err) {
+    console.error('Error fetching customer orders:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public Customer Registration
+app.post('/api/customers/register', async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data.fullName || !data.mobileNumber) {
+      return res.status(400).json({ error: 'Full name and mobile number are required.' });
+    }
+
+    const id = data.id || ('CUST-' + Math.floor(1000 + Math.random() * 9000));
+    const now = new Date();
+
+    let addresses = Array.isArray(data.addresses) ? data.addresses : [];
+    if (addresses.length === 0 && (data.condoName || data.address || data.district)) {
+      addresses = [{
+        id: 'ADDR-' + Math.floor(100 + Math.random() * 900),
+        label: (data.condoName || data.addressLabel || 'Home').trim(),
+        address: data.address ? data.address.trim() : `${(data.condoName || '').trim()}, ${data.district || 'Bangkok'}`,
+        district: data.district || 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+        roomNumber: (data.roomNumber || '').trim(),
+        googleMapsUrl: (data.googleMapsUrl || '').trim() || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(((data.condoName || data.address || '') + ' ' + (data.district || 'Bangkok')).trim())}`,
+        leaveWithJuristic: data.leaveWithJuristic !== undefined ? Boolean(data.leaveWithJuristic) : true,
+        isPrimary: true
+      }];
+    }
+
+    const result = await query(`
+      INSERT INTO customers (
+        id, full_name, nick_name, gender, date_of_birth,
+        mobile_number, is_whatsapp, secondary_mobile, is_secondary_whatsapp,
+        email, line_id, pin_code, is_verified, verified_via, tier,
+        notes, company_tax, addresses, created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9,
+        $10, $11, $12, $13, $14, $15,
+        $16, $17, $18, $19, $19
+      )
+      RETURNING *
+    `, [
+      id,
+      data.fullName.trim(),
+      (data.nickName || '').trim(),
+      data.gender || 'Rather not say',
+      data.dateOfBirth || null,
+      data.mobileNumber.trim(),
+      data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : true,
+      (data.secondaryMobile || '').trim(),
+      Boolean(data.isSecondaryWhatsApp),
+      (data.email || '').trim().toLowerCase(),
+      (data.lineId || '').trim(),
+      data.pinCode || '123456',
+      Boolean(data.isVerified),
+      data.verifiedVia || null,
+      data.tier || 'New',
+      data.notes || '',
+      JSON.stringify(data.companyTax || {}),
+      JSON.stringify(addresses),
+      now
+    ]);
+
+    const mapped = mapCustomer(result.rows[0]);
+    console.log(`[CUSTOMER REGISTERED] ID: ${mapped.id}, Name: ${mapped.fullName}, Mobile: ${mapped.mobileNumber}`);
+    res.status(201).json({ success: true, customer: mapped });
+  } catch (err) {
+    console.error('Error registering customer:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin / Store Sync Customer
+app.post('/api/customers', async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data.fullName) {
+      return res.status(400).json({ error: 'Customer full name is required.' });
+    }
+
+    const id = data.id || ('CUST-' + Math.floor(1000 + Math.random() * 9000));
+    const now = new Date();
+
+    let addresses = Array.isArray(data.addresses) ? data.addresses : [];
+    if (addresses.length === 0 && (data.condoName || data.address || data.district)) {
+      addresses = [{
+        id: 'ADDR-' + Math.floor(100 + Math.random() * 900),
+        label: (data.condoName || data.addressLabel || 'Home').trim(),
+        address: data.address ? data.address.trim() : `${(data.condoName || '').trim()}, ${data.district || 'Bangkok'}`,
+        district: data.district || 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+        roomNumber: (data.roomNumber || '').trim(),
+        googleMapsUrl: (data.googleMapsUrl || '').trim() || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(((data.condoName || data.address || '') + ' ' + (data.district || 'Bangkok')).trim())}`,
+        leaveWithJuristic: data.leaveWithJuristic !== undefined ? Boolean(data.leaveWithJuristic) : true,
+        isPrimary: true
+      }];
+    }
+
+    const result = await query(`
+      INSERT INTO customers (
+        id, full_name, nick_name, gender, date_of_birth,
+        mobile_number, is_whatsapp, secondary_mobile, is_secondary_whatsapp,
+        email, line_id, pin_code, is_verified, verified_via, tier,
+        notes, company_tax, addresses, created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9,
+        $10, $11, $12, $13, $14, $15,
+        $16, $17, $18, $19, $19
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        nick_name = EXCLUDED.nick_name,
+        gender = EXCLUDED.gender,
+        date_of_birth = EXCLUDED.date_of_birth,
+        mobile_number = EXCLUDED.mobile_number,
+        is_whatsapp = EXCLUDED.is_whatsapp,
+        secondary_mobile = EXCLUDED.secondary_mobile,
+        is_secondary_whatsapp = EXCLUDED.is_secondary_whatsapp,
+        email = EXCLUDED.email,
+        line_id = EXCLUDED.line_id,
+        pin_code = EXCLUDED.pin_code,
+        is_verified = EXCLUDED.is_verified,
+        verified_via = EXCLUDED.verified_via,
+        tier = EXCLUDED.tier,
+        notes = EXCLUDED.notes,
+        company_tax = EXCLUDED.company_tax,
+        addresses = EXCLUDED.addresses,
+        updated_at = NOW()
+      RETURNING *
+    `, [
+      id,
+      data.fullName.trim(),
+      (data.nickName || '').trim(),
+      data.gender || 'Rather not say',
+      data.dateOfBirth || null,
+      data.mobileNumber ? data.mobileNumber.trim() : '',
+      data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : true,
+      (data.secondaryMobile || '').trim(),
+      Boolean(data.isSecondaryWhatsApp),
+      (data.email || '').trim().toLowerCase(),
+      (data.lineId || '').trim(),
+      data.pinCode || '123456',
+      Boolean(data.isVerified),
+      data.verifiedVia || null,
+      data.tier || 'Regular',
+      data.notes || '',
+      JSON.stringify(data.companyTax || {}),
+      JSON.stringify(addresses),
+      now
+    ]);
+
+    res.status(201).json(mapCustomer(result.rows[0]));
+  } catch (err) {
+    console.error('Error saving customer:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    const result = await query(`
+      UPDATE customers SET
+        full_name = COALESCE($1, full_name),
+        nick_name = COALESCE($2, nick_name),
+        gender = COALESCE($3, gender),
+        date_of_birth = COALESCE($4, date_of_birth),
+        mobile_number = COALESCE($5, mobile_number),
+        is_whatsapp = COALESCE($6, is_whatsapp),
+        secondary_mobile = COALESCE($7, secondary_mobile),
+        is_secondary_whatsapp = COALESCE($8, is_secondary_whatsapp),
+        email = COALESCE($9, email),
+        line_id = COALESCE($10, line_id),
+        pin_code = COALESCE($11, pin_code),
+        tier = COALESCE($12, tier),
+        notes = COALESCE($13, notes),
+        company_tax = COALESCE($14::jsonb, company_tax),
+        addresses = COALESCE($15::jsonb, addresses),
+        updated_at = NOW()
+      WHERE id = $16
+      RETURNING *
+    `, [
+      data.fullName ? data.fullName.trim() : null,
+      data.nickName ? data.nickName.trim() : null,
+      data.gender || null,
+      data.dateOfBirth || null,
+      data.mobileNumber ? data.mobileNumber.trim() : null,
+      data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : null,
+      data.secondaryMobile ? data.secondaryMobile.trim() : null,
+      data.isSecondaryWhatsApp !== undefined ? Boolean(data.isSecondaryWhatsApp) : null,
+      data.email ? data.email.trim().toLowerCase() : null,
+      data.lineId ? data.lineId.trim() : null,
+      data.pinCode || null,
+      data.tier || null,
+      data.notes || null,
+      data.companyTax ? JSON.stringify(data.companyTax) : null,
+      data.addresses ? JSON.stringify(data.addresses) : null,
+      id
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    res.json(mapCustomer(result.rows[0]));
+  } catch (err) {
+    console.error('Error updating customer:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM customers WHERE id = $1', [id]);
+    res.json({ success: true, deletedId: id });
+  } catch (err) {
+    console.error('Error deleting customer:', err);
     res.status(500).json({ error: err.message });
   }
 });
