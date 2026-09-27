@@ -737,51 +737,46 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
         {/* Step 3: Bangkok Address & Condo Info */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">3</span>
-            <h2 className="text-lg font-bold text-slate-900">Bangkok Location & Schedule</h2>
-          </div>
-          <p className="text-xs text-slate-500 mb-6">
-            Specify your Bangkok district and condo details for easy pickup.
-          </p>
-
-          <div className="space-y-4">
+          <div className="flex items-center gap-2.5 mb-2">
+            <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">3</span>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-bold text-slate-700">
-                  Bangkok District <span className="text-red-500">*</span>
-                </label>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  Auto-updated when selecting your condo below
-                </span>
-              </div>
-              <select
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm bg-white"
-              >
-                {BANGKOK_DISTRICTS.map((d, i) => (
-                  <option key={i} value={d}>{d}</option>
-                ))}
-              </select>
+              <h2 className="text-lg font-bold text-slate-900">Bangkok Location & Schedule</h2>
+              <p className="text-xs text-slate-500">
+                Specify your Bangkok residence details and preferred pickup schedule.
+              </p>
             </div>
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Condominium / Building / House Name <span className="text-red-500">*</span>
-                  </label>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
-                    <span className="text-blue-500 font-bold">G</span>
-                    <span className="text-red-500 font-bold">o</span>
-                    <span className="text-yellow-500 font-bold">o</span>
-                    <span className="text-blue-500 font-bold">g</span>
-                    <span className="text-green-500 font-bold">l</span>
-                    <span className="text-red-500 font-bold">e</span>
-                    <span className="text-slate-400 ml-0.5">Maps Powered</span>
+          <div className="mt-5 space-y-4">
+            {/* Section 1: Location & Residence Details Card */}
+            <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/80">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-xs font-bold">
+                    📍
+                  </span>
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    Pickup Location & Residence
                   </span>
                 </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 shadow-2xs">
+                  <span className="font-bold text-xs">
+                    <span className="text-blue-500">G</span>
+                    <span className="text-red-500">o</span>
+                    <span className="text-yellow-500">o</span>
+                    <span className="text-blue-500">g</span>
+                    <span className="text-green-500">l</span>
+                    <span className="text-red-500">e</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">Maps Powered</span>
+                </div>
+              </div>
+
+              {/* Primary Search: Condominium / Building / House */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Condominium / Building / House Name <span className="text-red-500">*</span>
+                </label>
                 <GoogleMapsCondoAutocomplete
                   value={condoName}
                   onChange={(val) => setCondoName(val)}
@@ -791,119 +786,183 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                     if (place.district) setDistrict(place.district);
                   }}
                   apiKey={laundryStore.settings?.googleMapsApiKey || ''}
-                  placeholder="Search Bangkok condo, e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn..."
+                  placeholder="Search condo name, e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn..."
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Tower / Floor / Room Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Tower B, Floor 14, Room 1402"
-                  value={roomNumber}
-                  onChange={(e) => setRoomNumber(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-                />
+              {/* 2-Column Responsive Grid: Bangkok District & Room/Tower */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Bangkok District <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
+                      Auto-synced
+                    </span>
+                  </div>
+                  <select
+                    value={district}
+                    onChange={(e) => setDistrict(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white font-medium text-slate-800 shadow-2xs"
+                  >
+                    {BANGKOK_DISTRICTS.map((d, i) => (
+                      <option key={i} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Tower / Floor / Unit Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Tower B, Floor 14, Room 1402"
+                    value={roomNumber}
+                    onChange={(e) => setRoomNumber(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white shadow-2xs"
+                  />
+                </div>
+              </div>
+
+              {/* Condo Juristic Dropoff Card */}
+              <div 
+                onClick={() => setLeaveWithJuristic(!leaveWithJuristic)}
+                className={`p-3.5 rounded-xl border transition cursor-pointer flex items-start gap-3 select-none ${
+                  leaveWithJuristic 
+                    ? 'bg-sky-50/80 border-sky-300 shadow-2xs' 
+                    : 'bg-white border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={leaveWithJuristic}
+                    onChange={(e) => setLeaveWithJuristic(e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer"
+                  />
+                </div>
+                <div className="flex-1 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-slate-900">
+                      Drop-off / Collect at Condo Juristic Office or Front Lobby
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-slate-600 mt-1 leading-relaxed text-[11px]">
+                    Driver collects & returns directly at your building's reception or juristic desk without disturbing you. Tag your laundry bag with your name.
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Condo Juristic Dropoff Checkbox */}
-            <div className="p-4 bg-sky-50/60 rounded-2xl border border-sky-200/80">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={leaveWithJuristic}
-                  onChange={(e) => setLeaveWithJuristic(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300"
-                />
-                <div className="text-xs">
-                  <span className="font-bold text-slate-900 block">
-                    Drop-off / Collect at Condo Juristic Office or Front Lobby
+            {/* Section 2: Pickup Schedule & Turnaround Card */}
+            <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/80">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                    🕒
                   </span>
-                  <span className="text-slate-600">
-                    Recommended: Driver collects directly from reception without disturbing you. Please tag your bag with your Name.
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    Pickup Schedule & Turnaround Speed
                   </span>
                 </div>
-              </label>
-            </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  activeSpeed === 'same_day' 
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                    : activeSpeed === 'next_day_24h'
+                    ? 'bg-sky-100 text-sky-900 border border-sky-300'
+                    : 'bg-slate-200 text-slate-800 border border-slate-300'
+                }`}>
+                  {activeSpeed === 'same_day' ? '🚀 Same-Day Express' : activeSpeed === 'next_day_24h' ? '⚡ Next-Day 24H' : 'Standard 48H'}
+                </span>
+              </div>
 
-            {/* 3-Tier Turnaround Schedule Banner */}
-            {activeSpeed === 'same_day' ? (
-              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-3">
-                <span className="text-xl">🚀</span>
-                <div className="text-xs text-amber-950">
-                  <span className="font-extrabold block text-sm">Same Day Express Delivery Active (Delivered Before 18:00 hrs)</span>
-                  <span className="mt-0.5 block leading-relaxed">
-                    Pickup is scheduled for your morning window. Your freshly washed and processed laundry will be returned to your condo front desk/Juristic <strong>anytime before 18:00 hrs today</strong>.
-                  </span>
+              {/* 3-Tier Turnaround Schedule Banner */}
+              {activeSpeed === 'same_day' ? (
+                <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-2.5">
+                  <span className="text-base">🚀</span>
+                  <div className="text-xs text-amber-950">
+                    <span className="font-bold block">Same Day Express: Return scheduled before 18:00 hrs today</span>
+                    <span className="text-[11px] text-amber-900/80 mt-0.5 block leading-relaxed">
+                      Pickup during your morning window. Your freshly washed and processed laundry will be returned to your condo <strong>before 18:00 hrs today</strong>.
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ) : activeSpeed === 'next_day_24h' ? (
-              <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl flex items-start gap-3">
-                <span className="text-xl">⚡</span>
-                <div className="text-xs text-sky-950">
-                  <span className="font-extrabold block text-sm">Next Day Delivery Active (~24 Hours)</span>
-                  <span className="mt-0.5 block leading-relaxed">
-                    Pickup on your scheduled date and delivery completed the next day fresh and sealed to your condo within ~24 hours.
-                  </span>
+              ) : activeSpeed === 'next_day_24h' ? (
+                <div className="p-3 bg-sky-50/90 border border-sky-200 rounded-xl flex items-start gap-2.5">
+                  <span className="text-base">⚡</span>
+                  <div className="text-xs text-sky-950">
+                    <span className="font-bold block">Next Day Return: Delivered in ~24 hours</span>
+                    <span className="text-[11px] text-sky-900/80 mt-0.5 block leading-relaxed">
+                      Pickup on your scheduled date and returned fresh, sealed, and packaged within 24 hours.
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="p-4 bg-slate-50 border border-slate-300 rounded-2xl flex items-start gap-3">
-                <span className="text-xl">🕒</span>
-                <div className="text-xs text-slate-800">
-                  <span className="font-extrabold block text-sm">Standard Service Turnaround (~48 Hours / 2 Days)</span>
-                  <span className="mt-0.5 block leading-relaxed">
-                    Pickup on your scheduled date and delivery returned fresh and sealed in 48 hours (~2 days) during afternoon or evening delivery.
-                  </span>
+              ) : (
+                <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-start gap-2.5">
+                  <span className="text-base">🕒</span>
+                  <div className="text-xs text-slate-800">
+                    <span className="font-bold block">Standard Turnaround: Return in ~48 hours (2 Days)</span>
+                    <span className="text-[11px] text-slate-500 mt-0.5 block leading-relaxed">
+                      Pickup on your scheduled date and delivery returned fresh and sealed in 48 hours (~2 days).
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              {/* Date & Time Picker (2-Columns) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Pickup Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={pickupDate}
+                    onChange={(e) => setPickupDate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white font-medium shadow-2xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Preferred Pickup Window <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white font-medium text-slate-800 shadow-2xs"
+                  >
+                    {TIME_SLOTS.map((slot, i) => (
+                      <option key={i} value={slot}>{slot}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Special Notes */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Pickup Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Special Care or Delivery Notes (Optional)
+                  </label>
+                  <span className="text-[10px] text-slate-400">Juristic staff name, fabric care</span>
+                </div>
+                <textarea
+                  rows="2"
+                  placeholder="e.g. Leave with K. Somchai at front desk. Please avoid high-heat tumble dry for gym shirts."
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white placeholder:text-slate-400 shadow-2xs"
                 />
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Preferred Pickup Window <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={pickupTime}
-                  onChange={(e) => setPickupTime(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm bg-white"
-                >
-                  {TIME_SLOTS.map((slot, i) => (
-                    <option key={i} value={slot}>{slot}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Special Care or Delivery Notes (Optional)
-              </label>
-              <textarea
-                rows="2"
-                placeholder="e.g. Leave with K. Somchai at front desk. Please avoid high-heat tumble dry for gym shirts."
-                value={specialInstructions}
-                onChange={(e) => setSpecialInstructions(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-              />
             </div>
           </div>
         </div>

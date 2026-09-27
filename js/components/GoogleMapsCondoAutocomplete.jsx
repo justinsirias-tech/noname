@@ -280,7 +280,7 @@ export default function GoogleMapsCondoAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoComplete="off"
-          className={`w-full pl-11 pr-24 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm shadow-sm transition ${className}`}
+          className={`w-full pl-10 pr-24 py-2.5 sm:py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm shadow-xs transition bg-white placeholder:text-slate-400 ${className}`}
         />
 
         {/* Action Buttons inside Input */}
@@ -413,36 +413,40 @@ export default function GoogleMapsCondoAutocomplete({
       )}
 
       {/* Google Maps Confirmation & Interactive Map Preview Toggle */}
-      {(selectedPlace || query.trim().length > 3) && (
-        <div className="mt-2.5 p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 text-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-slate-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span className="font-medium truncate max-w-[200px] sm:max-w-xs">
-                {selectedPlace?.name || query}
+      {selectedPlace && (
+        <div className="mt-2.5 p-2.5 sm:p-3 bg-white rounded-xl border border-slate-200/90 shadow-xs text-xs animate-fadeIn">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-slate-700 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
+              <span className="font-semibold text-slate-800 truncate text-[11px] sm:text-xs">
+                {selectedPlace.name}
+              </span>
+              <span className="hidden sm:inline-block text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex-shrink-0">
+                Google Verified
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setShowMapPreview(!showMapPreview)}
-                className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1"
+                className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                {showMapPreview ? 'Hide Map' : 'Preview on Map'}
+                {showMapPreview ? 'Hide Map' : 'Preview Map'}
               </button>
               <a
-                href={selectedPlace?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((query || 'Bangkok') + ' Bangkok')}`}
+                href={selectedPlace.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((selectedPlace.name || 'Bangkok') + ' Bangkok')}`}
                 target="_blank"
                 rel="noreferrer"
                 title="Open in Google Maps"
-                className="text-slate-400 hover:text-red-600 transition"
+                className="text-slate-400 hover:text-red-600 transition flex items-center gap-1 text-[11px] font-medium"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
+                <span className="hidden sm:inline">Google Maps</span>
               </a>
             </div>
           </div>
