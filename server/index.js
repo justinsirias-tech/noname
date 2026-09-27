@@ -220,10 +220,12 @@ async function ensureDatabaseSchema() {
       }
     }
 
-    // Seed default categories into settings if not present
+    // Seed default categories, postal codes and delivery config into settings if not present
     const settingsRes = await query("SELECT value FROM settings WHERE key = 'app_config'");
     if (settingsRes.rows.length > 0) {
-      const currentSettings = settingsRes.rows[0].value;
+      const currentSettings = settingsRes.rows[0].value || {};
+      let needsSettingsUpdate = false;
+
       if (!currentSettings.categories || currentSettings.categories.length === 0) {
         currentSettings.categories = [
           {
@@ -267,8 +269,54 @@ async function ensureDatabaseSchema() {
             displayOrder: 4
           }
         ];
+        needsSettingsUpdate = true;
+      }
+
+      if (!currentSettings.postalCodeRates || currentSettings.postalCodeRates.length === 0) {
+        currentSettings.postalCodeRates = [
+          { code: '10100', district: 'Pom Prap Sattru Phai / Samphanthawong', districtTh: 'ป้อมปราบศัตรูพ่าย / สัมพันธวงศ์', areas: 'Chinatown, Yaowarat, Khlong Thom, Sampheng, Wat Mangkon, Pom Prap', fee: 50, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10110', district: 'Watthana / Khlong Toei', districtTh: 'วัฒนา / คลองเตย', areas: 'Sukhumvit (Soi 1–71), Thonglor, Ekkamai, Phrom Phong, Asoke, Nana, Phra Khanong', fee: 50, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10120', district: 'Bang Kho Laem / Yannawa / Sathon', districtTh: 'บางคอแหลม / ยานนาวา / สาทร', areas: 'Sathorn, Chong Nonsi, Rama 3, Chan Road, Suan Phlu, Charoen Krung (South), Asiatique', fee: 50, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10140', district: 'Rat Burana / Thung Khru', districtTh: 'ราษฎร์บูรณะ / ทุ่งครุ', areas: 'Pracha Uthit, Rat Burana, Bang Mod, KMUTT, Suksawat Road', fee: 70, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10150', district: 'Bang Bon / Bang Khun Thian / Chom Thong', districtTh: 'บางบอน / บางขุนเทียน / จอมทอง', areas: 'Rama 2, Dao Khanong, Chom Thong, Bang Khun Thian, Central Rama 2, Bang Bon', fee: 80, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10160', district: 'Bang Khae / Nong Khaem / Phasi Charoen', districtTh: 'บางแค / หนองแขม / ภาษีเจริญ', areas: 'Phetkasem, Bang Wa Interchange, The Mall Bang Khae, Nong Khaem, Phutthamonthon Sai 1', fee: 80, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10170', district: 'Taling Chan / Thawi Watthana', districtTh: 'ตลิ่งชัน / ทวีวัฒนา', areas: 'Borommaratchachonnani, Phutthamonthon Sai 2–3, Taling Chan Floating Market, Ratchaphruek (West)', fee: 80, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10200', district: 'Phra Nakhon', districtTh: 'พระนคร', areas: 'Rattanakosin Island, Banglamphu, Sanam Luang, Khao San Road, Giant Swing, Grand Palace', fee: 60, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10210', district: 'Don Mueang / Lak Si', districtTh: 'ดอนเมือง / หลักสี่', areas: 'Don Mueang Airport, Chaeng Watthana, Lak Si, Song Prapha, Government Complex', fee: 80, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10220', district: 'Bang Khen / Sai Mai', districtTh: 'บางเขน / สายไหม', areas: 'Anusawari, Ram Inthra, Sai Mai, Sukhaphiban 5, Watcharaphon, Phahonyothin (Km 21+)', fee: 80, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10230', district: 'Khan Na Yao / Lat Phrao', districtTh: 'คันนายาว / ลาดพร้าว', areas: 'Lat Phrao, Chok Chai 4, Sena Nikhom, Khan Na Yao, Ram Inthra (Lower), Fashion Island', fee: 70, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10240', district: 'Bang Kapi / Bueng Kum / Saphan Sung', districtTh: 'บางกะปิ / บึงกุ่ม / สะพานสูง', areas: 'Ramkhamhaeng, Hua Mak, Nawamin, Seri Thai, Saphan Sung, The Mall Bangkapi', fee: 70, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10250', district: 'Prawet / Suan Luang', districtTh: 'ประเวศ / สวนหลวง', areas: 'Phatthanakan, On Nut (Outer), Srinakarin, Suan Luang Rama IX, Seacon Square', fee: 70, isActive: true, freeDeliveryAbove: 700 },
+          { code: '10260', district: 'Bang Na / Phra Khanong', districtTh: 'บางนา / พระโขนง', areas: 'Udom Suk, Bang Na-Trat, Bearing, BITEC, Central Bangna, Bang Chak, Sukhumvit 101–107', fee: 60, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10300', district: 'Dusit', districtTh: 'ดุสิต', areas: 'Dusit Palace, Chitralada, Ratchawat, Sri Yan, Government House, Samsen', fee: 60, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10310', district: 'Wang Thonglang / Huai Khwang', districtTh: 'วังทองหลาง / ห้วยขวาง', areas: 'Rama 9, Ratchadaphisek, Meng Jai, Town in Town, Pracha Uthit, Thailand Cultural Centre', fee: 60, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10330', district: 'Pathum Wan', districtTh: 'ปทุมวัน', areas: 'Siam, Chidlom, Ploenchit, Wireless Road (Witthayu), Langsuan, Ratchadamri, MBK, CentralWorld', fee: 50, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10400', district: 'Din Daeng / Phaya Thai / Ratchathewi', districtTh: 'ดินแดง / พญาไท / ราชเทวี', areas: 'Ari, Sanam Pao, Victory Monument, Pratunam, Rangnam, Phayathai BTS, Din Daeng Flat', fee: 50, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10500', district: 'Bang Rak', districtTh: 'บางรัก', areas: 'Silom, Surawong, Si Phraya, Charoen Krung (North), Samyan, Mahanakhon', fee: 50, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10510', district: 'Khlong Sam Wa / Min Buri', districtTh: 'คลองสามวา / มีนบุรี', areas: 'Min Buri, Sam Wa East/West, Suwinthawong, Nimit Mai, Hatairath, Safari World', fee: 90, isActive: true, freeDeliveryAbove: 800 },
+          { code: '10520', district: 'Lat Krabang', districtTh: 'ลาดกระบัง', areas: 'Suvarnabhumi Airport Area, KMITL, Chalong Krung, Rom Klao, King Kaew Junction', fee: 90, isActive: true, freeDeliveryAbove: 800 },
+          { code: '10530', district: 'Nong Chok', districtTh: 'หนองจอก', areas: 'Nong Chok, Lam Phak Chi, Khu Khwang, Eastern Bangkok Green Zone', fee: 90, isActive: true, freeDeliveryAbove: 800 },
+          { code: '10600', district: 'Bang Phlat / Bangkok Noi / Bangkok Yai / Khlong San / Thon Buri', districtTh: 'บางพลัด / บางกอกน้อย / บางกอกใหญ่ / คลองสาน / ธนบุรี', areas: 'Wongwian Yai, Khlong San, Charan Sanitwong, Siriraj Hospital, Pin Klao, Itsaraphap', fee: 60, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10700', district: 'Bangkok Noi / Bang Phlat', districtTh: 'บางกอกน้อย / บางพลัด', areas: 'Arun Amarin, Bang Khun Non, Phran Nok, Rama 8 Bridge, Bang Bamru', fee: 60, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10800', district: 'Bang Sue', districtTh: 'บางซื่อ', areas: 'Bang Sue Grand Station, Tao Poon, Pracha Chuen, Wongsawang, Rama 7 Bridge', fee: 60, isActive: true, freeDeliveryAbove: 600 },
+          { code: '10900', district: 'Chatuchak', districtTh: 'จตุจักร', areas: 'Mo Chit, Chatuchak Weekend Market, Lat Phrao Intersection, Kasetsart University, Ratchayothin, Sena', fee: 60, isActive: true, freeDeliveryAbove: 600 }
+        ];
+        needsSettingsUpdate = true;
+      }
+
+      if (!currentSettings.deliveryConfig) {
+        currentSettings.deliveryConfig = {
+          freeThreshold: 600,
+          defaultRate: 80,
+          promoEnabled: true,
+          note: 'Free pickup and delivery for orders over ฿600 across Bangkok'
+        };
+        needsSettingsUpdate = true;
+      }
+
+      if (needsSettingsUpdate) {
         await query("UPDATE settings SET value = $1, updated_at = NOW() WHERE key = 'app_config'", [JSON.stringify(currentSettings)]);
-        console.log('[POSTGRES] Initial categories added to app_config settings.');
+        console.log('[POSTGRES] Default categories, 26 postal code rates, and deliveryConfig synced to app_config.');
       }
     }
   } catch (err) {
@@ -700,6 +748,18 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
+app.get('/api/orders/:id', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM orders WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    res.json(mapOrder(result.rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/orders', async (req, res) => {
   try {
     const o = req.body;
@@ -780,11 +840,12 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-app.patch('/api/orders/:id/status', async (req, res) => {
+const handleOrderStatusUpdate = async (req, res) => {
   try {
     const { id } = req.params;
     const {
       newStatus,
+      status,
       note,
       actualWeightKg,
       tagNumber,
@@ -795,7 +856,8 @@ app.patch('/api/orders/:id/status', async (req, res) => {
       minWeightAppliedKg,
       totalPrice,
       deliveryDate,
-      deliveryTime
+      deliveryTime,
+      serviceUpdates
     } = req.body;
 
     const existingRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
@@ -807,19 +869,22 @@ app.patch('/api/orders/:id/status', async (req, res) => {
     const now = new Date();
     const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
 
-    const targetStatus = newStatus || currentOrder.status;
-    const targetServiceId = serviceId || currentOrder.service_id;
-    const targetServiceName = serviceName || currentOrder.service_name;
-    const targetTurnaround = turnaroundSpeed || currentOrder.turnaround_speed;
-    const targetPricePerKg = (pricePerKg !== undefined && pricePerKg !== null) ? Number(pricePerKg) : Number(currentOrder.price_per_kg);
-    const targetMinWeight = (minWeightAppliedKg !== undefined && minWeightAppliedKg !== null) ? Number(minWeightAppliedKg) : Number(currentOrder.min_weight_applied_kg || 4.0);
+    const sUpdates = serviceUpdates || {};
+    const targetStatus = newStatus || status || currentOrder.status;
+    const targetServiceId = serviceId || sUpdates.serviceId || currentOrder.service_id;
+    const targetServiceName = serviceName || sUpdates.serviceName || currentOrder.service_name;
+    const targetTurnaround = turnaroundSpeed || sUpdates.turnaroundSpeed || currentOrder.turnaround_speed;
+    const targetPricePerKg = (pricePerKg !== undefined && pricePerKg !== null) ? Number(pricePerKg) : (sUpdates.pricePerKg !== undefined ? Number(sUpdates.pricePerKg) : Number(currentOrder.price_per_kg));
+    const targetMinWeight = (minWeightAppliedKg !== undefined && minWeightAppliedKg !== null) ? Number(minWeightAppliedKg) : (sUpdates.minWeightAppliedKg !== undefined ? Number(sUpdates.minWeightAppliedKg) : Number(currentOrder.min_weight_applied_kg || 4.0));
     const targetQuantity = (req.body.quantity !== undefined && req.body.quantity !== null) ? Number(req.body.quantity) : currentOrder.quantity;
-    const targetUnit = req.body.unit || currentOrder.unit || 'KG';
-    const targetCategoryId = req.body.categoryId || currentOrder.category_id || 'laundry_by_weight';
+    const targetUnit = req.body.unit || sUpdates.unit || currentOrder.unit || 'KG';
+    const targetCategoryId = req.body.categoryId || sUpdates.categoryId || currentOrder.category_id || 'laundry_by_weight';
 
     let updatedActualKg = currentOrder.actual_weight_kg;
     if (actualWeightKg !== undefined && actualWeightKg !== null && actualWeightKg !== '') {
       updatedActualKg = Number(actualWeightKg);
+    } else if (sUpdates.actualWeightKg !== undefined && sUpdates.actualWeightKg !== null && sUpdates.actualWeightKg !== '') {
+      updatedActualKg = Number(sUpdates.actualWeightKg);
     }
 
     const effectiveKg = updatedActualKg !== null ? updatedActualKg : Number(currentOrder.estimated_weight_kg || 4.0);
@@ -827,11 +892,11 @@ app.patch('/api/orders/:id/status', async (req, res) => {
     const calculatedTotal = targetUnit === 'piece' 
       ? Math.round((Number(targetQuantity) || 1) * targetPricePerKg)
       : Math.round(billableKg * targetPricePerKg);
-    const finalTotalPrice = (totalPrice !== undefined && totalPrice !== null) ? Number(totalPrice) : calculatedTotal;
+    const finalTotalPrice = (totalPrice !== undefined && totalPrice !== null) ? Number(totalPrice) : (sUpdates.totalPrice !== undefined ? Number(sUpdates.totalPrice) : calculatedTotal);
 
-    const updatedTagNumber = (tagNumber && tagNumber.trim()) ? tagNumber.trim() : currentOrder.tag_number;
-    const targetDeliveryDate = deliveryDate || currentOrder.delivery_date;
-    const targetDeliveryTime = deliveryTime || currentOrder.delivery_time;
+    const updatedTagNumber = (tagNumber && tagNumber.trim()) ? tagNumber.trim() : ((sUpdates.tagNumber && sUpdates.tagNumber.trim()) ? sUpdates.tagNumber.trim() : currentOrder.tag_number);
+    const targetDeliveryDate = deliveryDate || sUpdates.deliveryDate || currentOrder.delivery_date;
+    const targetDeliveryTime = deliveryTime || sUpdates.deliveryTime || currentOrder.delivery_time;
 
     const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
     const newTimelineEvent = {
@@ -885,12 +950,15 @@ app.patch('/api/orders/:id/status', async (req, res) => {
     console.error('Error updating order status:', err);
     res.status(500).json({ error: err.message });
   }
-});
+};
 
-app.patch('/api/orders/:id/pay', async (req, res) => {
+app.patch('/api/orders/:id/status', handleOrderStatusUpdate);
+app.put('/api/orders/:id/status', handleOrderStatusUpdate);
+
+const handleOrderPayment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { paymentMethod = 'PromptPay QR', transactionRef = '' } = req.body;
+    const { paymentMethod = 'PromptPay QR', transactionRef = '', paymentRef = '' } = req.body;
 
     const existingRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
     if (existingRes.rows.length === 0) {
@@ -900,7 +968,7 @@ app.patch('/api/orders/:id/pay', async (req, res) => {
     const currentOrder = existingRes.rows[0];
     const now = new Date();
     const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
-    const ref = transactionRef || ('TXN-' + Math.floor(100000 + Math.random() * 900000));
+    const ref = paymentRef || transactionRef || ('TXN-' + Math.floor(100000 + Math.random() * 900000));
 
     const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
     const newTimelineEvent = {
@@ -929,7 +997,11 @@ app.patch('/api/orders/:id/pay', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+app.patch('/api/orders/:id/pay', handleOrderPayment);
+app.put('/api/orders/:id/pay', handleOrderPayment);
+app.put('/api/orders/:id/paid', handleOrderPayment);
 
 // Single Order Reconciliation
 app.patch('/api/orders/:id/reconcile', async (req, res) => {
