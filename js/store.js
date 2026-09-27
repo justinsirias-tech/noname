@@ -233,7 +233,17 @@ export class LaundryStore {
       this.faqs = savedFaqs ? JSON.parse(savedFaqs) : INITIAL_FAQS;
 
       const savedPostalCodes = localStorage.getItem(STORAGE_KEYS.POSTAL_CODES);
-      this.postalCodeRates = savedPostalCodes ? JSON.parse(savedPostalCodes) : DEFAULT_BANGKOK_POSTAL_CODES;
+      let parsedRates = savedPostalCodes ? JSON.parse(savedPostalCodes) : DEFAULT_BANGKOK_POSTAL_CODES;
+      if (Array.isArray(parsedRates)) {
+        const existingCodes = new Set(parsedRates.map(r => r.code));
+        const missingDefaults = DEFAULT_BANGKOK_POSTAL_CODES.filter(d => !existingCodes.has(d.code));
+        if (missingDefaults.length > 0) {
+          parsedRates = [...parsedRates, ...missingDefaults].sort((a, b) => a.code.localeCompare(b.code));
+        }
+      } else {
+        parsedRates = DEFAULT_BANGKOK_POSTAL_CODES;
+      }
+      this.postalCodeRates = parsedRates;
 
       const savedDeliveryConfig = localStorage.getItem(STORAGE_KEYS.DELIVERY_CONFIG);
       this.deliveryConfig = savedDeliveryConfig ? JSON.parse(savedDeliveryConfig) : DEFAULT_DELIVERY_CONFIG;
@@ -274,7 +284,12 @@ export class LaundryStore {
       if (data.settings && Object.keys(data.settings).length > 0) {
         this.settings = { ...this.settings, ...data.settings };
         if (data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {
-          this.postalCodeRates = data.settings.postalCodeRates;
+          const remoteCodes = data.settings.postalCodeRates;
+          const existingCodes = new Set(remoteCodes.map(r => r.code));
+          const missingDefaults = DEFAULT_BANGKOK_POSTAL_CODES.filter(d => !existingCodes.has(d.code));
+          this.postalCodeRates = missingDefaults.length > 0
+            ? [...remoteCodes, ...missingDefaults].sort((a, b) => a.code.localeCompare(b.code))
+            : remoteCodes;
           this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
         }
         if (data.settings.deliveryConfig) {
