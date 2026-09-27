@@ -164,26 +164,32 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
     const srv = allServices.find(s => s.id === trackerServiceId) || allServices[0];
     const newSpeed = trackerTurnaroundSpeed || activeOrder.turnaroundSpeed || 'standard_48h';
     const rate = getRateForSpeed(srv, newSpeed);
+    const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+    const minWeight = srv.minWeightKg || (isPiece ? 1.0 : 4.0);
     const weight = activeOrder.actualWeightKg !== null && activeOrder.actualWeightKg !== undefined
       ? activeOrder.actualWeightKg
-      : (activeOrder.estimatedWeightKg || 4.0);
-    const minWeight = srv.minWeightKg || 4.0;
-    const billableKg = Math.max(weight, minWeight);
-    const newTotal = Math.round(billableKg * rate);
+      : (activeOrder.quantity || activeOrder.estimatedWeightKg || (isPiece ? 1 : 4.0));
+    const billableAmount = isPiece ? (activeOrder.quantity || 1) : Math.max(weight, minWeight);
+    const newServiceSubtotal = Math.round(billableAmount * rate);
+    const deliveryFee = Number(activeOrder.deliveryFee || 0);
+    const newTotal = newServiceSubtotal + deliveryFee;
     const delivery = calculateSuggestedDelivery(activeOrder, newSpeed);
 
     setTrackerUpdating(true);
     const speedLabel = newSpeed === 'same_day' ? 'Same Day Express (<18:00)' : (newSpeed === 'next_day_24h' || newSpeed === 'next_day') ? 'Next Day (24h)' : 'Standard (48h)';
-    const note = `Customer modified service to "${srv.name}" (${speedLabel}) online before payment. Rate: ฿${rate}/kg, Total: ฿${newTotal} THB.`;
+    const note = `Customer modified service to "${srv.name}" (${speedLabel}) online before payment. Rate: ฿${rate}/${isPiece ? (srv.unit || 'piece') : 'kg'}, Total: ฿${newTotal} THB.`;
     
     const serviceUpdates = {
       serviceId: srv.id,
       serviceName: srv.name,
+      pricingType: srv.pricingType || (isPiece ? 'piece' : 'weight'),
+      unit: srv.unit || (isPiece ? 'piece' : 'KG'),
       turnaroundSpeed: newSpeed,
       pricePerKg: rate,
       minWeightAppliedKg: minWeight,
       deliveryDate: delivery.date,
       deliveryTime: delivery.time,
+      serviceSubtotal: newServiceSubtotal,
       totalPrice: newTotal
     };
 
@@ -239,12 +245,14 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
         const selectedSrv = allServices.find(s => s.id === trackerServiceId) || allServices[0];
         const selectedSpeed = trackerTurnaroundSpeed || activeOrder.turnaroundSpeed || 'standard_48h';
         const effectiveRate = getRateForSpeed(selectedSrv, selectedSpeed);
+        const isPiece = selectedSrv?.pricingType === 'piece' || selectedSrv?.unit === 'piece';
         const weight = activeOrder.actualWeightKg !== null && activeOrder.actualWeightKg !== undefined
           ? activeOrder.actualWeightKg
-          : (activeOrder.estimatedWeightKg || 4.0);
-        const minWeight = selectedSrv?.minWeightKg || 4.0;
-        const billableKg = Math.max(weight, minWeight);
-        const newTotal = Math.round(billableKg * effectiveRate);
+          : (activeOrder.quantity || activeOrder.estimatedWeightKg || (isPiece ? 1 : 4.0));
+        const minWeight = selectedSrv?.minWeightKg || (isPiece ? 1.0 : 4.0);
+        const billableAmount = isPiece ? (activeOrder.quantity || 1) : Math.max(weight, minWeight);
+        const newServiceSubtotal = Math.round(billableAmount * effectiveRate);
+        const newTotal = newServiceSubtotal + Number(activeOrder.deliveryFee || 0);
         const priceDiff = newTotal - (activeOrder.totalPrice || 0);
         const estDelivery = calculateSuggestedDelivery(activeOrder, selectedSpeed);
         const isSameDaySupported = selectedSrv.sameDayAvailable !== false && selectedSrv.turnaroundRates?.same_day?.available !== false;
@@ -869,54 +877,63 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
               </div>
             </div>
 
-            {/* Weight Audit Box */}
-            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Icon name="scale" className="w-4 h-4 text-sky-600" />
-                <h4 className="text-xs font-extrabold uppercase tracking-wide text-slate-700">
-                  Digital Scale Weight Audit (Min 4.0 KG)
-                </h4>
-              </div>
+            {/* Weight / Quantity Audit Box */}
+            {(() => {
+              const isPiece = activeOrder.unit === 'piece' || activeOrder.pricingType === 'piece' || (activeOrder.quantity !== null && activeOrder.quantity !== undefined && activeOrder.quantity > 0);
+              const unitLbl = isPiece ? (activeOrder.unit || 'Piece') : 'KG';
+              const intakeQty = isPiece ? (activeOrder.quantity || activeOrder.estimatedWeightKg || 1) : activeOrder.estimatedWeightKg;
+              const actualQty = isPiece ? (activeOrder.quantity || activeOrder.actualWeightKg || activeOrder.estimatedWeightKg || 1) : activeOrder.actualWeightKg;
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
-                  <div className="text-[11px] text-slate-500 font-medium">Customer Estimated</div>
-                  <div className="text-lg font-black text-slate-800 mt-0.5">
-                    {activeOrder.estimatedWeightKg} KG
+              return (
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon name={isPiece ? 'layers' : 'scale'} className="w-4 h-4 text-sky-600" />
+                    <h4 className="text-xs font-extrabold uppercase tracking-wide text-slate-700">
+                      {isPiece ? 'Item Quantity & Facility Intake Audit' : `Digital Scale Weight Audit (Min ${activeOrder.minWeightAppliedKg || 4.0} KG)`}
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <div className="text-[11px] text-slate-500 font-medium">{isPiece ? 'Customer Order Count' : 'Customer Estimated'}</div>
+                      <div className="text-lg font-black text-slate-800 mt-0.5">
+                        {intakeQty} {unitLbl}{isPiece && intakeQty > 1 ? 's' : ''}
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <div className="text-[11px] text-slate-500 font-medium">{isPiece ? 'Facility Intake Count' : 'Facility Scale Weighed'}</div>
+                      <div className="text-lg font-black text-sky-600 mt-0.5">
+                        {isPiece ? `${actualQty} ${unitLbl}${actualQty > 1 ? 's' : ''} Verified` : (activeOrder.actualWeightKg ? `${activeOrder.actualWeightKg} KG` : 'Pending Scale Intake')}
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <div className="text-[11px] text-slate-500 font-medium">Final Invoice Total</div>
+                      <div className="text-lg font-black text-emerald-600 mt-0.5">
+                        ฿{activeOrder.totalPrice} THB
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>Rate: ฿{activeOrder.pricePerKg} / {unitLbl} {!isPiece && `(Min ${activeOrder.minWeightAppliedKg || 4.0} KG applied)`}</span>
+                      {Number(activeOrder.deliveryFee) > 0 ? (
+                        <span className="font-semibold text-slate-700">• Fixed Delivery: ฿{activeOrder.deliveryFee} THB ({activeOrder.postalCode || 'Bangkok'})</span>
+                      ) : (
+                        <span className="font-semibold text-emerald-600">• FREE Bangkok Delivery</span>
+                      )}
+                    </div>
+                    {(activeOrder.actualWeightKg || isPiece) && (
+                      <span className="text-emerald-700 font-semibold">
+                        {isPiece ? '✓ Verified by Bangkok Care Team' : '✓ Verified on Certified Digital Scales'}
+                      </span>
+                    )}
                   </div>
                 </div>
-
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
-                  <div className="text-[11px] text-slate-500 font-medium">Facility Scale Weighed</div>
-                  <div className="text-lg font-black text-sky-600 mt-0.5">
-                    {activeOrder.actualWeightKg ? `${activeOrder.actualWeightKg} KG` : 'Pending Scale Intake'}
-                  </div>
-                </div>
-
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
-                  <div className="text-[11px] text-slate-500 font-medium">Final Invoice Total</div>
-                  <div className="text-lg font-black text-emerald-600 mt-0.5">
-                    ฿{activeOrder.totalPrice} THB
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3 text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span>Rate: ฿{activeOrder.pricePerKg}/KG (Min {activeOrder.minWeightAppliedKg || 4.0} KG applied)</span>
-                  {Number(activeOrder.deliveryFee) > 0 ? (
-                    <span className="font-semibold text-slate-700">• Fixed Delivery: ฿{activeOrder.deliveryFee} THB ({activeOrder.postalCode || 'Bangkok'})</span>
-                  ) : (
-                    <span className="font-semibold text-emerald-600">• FREE Bangkok Delivery</span>
-                  )}
-                </div>
-                {activeOrder.actualWeightKg && (
-                  <span className="text-emerald-700 font-semibold">
-                    ✓ Verified on Certified Digital Scales
-                  </span>
-                )}
-              </div>
-            </div>
+              );
+            })()}
 
             {/* 100% Cashless Payment Gateway Card */}
             <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-sky-950 text-white mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">

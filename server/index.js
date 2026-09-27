@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Ensure PostgreSQL schema has reconciliation columns
+// Ensure PostgreSQL schema has reconciliation columns, categories and linens
 async function ensureDatabaseSchema() {
   try {
     await query(`
@@ -23,10 +23,255 @@ async function ensureDatabaseSchema() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS bank_account_ref VARCHAR(128);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS postal_code VARCHAR(16) DEFAULT '10110';
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC DEFAULT 0;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS quantity NUMERIC DEFAULT 1;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS unit VARCHAR(32) DEFAULT 'KG';
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS category_id VARCHAR(64) DEFAULT 'laundry_by_weight';
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS category_id VARCHAR(64) DEFAULT 'laundry_by_weight';
+      ALTER TABLE services ADD COLUMN IF NOT EXISTS pricing_type VARCHAR(32) DEFAULT 'weight';
     `);
-    console.log('[POSTGRES] Orders reconciliation and delivery fee schema verified.');
+    console.log('[POSTGRES] Orders reconciliation, delivery fee, categories and linens schema verified.');
+
+    // Seed missing default services
+    const existingServices = await query('SELECT id FROM services');
+    const existingIds = new Set(existingServices.rows.map(r => r.id));
+    const initialServices = [
+      {
+        id: 'wash_fold',
+        categoryId: 'laundry_by_weight',
+        name: 'Wash / Fold',
+        nameTh: 'ซัก อบ พับ',
+        description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
+        unit: 'KG',
+        pricingType: 'weight',
+        stdPrice: 65,
+        nextPrice: 85,
+        samePrice: 115,
+        sameAvail: true,
+        minWeight: 4.0,
+        turnaround: 48,
+        popular: true,
+        features: ['Eco-friendly detergent & fabric softener', 'Gentle tumble drying', 'Neat, compact folding by apparel type', 'Sealed in moisture-proof dust bags', 'Pickup & delivery across Bangkok']
+      },
+      {
+        id: 'wash_iron_fold',
+        categoryId: 'laundry_by_weight',
+        name: 'Wash / Iron / Fold',
+        nameTh: 'ซัก อบ รีด พับ',
+        description: 'Ideal for workwear, cotton shirts, chinos, and dresses that require crisp steam ironing and tidy folded packaging.',
+        unit: 'KG',
+        pricingType: 'weight',
+        stdPrice: 95,
+        nextPrice: 130,
+        samePrice: 175,
+        sameAvail: true,
+        minWeight: 4.0,
+        turnaround: 48,
+        popular: false,
+        features: ['Stain inspection pre-treatment', 'Premium fabric wash & conditioning', 'Hand steam ironing for crisp look', 'Expert folding with tissue inserts if needed', 'Clear protective garment packaging']
+      },
+      {
+        id: 'wash_iron_hang',
+        categoryId: 'laundry_by_weight',
+        name: 'Wash / Iron / Hang',
+        nameTh: 'ซัก อบ รีด แขวน',
+        description: 'Perfect for business suits, formal button-downs, evening dresses, and delicate linen blouses returned wrinkle-free on high-grade hangers.',
+        unit: 'KG',
+        pricingType: 'weight',
+        stdPrice: 120,
+        nextPrice: 160,
+        samePrice: 210,
+        sameAvail: true,
+        minWeight: 4.0,
+        turnaround: 48,
+        popular: false,
+        features: ['Delicate temperature-controlled wash', 'Detailed wrinkle-free steam pressing', 'Heavy-duty hangers included at no extra cost', 'Full-length breathable garment cover', 'Direct-to-wardrobe ready on delivery']
+      },
+      {
+        id: 'comforter_duvet',
+        categoryId: 'bedding_linens',
+        name: 'Duvet / Comforter / Blanket',
+        nameTh: 'ผ้านวม / ไส้ผ้านวม / ผ้าห่มหนา',
+        description: 'Bulky King/Queen comforters and thick winter blankets washed in high-capacity drums with anti-dust mite heat sanitization and fluffy loft restoration.',
+        unit: 'piece',
+        pricingType: 'piece',
+        stdPrice: 220,
+        nextPrice: 280,
+        samePrice: 350,
+        sameAvail: true,
+        minWeight: 1.0,
+        turnaround: 48,
+        popular: true,
+        features: ['High-capacity commercial drum washer', 'Anti-dust mite thermal sanitization', 'Gentle tumble dry for loft restoration', 'Breathable zipper storage bag included']
+      },
+      {
+        id: 'bedsheet_set',
+        categoryId: 'bedding_linens',
+        name: 'Bed Sheet / Fitted Sheet',
+        nameTh: 'ผ้าปูที่นอน (King / Queen / Single)',
+        description: 'Deep-cleaned bed sheets with fabric softening conditioner and hotel-grade flatwork steam ironing for an ultra-smooth bedtime feel.',
+        unit: 'piece',
+        pricingType: 'piece',
+        stdPrice: 80,
+        nextPrice: 110,
+        samePrice: 150,
+        sameAvail: true,
+        minWeight: 1.0,
+        turnaround: 48,
+        popular: true,
+        features: ['Deep dirt and sweat extraction', 'Gentle fabric conditioning for silky touch', 'Steam ironed for smooth hotel-finish crispness', 'Individual moisture-proof protective packaging']
+      },
+      {
+        id: 'duvet_cover',
+        categoryId: 'bedding_linens',
+        name: 'Duvet Cover',
+        nameTh: 'ปลอกผ้านวม',
+        description: 'Premium washing and professional steam ironing for duvet covers of all fabric blends and thread counts.',
+        unit: 'piece',
+        pricingType: 'piece',
+        stdPrice: 90,
+        nextPrice: 120,
+        samePrice: 160,
+        sameAvail: true,
+        minWeight: 1.0,
+        turnaround: 48,
+        popular: false,
+        features: ['Color-safe detergent formula', 'Steam press finish for smooth texture', 'Wrinkle-resistant folding']
+      },
+      {
+        id: 'pillowcase',
+        categoryId: 'bedding_linens',
+        name: 'Pillowcase / Bolster Case',
+        nameTh: 'ปลอกหมอนหนุน / หมอนข้าง',
+        description: 'High-temperature hygienic wash and flatwork pressing for pillowcases and bolster cases.',
+        unit: 'piece',
+        pricingType: 'piece',
+        stdPrice: 30,
+        nextPrice: 45,
+        samePrice: 60,
+        sameAvail: true,
+        minWeight: 1.0,
+        turnaround: 48,
+        popular: false,
+        features: ['Antibacterial hot wash', 'Crisp ironed & sanitized', 'Hypoallergenic fabric conditioner']
+      },
+      {
+        id: 'mattress_topper',
+        categoryId: 'bedding_linens',
+        name: 'Mattress Protector / Topper',
+        nameTh: 'ผ้ารองกันเปื้อน / ท็อปเปอร์',
+        description: 'Deep-cycle washing for fitted mattress protectors, quilted pads, and thin toppers.',
+        unit: 'piece',
+        pricingType: 'piece',
+        stdPrice: 180,
+        nextPrice: 240,
+        samePrice: 300,
+        sameAvail: true,
+        minWeight: 1.0,
+        turnaround: 48,
+        popular: false,
+        features: ['Deep extraction cleaning', 'Low-temp tumble drying to protect elastic corners', 'Sanitized packaging']
+      },
+      {
+        id: 'bath_towel',
+        categoryId: 'household_curtains',
+        name: 'Bath Towel (Large)',
+        nameTh: 'ผ้าเช็ดตัวผืนใหญ่',
+        description: 'Hotel-quality wash and high-loft fluff tumble dry for plush, ultra-absorbent bath towels.',
+        unit: 'piece',
+        pricingType: 'piece',
+        stdPrice: 45,
+        nextPrice: 65,
+        samePrice: 85,
+        sameAvail: true,
+        minWeight: 1.0,
+        turnaround: 48,
+        popular: false,
+        features: ['High-absorbency residue-free wash', 'Fluffy tumble dry', 'Neat hotel-style tri-fold']
+      },
+      {
+        id: 'curtains_drapes',
+        categoryId: 'household_curtains',
+        name: 'Curtains & Drapes (per panel)',
+        nameTh: 'ผ้าม่าน (ต่อผืน)',
+        description: 'Specialized fabric care for sheer, blackout, or heavy cotton window curtains with delicate steam pressing.',
+        unit: 'piece',
+        pricingType: 'piece',
+        stdPrice: 160,
+        nextPrice: 210,
+        samePrice: 280,
+        sameAvail: true,
+        minWeight: 1.0,
+        turnaround: 48,
+        popular: false,
+        features: ['Dust & allergen removal', 'Pleat preservation steam pressing', 'Individual hanger or protective fold']
+      }
+    ];
+
+    for (const s of initialServices) {
+      if (!existingIds.has(s.id)) {
+        await query(`
+          INSERT INTO services (id, name, name_th, description, unit, price_per_kg, standard_price_per_kg, next_day_price_per_kg, same_day_price_per_kg, same_day_available, min_weight_kg, turnaround_hours, popular, features, category_id, pricing_type)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        `, [
+          s.id, s.name, s.nameTh, s.description, s.unit, s.stdPrice, s.stdPrice, s.nextPrice, s.samePrice, s.sameAvail, s.minWeight, s.turnaround, s.popular, JSON.stringify(s.features), s.categoryId, s.pricingType
+        ]);
+        console.log(`[POSTGRES] Seeded missing service: ${s.id} (${s.name})`);
+      }
+    }
+
+    // Seed default categories into settings if not present
+    const settingsRes = await query("SELECT value FROM settings WHERE key = 'app_config'");
+    if (settingsRes.rows.length > 0) {
+      const currentSettings = settingsRes.rows[0].value;
+      if (!currentSettings.categories || currentSettings.categories.length === 0) {
+        currentSettings.categories = [
+          {
+            id: 'laundry_by_weight',
+            name: 'Laundry by Weight (KG)',
+            nameTh: 'ซัก อบ รีด ตามน้ำหนัก (กิโลกรัม)',
+            icon: 'scale',
+            badge: '🧺 By Weight (KG)',
+            pricingType: 'weight',
+            description: 'Everyday casual clothes, gym wear, shirts, socks, and garments billed transparently by digital certified scale weight.',
+            displayOrder: 1
+          },
+          {
+            id: 'bedding_linens',
+            name: 'Bedding, Linens & Comforters',
+            nameTh: 'เครื่องนอนและผ้านวม (คิดเป็นชิ้น)',
+            icon: 'bed',
+            badge: '🛏️ Per Piece / Item',
+            pricingType: 'piece',
+            description: 'Bulky bedsheets, duvet covers, comforters, pillowcases, and blankets washed in heavy-duty commercial machines with hypoallergenic sanitization.',
+            displayOrder: 2
+          },
+          {
+            id: 'household_curtains',
+            name: 'Curtains & Household Items',
+            nameTh: 'ผ้าม่านและของใช้ในบ้าน',
+            icon: 'home',
+            badge: '🛋️ Per Piece / Set',
+            pricingType: 'piece',
+            description: 'Window drapes, curtains, sofa covers, bath towels, and decorative textiles refreshed and steam-pressed.',
+            displayOrder: 3
+          },
+          {
+            id: 'delicate_dryclean',
+            name: 'Delicates & Special Care',
+            nameTh: 'ผ้าไหมและชุดพิเศษ',
+            icon: 'sparkles',
+            badge: '✨ Specialty Care',
+            pricingType: 'piece',
+            description: 'Formal blazers, evening silk dresses, wool suits, and luxury garments requiring gentle care.',
+            displayOrder: 4
+          }
+        ];
+        await query("UPDATE settings SET value = $1, updated_at = NOW() WHERE key = 'app_config'", [JSON.stringify(currentSettings)]);
+        console.log('[POSTGRES] Initial categories added to app_config settings.');
+      }
+    }
   } catch (err) {
-    console.warn('[POSTGRES WARNING] Could not verify reconciliation schema:', err.message);
+    console.warn('[POSTGRES WARNING] Could not verify schema / seed initial services:', err.message);
   }
 }
 ensureDatabaseSchema();
@@ -39,6 +284,8 @@ function mapService(row) {
   const samePrice = Number(row.same_day_price_per_kg || Math.round(stdPrice * 1.75));
   return {
     id: row.id,
+    categoryId: row.category_id || 'laundry_by_weight',
+    pricingType: row.pricing_type || (row.unit === 'piece' ? 'piece' : 'weight'),
     name: row.name,
     nameTh: row.name_th,
     description: row.description,
@@ -94,6 +341,9 @@ function mapOrder(row) {
     bankAccountRef: row.bank_account_ref || '',
     postalCode: row.postal_code || '10110',
     deliveryFee: row.delivery_fee !== null ? Number(row.delivery_fee) : 0,
+    quantity: row.quantity !== null && row.quantity !== undefined ? Number(row.quantity) : (row.actual_weight_kg || row.estimated_weight_kg || 1),
+    unit: row.unit || 'KG',
+    categoryId: row.category_id || 'laundry_by_weight',
     timeline: Array.isArray(row.timeline) ? row.timeline : [],
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
   };
@@ -272,26 +522,31 @@ app.post('/api/services', requireAdminAuth, async (req, res) => {
     const nextPrice = Number(s.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
     const samePrice = Number(s.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
     const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true;
+    const categoryId = s.categoryId || s.category || 'laundry_by_weight';
+    const pricingType = s.pricingType || (s.unit === 'piece' ? 'piece' : 'weight');
+    const unit = s.unit || (pricingType === 'piece' ? 'piece' : 'KG');
 
     const result = await query(`
-      INSERT INTO services (id, name, name_th, description, unit, price_per_kg, standard_price_per_kg, next_day_price_per_kg, same_day_price_per_kg, same_day_available, min_weight_kg, turnaround_hours, popular, features)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      INSERT INTO services (id, name, name_th, description, unit, price_per_kg, standard_price_per_kg, next_day_price_per_kg, same_day_price_per_kg, same_day_available, min_weight_kg, turnaround_hours, popular, features, category_id, pricing_type)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *
     `, [
       id,
       s.name.trim(),
       s.nameTh ? s.nameTh.trim() : s.name.trim(),
       s.description || '',
-      s.unit || 'KG',
+      unit,
       stdPrice,
       stdPrice,
       nextPrice,
       samePrice,
       sameAvail,
-      Number(s.minWeightKg) || 4.0,
+      Number(s.minWeightKg) || 1.0,
       Number(s.turnaroundHours) || 48,
       Boolean(s.popular),
-      JSON.stringify(Array.isArray(s.features) ? s.features : [])
+      JSON.stringify(Array.isArray(s.features) ? s.features : []),
+      categoryId,
+      pricingType
     ]);
     res.status(201).json(mapService(result.rows[0]));
   } catch (err) {
@@ -313,6 +568,8 @@ app.put('/api/services', requireAdminAuth, async (req, res) => {
       const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : null;
       const samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : null;
       const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : null;
+      const catId = s.categoryId || s.category || null;
+      const pType = s.pricingType || (s.unit === 'piece' ? 'piece' : (s.unit === 'KG' ? 'weight' : null));
 
       await query(`
         UPDATE services
@@ -328,8 +585,11 @@ app.put('/api/services', requireAdminAuth, async (req, res) => {
             turnaround_hours = COALESCE($9, turnaround_hours),
             popular = COALESCE($10, popular),
             features = COALESCE($11::jsonb, features),
+            category_id = COALESCE($12, category_id),
+            pricing_type = COALESCE($13, pricing_type),
+            unit = COALESCE($14, unit),
             updated_at = NOW()
-        WHERE id = $12
+        WHERE id = $15
       `, [
         s.name !== undefined ? s.name.trim() : null,
         s.nameTh !== undefined ? s.nameTh.trim() : null,
@@ -342,6 +602,9 @@ app.put('/api/services', requireAdminAuth, async (req, res) => {
         s.turnaroundHours !== undefined ? Number(s.turnaroundHours) : null,
         s.popular !== undefined ? Boolean(s.popular) : null,
         s.features !== undefined ? JSON.stringify(s.features) : null,
+        catId,
+        pType,
+        s.unit || null,
         s.id
       ]);
     }
@@ -362,7 +625,9 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
     const stdPrice = s.standardPricePerKg !== undefined ? Number(s.standardPricePerKg) : (s.pricePerKg !== undefined ? Number(s.pricePerKg) : null);
     const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : null;
     const samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : null;
-    const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : null;
+    const categoryId = s.categoryId || s.category || null;
+    const pricingType = s.pricingType || (s.unit === 'piece' ? 'piece' : (s.pricingType ? s.pricingType : null));
+    const unit = s.unit || (pricingType === 'piece' ? 'piece' : (s.unit ? s.unit : null));
 
     const result = await query(`
       UPDATE services
@@ -378,8 +643,11 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
           turnaround_hours = COALESCE($9, turnaround_hours),
           popular = COALESCE($10, popular),
           features = COALESCE($11::jsonb, features),
+          category_id = COALESCE($12, category_id),
+          pricing_type = COALESCE($13, pricing_type),
+          unit = COALESCE($14, unit),
           updated_at = NOW()
-      WHERE id = $12
+      WHERE id = $15
       RETURNING *
     `, [
       s.name !== undefined ? s.name.trim() : null,
@@ -393,6 +661,9 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
       s.turnaroundHours !== undefined ? Number(s.turnaroundHours) : null,
       s.popular !== undefined ? Boolean(s.popular) : null,
       s.features !== undefined ? JSON.stringify(s.features) : null,
+      categoryId,
+      pricingType,
+      unit,
       id
     ]);
 
@@ -451,11 +722,13 @@ app.post('/api/orders', async (req, res) => {
         payment_status, payment_method, payment_ref, tag_number,
         pickup_date, pickup_time, delivery_date, delivery_time,
         special_instructions, agreed_terms, cashless_policy_acknowledged,
-        timeline, created_at, postal_code, delivery_fee
+        timeline, created_at, postal_code, delivery_fee,
+        quantity, unit, category_id
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33
+        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33,
+        $34, $35, $36
       )
       RETURNING *
     `, [
@@ -491,7 +764,10 @@ app.post('/api/orders', async (req, res) => {
       JSON.stringify(initialTimeline),
       now,
       o.postalCode || '10110',
-      Number(o.deliveryFee) || 0
+      Number(o.deliveryFee) || 0,
+      o.quantity !== undefined && o.quantity !== null ? Number(o.quantity) : (Number(o.actualWeightKg) || Number(o.estimatedWeightKg) || 1),
+      o.unit || 'KG',
+      o.categoryId || 'laundry_by_weight'
     ]);
 
     res.status(201).json(mapOrder(result.rows[0]));
@@ -534,6 +810,9 @@ app.patch('/api/orders/:id/status', async (req, res) => {
     const targetTurnaround = turnaroundSpeed || currentOrder.turnaround_speed;
     const targetPricePerKg = (pricePerKg !== undefined && pricePerKg !== null) ? Number(pricePerKg) : Number(currentOrder.price_per_kg);
     const targetMinWeight = (minWeightAppliedKg !== undefined && minWeightAppliedKg !== null) ? Number(minWeightAppliedKg) : Number(currentOrder.min_weight_applied_kg || 4.0);
+    const targetQuantity = (req.body.quantity !== undefined && req.body.quantity !== null) ? Number(req.body.quantity) : currentOrder.quantity;
+    const targetUnit = req.body.unit || currentOrder.unit || 'KG';
+    const targetCategoryId = req.body.categoryId || currentOrder.category_id || 'laundry_by_weight';
 
     let updatedActualKg = currentOrder.actual_weight_kg;
     if (actualWeightKg !== undefined && actualWeightKg !== null && actualWeightKg !== '') {
@@ -542,7 +821,9 @@ app.patch('/api/orders/:id/status', async (req, res) => {
 
     const effectiveKg = updatedActualKg !== null ? updatedActualKg : Number(currentOrder.estimated_weight_kg || 4.0);
     const billableKg = Math.max(effectiveKg, targetMinWeight);
-    const calculatedTotal = Math.round(billableKg * targetPricePerKg);
+    const calculatedTotal = targetUnit === 'piece' 
+      ? Math.round((Number(targetQuantity) || 1) * targetPricePerKg)
+      : Math.round(billableKg * targetPricePerKg);
     const finalTotalPrice = (totalPrice !== undefined && totalPrice !== null) ? Number(totalPrice) : calculatedTotal;
 
     const updatedTagNumber = (tagNumber && tagNumber.trim()) ? tagNumber.trim() : currentOrder.tag_number;
@@ -571,8 +852,11 @@ app.patch('/api/orders/:id/status', async (req, res) => {
           delivery_date = $10,
           delivery_time = $11,
           timeline = $12,
+          quantity = $13,
+          unit = $14,
+          category_id = $15,
           updated_at = NOW()
-      WHERE id = $13
+      WHERE id = $16
       RETURNING *
     `, [
       targetStatus,
@@ -587,6 +871,9 @@ app.patch('/api/orders/:id/status', async (req, res) => {
       targetDeliveryDate,
       targetDeliveryTime,
       JSON.stringify(updatedTimeline),
+      targetQuantity,
+      targetUnit,
+      targetCategoryId,
       id
     ]);
 

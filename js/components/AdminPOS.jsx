@@ -37,20 +37,36 @@ export function AdminPOS({
   const [invoiceModalOrder, setInvoiceModalOrder] = useState(null);
 
   // Service Full Drafts State (Pricing, Min Weight, Description, Features Sublist)
+  // Categories from Store
+  const categories = laundryStore.getCategories ? laundryStore.getCategories() : [];
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState('ALL');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [catFormName, setCatFormName] = useState('');
+  const [catFormNameTh, setCatFormNameTh] = useState('');
+  const [catFormPricingType, setCatFormPricingType] = useState('piece');
+  const [catFormDesc, setCatFormDesc] = useState('');
+  const [catFormIcon, setCatFormIcon] = useState('bed');
+
+  // Service Full Drafts State (Pricing, Min Weight, Description, Features Sublist, Category, Unit, PricingType)
   const buildInitialDrafts = (srvList) =>
     (srvList || []).reduce((acc, s) => {
+      const isPiece = s.pricingType === 'piece' || s.unit === 'piece';
       const stdPrice = s.standardPricePerKg !== undefined ? s.standardPricePerKg : (s.pricePerKg !== undefined ? s.pricePerKg : 65);
       const nextPrice = s.nextDayPricePerKg !== undefined ? s.nextDayPricePerKg : Math.round(stdPrice * 1.3);
       const samePrice = s.sameDayPricePerKg !== undefined ? s.sameDayPricePerKg : Math.round(stdPrice * 1.75);
       acc[s.id] = {
         name: s.name || '',
         nameTh: s.nameTh || '',
+        categoryId: s.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight'),
+        pricingType: s.pricingType || (isPiece ? 'piece' : 'weight'),
+        unit: s.unit || (isPiece ? 'piece' : 'KG'),
         pricePerKg: stdPrice,
         standardPricePerKg: stdPrice,
         nextDayPricePerKg: nextPrice,
         sameDayPricePerKg: samePrice,
         sameDayAvailable: s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true,
-        minWeightKg: s.minWeightKg !== undefined ? s.minWeightKg : 4.0,
+        minWeightKg: s.minWeightKg !== undefined ? s.minWeightKg : (isPiece ? 1.0 : 4.0),
         turnaroundHours: s.turnaroundHours !== undefined ? s.turnaroundHours : 48,
         description: s.description || '',
         popular: Boolean(s.popular),
@@ -73,19 +89,22 @@ export function AdminPOS({
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [newServiceName, setNewServiceName] = useState('');
   const [newServiceNameTh, setNewServiceNameTh] = useState('');
-  const [newServicePrice, setNewServicePrice] = useState('65'); // Standard 48h price
-  const [newServiceNextDayPrice, setNewServiceNextDayPrice] = useState('85'); // Next Day 24h price
-  const [newServiceSameDayPrice, setNewServiceSameDayPrice] = useState('115'); // Same Day <18:00 price
+  const [newServiceCategoryId, setNewServiceCategoryId] = useState('bedding_linens');
+  const [newServicePricingType, setNewServicePricingType] = useState('piece');
+  const [newServiceUnit, setNewServiceUnit] = useState('piece');
+  const [newServicePrice, setNewServicePrice] = useState('80'); // Standard 48h price
+  const [newServiceNextDayPrice, setNewServiceNextDayPrice] = useState('110'); // Next Day 24h price
+  const [newServiceSameDayPrice, setNewServiceSameDayPrice] = useState('150'); // Same Day <18:00 price
   const [newServiceSameDayAvailable, setNewServiceSameDayAvailable] = useState(true);
-  const [newServiceMinWeight, setNewServiceMinWeight] = useState('4.0');
+  const [newServiceMinWeight, setNewServiceMinWeight] = useState('1.0');
   const [newServiceTurnaround, setNewServiceTurnaround] = useState('48');
   const [newServiceDesc, setNewServiceDesc] = useState('');
   const [newServicePopular, setNewServicePopular] = useState(false);
   const [newServiceFeatures, setNewServiceFeatures] = useState([
-    'Hypoallergenic wash & gentle fabric care',
+    'High-grade commercial sanitization wash',
     'Care label inspection & sorting',
-    'Certified digital scale intake weighing',
-    'Sealed protective packaging'
+    'Sealed protective packaging',
+    'Door-to-door Bangkok courier delivery'
   ]);
 
   // 3rd-Party Cashless Gateway State
@@ -212,13 +231,16 @@ export function AdminPOS({
 
   // Manual Order Live Calculation
   const selManualSrv = services.find(s => s.id === manualServiceId) || services[0];
-  const manualEstKg = parseFloat(manualWeight) || 4.0;
+  const isManualPiece = selManualSrv?.pricingType === 'piece' || selManualSrv?.unit === 'piece';
+  const manualEstQty = parseFloat(manualWeight) || (isManualPiece ? 1 : 4.0);
   const manualRate = manualSpeed === 'same_day'
     ? (selManualSrv?.sameDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || 65) * 1.75))
     : (manualSpeed === 'next_day_24h'
       ? (selManualSrv?.nextDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || 65) * 1.3))
       : (selManualSrv?.standardPricePerKg || selManualSrv?.pricePerKg || 65));
-  const manualSubtotal = Math.round(Math.max(manualEstKg, selManualSrv?.minWeightKg || 4.0) * manualRate);
+  const manualSubtotal = isManualPiece
+    ? Math.round(manualEstQty * manualRate)
+    : Math.round(Math.max(manualEstQty, selManualSrv?.minWeightKg || 4.0) * manualRate);
   const manualDeliveryFeeResult = laundryStore.calculateDeliveryFee ? laundryStore.calculateDeliveryFee(manualPostalCode, manualSubtotal) : { fee: 50, zoneName: 'Bangkok' };
   const manualGrandTotal = manualSubtotal + manualDeliveryFeeResult.fee;
 
@@ -291,6 +313,61 @@ export function AdminPOS({
     });
   };
 
+  // Category Management Handlers
+  const handleOpenCategoryModal = (catToEdit = null) => {
+    if (catToEdit) {
+      setEditingCategory(catToEdit);
+      setCatFormName(catToEdit.name || '');
+      setCatFormNameTh(catToEdit.nameTh || '');
+      setCatFormPricingType(catToEdit.pricingType || 'piece');
+      setCatFormDesc(catToEdit.description || '');
+      setCatFormIcon(catToEdit.icon || 'bed');
+    } else {
+      setEditingCategory(null);
+      setCatFormName('');
+      setCatFormNameTh('');
+      setCatFormPricingType('piece');
+      setCatFormDesc('');
+      setCatFormIcon('bed');
+    }
+    setShowCategoryModal(true);
+  };
+
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+    if (!catFormName.trim()) return;
+
+    if (editingCategory) {
+      await laundryStore.updateCategory(editingCategory.id, {
+        name: catFormName.trim(),
+        nameTh: catFormNameTh.trim(),
+        pricingType: catFormPricingType,
+        description: catFormDesc.trim(),
+        icon: catFormIcon
+      });
+      setPricingSuccessMsg(`Category "${catFormName}" updated successfully!`);
+    } else {
+      const added = await laundryStore.addCategory({
+        name: catFormName.trim(),
+        nameTh: catFormNameTh.trim(),
+        pricingType: catFormPricingType,
+        description: catFormDesc.trim(),
+        icon: catFormIcon
+      });
+      setPricingSuccessMsg(`Category "${added.name}" created successfully!`);
+    }
+    setShowCategoryModal(false);
+    setTimeout(() => setPricingSuccessMsg(''), 4000);
+  };
+
+  const handleDeleteCategory = async (catId, catName) => {
+    if (confirm(`Are you sure you want to delete category "${catName}"? Any services inside will be reassigned to Laundry by Weight.`)) {
+      await laundryStore.deleteCategory(catId);
+      setPricingSuccessMsg(`Category "${catName}" deleted.`);
+      setTimeout(() => setPricingSuccessMsg(''), 3000);
+    }
+  };
+
   const handleSaveSingleService = async (serviceId) => {
     const draft = serviceDrafts[serviceId];
     if (!draft) return;
@@ -298,6 +375,7 @@ export function AdminPOS({
     setPricingSuccessMsg('');
     setPricingErrorMsg('');
     try {
+      const isPiece = draft.pricingType === 'piece' || draft.unit === 'piece';
       const cleanFeatures = (draft.features || []).map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
       const stdPrice = parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 65;
       const nextPrice = parseFloat(draft.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
@@ -305,12 +383,15 @@ export function AdminPOS({
       const payload = {
         name: draft.name,
         nameTh: draft.nameTh,
+        categoryId: draft.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight'),
+        pricingType: draft.pricingType || (isPiece ? 'piece' : 'weight'),
+        unit: draft.unit || (isPiece ? 'piece' : 'KG'),
         pricePerKg: stdPrice,
         standardPricePerKg: stdPrice,
         nextDayPricePerKg: nextPrice,
         sameDayPricePerKg: samePrice,
         sameDayAvailable: Boolean(draft.sameDayAvailable !== false),
-        minWeightKg: Math.max(1, parseFloat(draft.minWeightKg) || 4.0),
+        minWeightKg: isPiece ? (parseFloat(draft.minWeightKg) || 1.0) : Math.max(1, parseFloat(draft.minWeightKg) || 4.0),
         turnaroundHours: parseInt(draft.turnaroundHours) || 48,
         description: draft.description,
         popular: Boolean(draft.popular),
@@ -336,6 +417,7 @@ export function AdminPOS({
     try {
       const payloadList = Object.keys(serviceDrafts).map((srvId) => {
         const draft = serviceDrafts[srvId];
+        const isPiece = draft.pricingType === 'piece' || draft.unit === 'piece';
         const cleanFeatures = (draft.features || []).map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
         const stdPrice = parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 65;
         const nextPrice = parseFloat(draft.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
@@ -344,12 +426,15 @@ export function AdminPOS({
           id: srvId,
           name: draft.name,
           nameTh: draft.nameTh,
+          categoryId: draft.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight'),
+          pricingType: draft.pricingType || (isPiece ? 'piece' : 'weight'),
+          unit: draft.unit || (isPiece ? 'piece' : 'KG'),
           pricePerKg: stdPrice,
           standardPricePerKg: stdPrice,
           nextDayPricePerKg: nextPrice,
           sameDayPricePerKg: samePrice,
           sameDayAvailable: Boolean(draft.sameDayAvailable !== false),
-          minWeightKg: Math.max(1, parseFloat(draft.minWeightKg) || 4.0),
+          minWeightKg: isPiece ? (parseFloat(draft.minWeightKg) || 1.0) : Math.max(1, parseFloat(draft.minWeightKg) || 4.0),
           turnaroundHours: parseInt(draft.turnaroundHours) || 48,
           description: draft.description,
           popular: Boolean(draft.popular),
@@ -389,6 +474,7 @@ export function AdminPOS({
     e.preventDefault();
     if (!newServiceName.trim() || !newServicePrice) return;
 
+    const isPiece = newServicePricingType === 'piece';
     const cleanFeatures = newServiceFeatures.map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
     const stdPrice = parseFloat(newServicePrice) || 65;
     const nextPrice = parseFloat(newServiceNextDayPrice) || Math.round(stdPrice * 1.3);
@@ -397,18 +483,21 @@ export function AdminPOS({
     const added = laundryStore.addService({
       name: newServiceName.trim(),
       nameTh: newServiceNameTh.trim() || newServiceName.trim(),
+      categoryId: newServiceCategoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight'),
+      pricingType: newServicePricingType,
+      unit: newServiceUnit || (isPiece ? 'piece' : 'KG'),
       pricePerKg: stdPrice,
       standardPricePerKg: stdPrice,
       nextDayPricePerKg: nextPrice,
       sameDayPricePerKg: samePrice,
       sameDayAvailable: Boolean(newServiceSameDayAvailable),
-      minWeightKg: parseFloat(newServiceMinWeight) || 4.0,
+      minWeightKg: isPiece ? (parseFloat(newServiceMinWeight) || 1.0) : (parseFloat(newServiceMinWeight) || 4.0),
       turnaroundHours: parseInt(newServiceTurnaround) || 48,
-      description: newServiceDesc.trim() || 'Professional laundry service by weight across Bangkok.',
+      description: newServiceDesc.trim() || 'Professional laundry and linen processing service across Bangkok.',
       popular: newServicePopular,
       features: cleanFeatures.length > 0 ? cleanFeatures : [
         'Premium wash & conditioning',
-        'Certified digital scale intake',
+        'Fabric care & sanitization',
         'Dust-free protective packaging',
         'Direct Bangkok condo delivery'
       ]
@@ -417,20 +506,20 @@ export function AdminPOS({
     setShowAddServiceModal(false);
     setNewServiceName('');
     setNewServiceNameTh('');
-    setNewServicePrice('65');
-    setNewServiceNextDayPrice('85');
-    setNewServiceSameDayPrice('115');
+    setNewServicePrice('80');
+    setNewServiceNextDayPrice('110');
+    setNewServiceSameDayPrice('150');
     setNewServiceSameDayAvailable(true);
-    setNewServiceMinWeight('4.0');
+    setNewServiceMinWeight('1.0');
     setNewServiceTurnaround('48');
     setNewServiceDesc('');
     setNewServiceFeatures([
-      'Hypoallergenic wash & gentle fabric care',
+      'High-grade commercial sanitization wash',
       'Care label inspection & sorting',
-      'Certified digital scale intake weighing',
-      'Sealed protective packaging'
+      'Sealed protective packaging',
+      'Door-to-door Bangkok courier delivery'
     ]);
-    setPricingSuccessMsg(`New service "${added.name}" created with custom bullet points sublist! It is now live on the storefront.`);
+    setPricingSuccessMsg(`New service "${added.name}" created in category "${categories.find(c => c.id === added.categoryId)?.name || 'Custom'}"! Live on menu.`);
     setTimeout(() => setPricingSuccessMsg(''), 4000);
   };
 
@@ -481,7 +570,9 @@ export function AdminPOS({
       condoName: manualCondo.trim(),
       roomNumber: 'Lobby Juristic',
       leaveWithJuristic: true,
-      estimatedWeightKg: parseFloat(manualWeight) || 4.0,
+      quantity: isManualPiece ? (parseInt(manualWeight) || 1) : null,
+      unit: isManualPiece ? (selManualSrv?.unit || 'piece') : 'KG',
+      estimatedWeightKg: isManualPiece ? (parseInt(manualWeight) || 1) : (parseFloat(manualWeight) || 4.0),
       turnaroundSpeed: manualSpeed,
       pickupDate: new Date().toISOString().split('T')[0],
       pickupTime: TIME_SLOTS[0],
@@ -634,7 +725,7 @@ export function AdminPOS({
           { id: 'sales-reconciliation', label: 'Sales & Reconciliation', icon: 'calculator', count: unreconciledPaidCount },
           { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
           { id: 'faq', label: 'FAQ Manager', icon: 'helpCircle', count: laundryStore.faqs ? laundryStore.faqs.length : 0 },
-          { id: 'services-pricing', label: 'Services & Minimum Weights', icon: 'scale', count: services.length },
+          { id: 'services-pricing', label: 'Services & Menu Catalog', icon: 'layers', count: services.length },
           { id: 'postal-rates', label: 'Delivery & Postal Codes', icon: 'truck', count: laundryStore.getPostalCodeRates ? laundryStore.getPostalCodeRates().length : 0 },
           { id: 'gateway', label: 'Cashless Payment Gateway', icon: 'receipt' },
           { id: 'line-oa', label: 'LINE OA & Contact Channels', icon: 'line' },
@@ -898,7 +989,7 @@ export function AdminPOS({
         />
       )}
 
-      {/* TAB 2: SERVICES & MINIMUM WEIGHT CONFIGURATION */}
+      {/* TAB 2: SERVICES, LINENS & MENU CATALOG */}
       {activeTab === 'services-pricing' && (
         <div className="max-w-4xl mx-auto space-y-6">
           
@@ -906,24 +997,76 @@ export function AdminPOS({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold mb-1">
-                  <Icon name="scale" className="w-3.5 h-3.5" />
-                  <span>Configured Services & Minimum Weights</span>
+                  <Icon name="layers" className="w-3.5 h-3.5" />
+                  <span>Service Menu, Linens & Custom Categories</span>
                 </div>
                 <h2 className="text-xl font-black text-slate-900">
-                  Service Catalog & Price Controls
+                  Service Catalog & Pricing Controls
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Default minimum weight for all services is set at <strong>4.0 KG</strong>. You can adjust prices, change minimum weights, or add new services.
+                  Manage weight-based laundry (฿/KG), piece-based linens & bedding (฿/piece), custom categories, and turn-around pricing tiers.
                 </p>
               </div>
 
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenCategoryModal()}
+                  className="px-3.5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition shrink-0"
+                >
+                  <Icon name="folder" className="w-4 h-4 text-sky-600" />
+                  <span>Categories ({categories.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddServiceModal(true)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition shrink-0"
+                >
+                  <Icon name="plus" className="w-4 h-4" />
+                  <span>Add Service</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Category Filter Tabs Bar */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <button
                 type="button"
-                onClick={() => setShowAddServiceModal(true)}
-                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition shrink-0"
+                onClick={() => setSelectedCategoryTab('all')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                  selectedCategoryTab === 'all'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
               >
-                <span>+ Add New Service</span>
+                <span>All Catalog Items</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20">
+                  {services.length}
+                </span>
               </button>
+              {categories.map((cat) => {
+                const count = services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === cat.id).length;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryTab(cat.id)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                      selectedCategoryTab === cat.id
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Icon name={cat.icon || 'layers'} className="w-3.5 h-3.5" />
+                    <span>{cat.name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      selectedCategoryTab === cat.id ? 'bg-white/20' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {pricingSuccessMsg && (
@@ -942,10 +1085,16 @@ export function AdminPOS({
 
             <form onSubmit={handleSavePricing} className="space-y-6">
               <div className="space-y-6">
-                {services.map((service) => {
+                {(selectedCategoryTab === 'all'
+                  ? services
+                  : services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === selectedCategoryTab)
+                ).map((service) => {
                   const draft = serviceDrafts[service.id] || {
                     name: service.name,
                     nameTh: service.nameTh,
+                    categoryId: service.categoryId || (service.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight'),
+                    pricingType: service.pricingType || 'weight',
+                    unit: service.unit || (service.pricingType === 'piece' ? 'piece' : 'KG'),
                     pricePerKg: service.pricePerKg,
                     minWeightKg: service.minWeightKg,
                     turnaroundHours: service.turnaroundHours,
@@ -954,16 +1103,19 @@ export function AdminPOS({
                     features: service.features || []
                   };
 
+                  const isPiece = draft.pricingType === 'piece' || draft.unit === 'piece';
+                  const unitLabel = isPiece ? (draft.unit || 'piece') : 'KG';
+
                   return (
                     <div
                       key={service.id}
                       className="p-6 rounded-3xl bg-slate-50 border border-slate-200 shadow-sm space-y-4 relative group hover:border-slate-300 transition"
                     >
-                      {/* Top Bar: Name, Tag, Popular, Delete */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200">
+                      {/* Top Bar: Name, Category, Pricing Model, Delete */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
-                            🧺
+                            {isPiece ? '🛏️' : '🧺'}
                           </span>
                           <div>
                             <input
@@ -975,16 +1127,51 @@ export function AdminPOS({
                             />
                             <input
                               type="text"
-                              value={draft.nameTh}
+                              value={draft.nameTh || ''}
                               onChange={(e) => handleDraftFieldChange(service.id, 'nameTh', e.target.value)}
                               placeholder="Thai Name (ชื่อภาษาไทย)"
                               className="text-xs text-sky-600 font-semibold bg-transparent border-b border-transparent hover:border-slate-300 focus:border-sky-500 focus:bg-white px-1.5 py-0.5 rounded ml-1 transition"
                               title="Click to edit service Thai name"
                             />
                           </div>
+
+                          {/* Category Tag Dropdown */}
+                          <select
+                            value={draft.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight')}
+                            onChange={(e) => handleDraftFieldChange(service.id, 'categoryId', e.target.value)}
+                            className="text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-300 bg-white text-slate-700"
+                            title="Assign service category"
+                          >
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+
+                          {/* Pricing Model Dropdown */}
+                          <select
+                            value={draft.pricingType || (isPiece ? 'piece' : 'weight')}
+                            onChange={(e) => {
+                              const newType = e.target.value;
+                              handleDraftFieldChange(service.id, 'pricingType', newType);
+                              handleDraftFieldChange(service.id, 'unit', newType === 'piece' ? 'piece' : 'KG');
+                              if (newType === 'piece' && (parseFloat(draft.minWeightKg) || 4.0) > 1.0) {
+                                handleDraftFieldChange(service.id, 'minWeightKg', 1.0);
+                              }
+                            }}
+                            className={`text-[11px] font-bold px-2 py-1 rounded-lg border ${
+                              isPiece
+                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            }`}
+                            title="Pricing Model: Weight vs Piece"
+                          >
+                            <option value="weight">🧺 By Weight (KG)</option>
+                            <option value="piece">🛏️ By Piece (per item)</option>
+                          </select>
+
                           {draft.popular && (
                             <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-200">
-                              Popular Badge Active
+                              Popular
                             </span>
                           )}
                         </div>
@@ -1031,19 +1218,19 @@ export function AdminPOS({
                         />
                       </div>
 
-                      {/* 3-Tier Pricing & Weight Grid */}
+                      {/* 3-Tier Pricing & Weight/Quantity Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
                         {/* Standard 48h Price */}
                         <div>
                           <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
-                            <span>🕒 Standard 48h (฿/KG) *</span>
+                            <span>🕒 Standard 48h (฿/{unitLabel}) *</span>
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">฿</span>
                             <input
                               type="number"
                               min="1"
-                              max="1000"
+                              max="5000"
                               required
                               value={draft.standardPricePerKg !== undefined ? draft.standardPricePerKg : draft.pricePerKg}
                               onChange={(e) => {
@@ -1059,14 +1246,14 @@ export function AdminPOS({
                         {/* Next Day 24h Price */}
                         <div>
                           <label className="block text-xs font-bold text-sky-800 mb-1 flex items-center gap-1">
-                            <span>⚡ Next Day 24h (฿/KG) *</span>
+                            <span>⚡ Next Day 24h (฿/{unitLabel}) *</span>
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">฿</span>
                             <input
                               type="number"
                               min="1"
-                              max="1000"
+                              max="5000"
                               required
                               value={draft.nextDayPricePerKg !== undefined ? draft.nextDayPricePerKg : Math.round((draft.pricePerKg || 65) * 1.3)}
                               onChange={(e) => handleDraftFieldChange(service.id, 'nextDayPricePerKg', e.target.value)}
@@ -1079,14 +1266,14 @@ export function AdminPOS({
                         {/* Same Day Price */}
                         <div>
                           <label className="block text-xs font-bold text-amber-800 mb-1 flex items-center gap-1">
-                            <span>🚀 Same Day (&lt;18h) (฿/KG) *</span>
+                            <span>🚀 Same Day (฿/{unitLabel}) *</span>
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 font-bold text-xs">฿</span>
                             <input
                               type="number"
                               min="1"
-                              max="1000"
+                              max="5000"
                               required
                               value={draft.sameDayPricePerKg !== undefined ? draft.sameDayPricePerKg : Math.round((draft.pricePerKg || 65) * 1.75)}
                               onChange={(e) => handleDraftFieldChange(service.id, 'sameDayPricePerKg', e.target.value)}
@@ -1096,25 +1283,25 @@ export function AdminPOS({
                           <span className="text-[10px] text-amber-700/80 mt-0.5 block">Deliver before 18:00 hrs</span>
                         </div>
 
-                        {/* Minimum Weight */}
+                        {/* Minimum Weight or Quantity */}
                         <div>
                           <label className="block text-xs font-bold text-slate-800 mb-1">
-                            Min Weight (KG) *
+                            {isPiece ? `Min Qty (${unitLabel}) *` : 'Min Weight (KG) *'}
                           </label>
                           <div className="relative">
                             <input
                               type="number"
-                              min="1.0"
+                              min="1"
                               max="50"
-                              step="0.5"
+                              step={isPiece ? '1' : '0.5'}
                               required
                               value={draft.minWeightKg}
                               onChange={(e) => handleDraftFieldChange(service.id, 'minWeightKg', e.target.value)}
                               className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">KG</span>
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">{unitLabel}</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 mt-0.5 block">Standard 4.0 KG min</span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 block">{isPiece ? 'Min 1 item' : 'Standard 4.0 KG min'}</span>
                         </div>
 
                         {/* Turnaround Standard Hours */}
@@ -1148,7 +1335,7 @@ export function AdminPOS({
                           />
                           <div>
                             <span className="font-bold text-amber-950 block">🚀 Offer Same Day Express Speed (Delivered Before 18:00 hrs)</span>
-                            <span className="text-[11px] text-amber-800/80">When enabled, customers can select Same Day Express in the booking wizard at ฿{draft.sameDayPricePerKg || Math.round((draft.pricePerKg || 65) * 1.75)}/KG.</span>
+                            <span className="text-[11px] text-amber-800/80">When enabled, customers can select Same Day Express in the booking wizard at ฿{draft.sameDayPricePerKg || Math.round((draft.pricePerKg || 65) * 1.75)}/{unitLabel}.</span>
                           </div>
                         </label>
                       </div>
@@ -1210,10 +1397,12 @@ export function AdminPOS({
                       {/* Card Footer: Minimum Charge & Save Button */}
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-200/80">
                         <div className="text-xs text-slate-600 flex items-center gap-2 flex-wrap">
-                          <span>Next Day Min: <strong className="text-slate-900 font-black">฿{Math.round((parseFloat(draft.nextDayPricePerKg || draft.pricePerKg) || 0) * (parseFloat(draft.minWeightKg) || 4.0))} THB</strong></span>
+                          <span>Standard Min: <strong className="text-slate-900 font-black">฿{Math.round((parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 0) * (parseFloat(draft.minWeightKg) || 1.0))} THB</strong></span>
+                          <span className="text-slate-400">•</span>
+                          <span>Next Day Min: <strong className="text-slate-900 font-black">฿{Math.round((parseFloat(draft.nextDayPricePerKg || draft.pricePerKg) || 0) * (parseFloat(draft.minWeightKg) || 1.0))} THB</strong></span>
                           <span className="text-slate-400">•</span>
                           {draft.sameDayAvailable !== false ? (
-                            <span>Same Day Min: <strong className="text-amber-800 font-black">฿{Math.round((parseFloat(draft.sameDayPricePerKg) || Math.round((parseFloat(draft.pricePerKg) || 80) * 1.45)) * (parseFloat(draft.minWeightKg) || 4.0))} THB</strong></span>
+                            <span>Same Day Min: <strong className="text-amber-800 font-black">฿{Math.round((parseFloat(draft.sameDayPricePerKg) || Math.round((parseFloat(draft.pricePerKg) || 80) * 1.75)) * (parseFloat(draft.minWeightKg) || 1.0))} THB</strong></span>
                           ) : (
                             <span className="text-slate-400 italic">Same day disabled</span>
                           )}
@@ -1909,15 +2098,17 @@ export function AdminPOS({
                 >
                   {(() => {
                     const selSrv = services.find(s => s.id === manualServiceId) || services[0];
+                    const isPiece = selSrv?.pricingType === 'piece' || selSrv?.unit === 'piece';
+                    const unitLbl = isPiece ? (selSrv?.unit || 'piece') : 'KG';
                     const stdP = selSrv?.standardPricePerKg || selSrv?.pricePerKg || 65;
                     const nextP = selSrv?.nextDayPricePerKg || Math.round(stdP * 1.3);
                     const sameP = selSrv?.sameDayPricePerKg || Math.round(stdP * 1.75);
                     return (
                       <>
-                        <option value="standard_48h">🕒 Standard 48h (฿{stdP}/KG)</option>
-                        <option value="next_day_24h">⚡ Next Day 24h (฿{nextP}/KG)</option>
+                        <option value="standard_48h">🕒 Standard 48h (฿{stdP}/{unitLbl})</option>
+                        <option value="next_day_24h">⚡ Next Day 24h (฿{nextP}/{unitLbl})</option>
                         {selSrv?.sameDayAvailable !== false && (
-                          <option value="same_day">🚀 Same Day (&lt;18:00) (฿{sameP}/KG)</option>
+                          <option value="same_day">🚀 Same Day (&lt;18:00) (฿{sameP}/{unitLbl})</option>
                         )}
                       </>
                     );
@@ -1926,14 +2117,17 @@ export function AdminPOS({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Weight Estimate (KG) *</label>
+                <label className="block font-bold text-slate-700 mb-1">
+                  {isManualPiece ? `Quantity (${selManualSrv?.unit || 'pieces'}) *` : 'Weight Estimate (KG) *'}
+                </label>
                 <input
                   type="number"
-                  step="0.1"
+                  step={isManualPiece ? '1' : '0.1'}
+                  min="1"
                   required
                   value={manualWeight}
                   onChange={(e) => setManualWeight(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-bold"
                 />
               </div>
             </div>
@@ -2096,9 +2290,65 @@ export function AdminPOS({
                 </div>
               </div>
 
+              {/* Category & Pricing Model Selectors */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Menu Category *</label>
+                  <select
+                    value={newServiceCategoryId}
+                    onChange={(e) => {
+                      const cid = e.target.value;
+                      setNewServiceCategoryId(cid);
+                      const catObj = categories.find(c => c.id === cid);
+                      if (catObj?.pricingType) {
+                        setNewServicePricingType(catObj.pricingType);
+                        setNewServiceUnit(catObj.pricingType === 'piece' ? 'piece' : 'KG');
+                        setNewServiceMinWeight(catObj.pricingType === 'piece' ? '1.0' : '4.0');
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Pricing Model *</label>
+                  <select
+                    value={newServicePricingType}
+                    onChange={(e) => {
+                      const pt = e.target.value;
+                      setNewServicePricingType(pt);
+                      setNewServiceUnit(pt === 'piece' ? 'piece' : 'KG');
+                      setNewServiceMinWeight(pt === 'piece' ? '1.0' : '4.0');
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold text-sky-900"
+                  >
+                    <option value="weight">🧺 By Weight (KG)</option>
+                    <option value="piece">🛏️ By Piece (per item)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Billing Unit *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="KG, piece, set..."
+                    value={newServiceUnit}
+                    onChange={(e) => setNewServiceUnit(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">🕒 Standard 48h (฿/KG) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    🕒 Standard 48h (฿/{newServicePricingType === 'piece' ? (newServiceUnit || 'piece') : 'KG'}) *
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -2110,7 +2360,9 @@ export function AdminPOS({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-sky-800 mb-1">⚡ Next Day 24h (฿/KG) *</label>
+                  <label className="block font-bold text-sky-800 mb-1">
+                    ⚡ Next Day 24h (฿/{newServicePricingType === 'piece' ? (newServiceUnit || 'piece') : 'KG'}) *
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -2122,7 +2374,9 @@ export function AdminPOS({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-amber-800 mb-1">🚀 Same Day (&lt;18h) (฿/KG) *</label>
+                  <label className="block font-bold text-amber-800 mb-1">
+                    🚀 Same Day (฿/{newServicePricingType === 'piece' ? (newServiceUnit || 'piece') : 'KG'}) *
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -2134,11 +2388,13 @@ export function AdminPOS({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Min Weight (KG) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    {newServicePricingType === 'piece' ? `Min Qty (${newServiceUnit || 'piece'}) *` : 'Min Weight (KG) *'}
+                  </label>
                   <input
                     type="number"
                     min="1"
-                    step="0.5"
+                    step={newServicePricingType === 'piece' ? '1' : '0.5'}
                     required
                     value={newServiceMinWeight}
                     onChange={(e) => setNewServiceMinWeight(e.target.value)}
@@ -2258,6 +2514,200 @@ export function AdminPOS({
                   className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-md"
                 >
                   Add Service to Store
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CATEGORY MANAGEMENT MODAL */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+                  <Icon name="folder" className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">Service Categories Manager</h3>
+                  <p className="text-xs text-slate-500">Create, rename, and manage service categories for Bangkok laundry & linens</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCategoryModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition"
+              >
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List of Existing Categories */}
+            <div className="space-y-2">
+              <div className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                Active Categories ({categories.length})
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                {categories.map((cat) => {
+                  const count = services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === cat.id).length;
+                  const isEditingThis = editingCategory?.id === cat.id;
+
+                  return (
+                    <div
+                      key={cat.id}
+                      className={`p-3 rounded-2xl border transition flex items-center justify-between gap-2 ${
+                        isEditingThis
+                          ? 'bg-sky-50 border-sky-400 ring-2 ring-sky-200'
+                          : 'bg-slate-50 border-slate-200 hover:bg-slate-100/80'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-sky-700 flex items-center justify-center font-bold shrink-0">
+                          <Icon name={cat.icon || 'layers'} className="w-4 h-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-extrabold text-xs text-slate-900 truncate flex items-center gap-1.5">
+                            <span>{cat.name}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                              cat.pricingType === 'piece'
+                                ? 'bg-indigo-100 text-indigo-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              {cat.pricingType === 'piece' ? 'Piece' : 'Weight'}
+                            </span>
+                          </div>
+                          {cat.nameTh && (
+                            <div className="text-[10px] text-sky-700 truncate">{cat.nameTh}</div>
+                          )}
+                          <div className="text-[10px] text-slate-400">
+                            {count} {count === 1 ? 'service' : 'services'} linked
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCategoryModal(cat)}
+                          className="px-2 py-1 rounded-lg text-xs font-bold text-sky-700 bg-sky-100/60 hover:bg-sky-100 transition"
+                          title="Edit this category"
+                        >
+                          Edit
+                        </button>
+                        {categories.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                            title="Delete category"
+                          >
+                            <Icon name="trash" className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Create or Edit Category Form */}
+            <form onSubmit={handleSaveCategory} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 text-xs">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                <span className="font-extrabold text-slate-800">
+                  {editingCategory ? `Edit Category: "${editingCategory.name}"` : '+ Add New Service Category'}
+                </span>
+                {editingCategory && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenCategoryModal(null)}
+                    className="text-[11px] text-slate-500 hover:text-slate-800 font-bold"
+                  >
+                    Reset / Create New Instead
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Category Name (English) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Delicates & Silk Wash"
+                    value={catFormName}
+                    onChange={(e) => setCatFormName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Thai Name (ชื่อหมวดหมู่)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ซักผ้าไหมและผ้าถนอมพิเศษ"
+                    value={catFormNameTh}
+                    onChange={(e) => setCatFormNameTh(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Default Pricing Model</label>
+                  <select
+                    value={catFormPricingType}
+                    onChange={(e) => setCatFormPricingType(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold"
+                  >
+                    <option value="piece">🛏️ By Piece / Linen (per item)</option>
+                    <option value="weight">🧺 By Weight (KG)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Display Icon</label>
+                  <select
+                    value={catFormIcon}
+                    onChange={(e) => setCatFormIcon(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold"
+                  >
+                    <option value="layers">Layers / Linens</option>
+                    <option value="bed">Bed / Bedding</option>
+                    <option value="tag">Tag / Specialty</option>
+                    <option value="folder">Folder / General</option>
+                    <option value="scale">Scale / Weight</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Category Description</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Hotel-grade duvet covers, silk linens, and heavy comforters..."
+                  value={catFormDesc}
+                  onChange={(e) => setCatFormDesc(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryModal(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 font-bold"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-md transition"
+                >
+                  {editingCategory ? 'Save Category Changes' : '+ Add Category'}
                 </button>
               </div>
             </form>

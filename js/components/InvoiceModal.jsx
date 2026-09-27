@@ -28,14 +28,18 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
     ? 'Same Day Express (<18:00)'
     : (order.turnaroundSpeed?.includes('next_day') ? 'Next Day (24h)' : 'Standard (48h)');
 
+  const isPiece = order.unit === 'piece' || order.pricingType === 'piece' || (order.quantity !== null && order.quantity !== undefined && order.quantity > 0);
+  const quantity = isPiece ? Number(order.quantity || order.estimatedWeightKg || 1) : null;
+  const unitLabel = isPiece ? (order.unit || 'piece') : 'KG';
+
   const certifiedWeight = order.actualWeightKg !== null && order.actualWeightKg !== undefined
     ? Number(order.actualWeightKg)
-    : Number(order.estimatedWeightKg || 4.0);
+    : Number(order.estimatedWeightKg || (isPiece ? 1 : 4.0));
 
-  const minWeight = Number(order.minWeightAppliedKg || 4.0);
-  const billableWeight = Math.max(certifiedWeight, minWeight);
+  const minWeight = Number(order.minWeightAppliedKg || (isPiece ? 1 : 4.0));
+  const billableWeight = isPiece ? quantity : Math.max(certifiedWeight, minWeight);
   const unitRate = Number(order.pricePerKg || 65);
-  const serviceSubtotal = Number(order.serviceSubtotal !== undefined && order.serviceSubtotal !== null ? order.serviceSubtotal : Math.round(billableWeight * unitRate));
+  const serviceSubtotal = Number(order.serviceSubtotal !== undefined && order.serviceSubtotal !== null ? order.serviceSubtotal : Math.round((isPiece ? quantity : billableWeight) * unitRate));
   const deliveryFee = Number(order.deliveryFee !== undefined && order.deliveryFee !== null ? order.deliveryFee : 0);
   const totalPrice = Number(order.totalPrice || (serviceSubtotal + deliveryFee));
 
@@ -60,11 +64,12 @@ Residence: *${order.condoName || 'Bangkok Condominium'}* (Unit ${order.roomNumbe
 District: *${order.district || 'Bangkok'}* ${order.postalCode ? `(Postal Code: ${order.postalCode})` : ''}
 Contact: *${order.contactChannel.toUpperCase()}: ${order.contactValue}*
 ${order.specialInstructions ? `Note: "${order.specialInstructions}"\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧼 *Service & Scale Weigh-in Breakdown:*
+🧼 *Service & Intake Breakdown:*
 • Service Plan: *${order.serviceName}*
 • Turnaround Speed: *${speedLabel}*
-• Intake Weight: *${certifiedWeight} KG* (Min ${minWeight} KG applied -> *${billableWeight} KG*)
-• Rate per KG: *฿${unitRate} THB / KG*
+${isPiece ? `• Quantity: *${quantity} ${unitLabel}(s)*
+• Rate per ${unitLabel}: *฿${unitRate} THB / ${unitLabel}*` : `• Intake Weight: *${certifiedWeight} KG* (Min ${minWeight} KG applied -> *${billableWeight} KG*)
+• Rate per KG: *฿${unitRate} THB / KG*`}
 • Service Subtotal: *฿${serviceSubtotal} THB*
 • Bangkok Delivery Fee (${order.postalCode || 'Bangkok'}): *${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE (฿0 THB)'}*
 • Pickup Window: *${order.pickupDate || 'Scheduled'} (${order.pickupTime || ''})*
@@ -388,15 +393,15 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
             {/* ITEMIZED SERVICE TABLE */}
             <div className="py-5 border-b border-slate-200">
               <span className="text-slate-400 uppercase font-bold text-[10px] tracking-wider block mb-2">
-                Certified Service Specifications & Certified Weight
+                {isPiece ? 'Certified Service Specifications & Item Quantity' : 'Certified Service Specifications & Certified Weight'}
               </span>
 
               <table className="w-full text-xs text-left">
                 <thead>
                   <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
                     <th className="py-2 pr-2">Item Description</th>
-                    <th className="py-2 px-2 text-center">Scale Weight</th>
-                    <th className="py-2 px-2 text-center">Billable Weight</th>
+                    <th className="py-2 px-2 text-center">{isPiece ? 'Intake Qty' : 'Scale Weight'}</th>
+                    <th className="py-2 px-2 text-center">{isPiece ? 'Billable Qty' : 'Billable Weight'}</th>
                     <th className="py-2 px-2 text-right">Unit Rate</th>
                     <th className="py-2 pl-2 text-right">Amount (THB)</th>
                   </tr>
@@ -409,22 +414,22 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
                         Turnaround: <span className="font-bold text-sky-700">{speedLabel}</span>
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        Certified facility wash, tumble dry & packaging
+                        {isPiece ? 'Specialized linen / garment sanitization & protective packaging' : 'Certified facility wash, tumble dry & packaging'}
                       </div>
                     </td>
                     <td className="py-3 px-2 text-center font-mono font-bold text-slate-700">
-                      {certifiedWeight} KG
+                      {isPiece ? `${quantity} ${unitLabel}` : `${certifiedWeight} KG`}
                     </td>
                     <td className="py-3 px-2 text-center font-mono font-bold text-slate-900">
-                      {billableWeight} KG
-                      {billableWeight > certifiedWeight && (
+                      {isPiece ? `${quantity} ${unitLabel}` : `${billableWeight} KG`}
+                      {!isPiece && billableWeight > certifiedWeight && (
                         <span className="block text-[9px] text-amber-700 font-normal">
                           (Min {minWeight} KG applied)
                         </span>
                       )}
                     </td>
                     <td className="py-3 px-2 text-right font-mono text-slate-700">
-                      ฿{unitRate} / KG
+                      ฿{unitRate} / {unitLabel}
                     </td>
                     <td className="py-3 pl-2 text-right font-mono font-extrabold text-slate-900">
                       ฿{serviceSubtotal}

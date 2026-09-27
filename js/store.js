@@ -1,5 +1,5 @@
 // State and LocalStorage / PostgreSQL Management for NoName Laundry
-import { INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_INCIDENTS, INITIAL_CUSTOMERS } from './data/servicesData.js';
+import { INITIAL_CATEGORIES, INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_INCIDENTS, INITIAL_CUSTOMERS } from './data/servicesData.js';
 import { INITIAL_FAQS } from './data/faqData.js';
 import { 
   DEFAULT_BANGKOK_POSTAL_CODES, 
@@ -10,6 +10,7 @@ import {
 
 const STORAGE_KEYS = {
   SERVICES: 'noname_laundry_services_v2',
+  CATEGORIES: 'noname_categories_v1',
   ORDERS: 'noname_laundry_orders_v2',
   INCIDENTS: 'noname_laundry_incidents_v2',
   CUSTOMERS: 'noname_laundry_customers_v2',
@@ -129,9 +130,35 @@ export class LaundryStore {
 
   loadState() {
     try {
+      // Categories
+      const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+      let parsedCategories = savedCategories ? JSON.parse(savedCategories) : INITIAL_CATEGORIES;
+      if (Array.isArray(parsedCategories)) {
+        const existingCatIds = new Set(parsedCategories.map(c => c.id));
+        const missingCats = INITIAL_CATEGORIES.filter(c => !existingCatIds.has(c.id));
+        if (missingCats.length > 0) {
+          parsedCategories = [...parsedCategories, ...missingCats];
+        }
+      } else {
+        parsedCategories = INITIAL_CATEGORIES;
+      }
+      this.categories = parsedCategories.sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+
+      // Services
       const savedServices = localStorage.getItem(STORAGE_KEYS.SERVICES);
       let loadedServices = savedServices ? JSON.parse(savedServices) : INITIAL_SERVICES;
+      if (Array.isArray(loadedServices)) {
+        const existingServiceIds = new Set(loadedServices.map(s => s.id));
+        const missingDefaultServices = INITIAL_SERVICES.filter(ds => !existingServiceIds.has(ds.id));
+        if (missingDefaultServices.length > 0) {
+          loadedServices = [...loadedServices, ...missingDefaultServices];
+        }
+      } else {
+        loadedServices = INITIAL_SERVICES;
+      }
+
       this.services = loadedServices.map(s => {
+        const isPiece = s.pricingType === 'piece' || s.unit === 'piece';
         const stdPrice = s.standardPricePerKg !== undefined 
           ? Number(s.standardPricePerKg) 
           : Number(s.pricePerKg || 65);
@@ -151,13 +178,16 @@ export class LaundryStore {
         }
         return {
           ...s,
+          categoryId: s.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight'),
+          pricingType: s.pricingType || (isPiece ? 'piece' : 'weight'),
+          unit: s.unit || (isPiece ? 'piece' : 'KG'),
           standardPricePerKg: stdPrice,
           nextDayPricePerKg: nextPrice,
           sameDayPricePerKg: samePrice,
           sameDayAvailable: s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true,
           pricePerKg: stdPrice,
           turnaroundHours: s.turnaroundHours ? Number(s.turnaroundHours) : 48,
-          minWeightKg: Number(s.minWeightKg) < 4.0 ? 4.0 : Number(s.minWeightKg)
+          minWeightKg: isPiece ? (Number(s.minWeightKg) || 1.0) : (Number(s.minWeightKg) < 4.0 ? 4.0 : Number(s.minWeightKg))
         };
       });
 
@@ -249,7 +279,8 @@ export class LaundryStore {
       this.deliveryConfig = savedDeliveryConfig ? JSON.parse(savedDeliveryConfig) : DEFAULT_DELIVERY_CONFIG;
     } catch (e) {
       console.error('Error loading state from localStorage:', e);
-      this.services = INITIAL_SERVICES.map(s => ({ ...s, minWeightKg: 4.0 }));
+      this.categories = INITIAL_CATEGORIES;
+      this.services = INITIAL_SERVICES;
       this.orders = INITIAL_ORDERS;
       this.incidents = INITIAL_INCIDENTS;
       this.customers = INITIAL_CUSTOMERS;
@@ -266,7 +297,9 @@ export class LaundryStore {
       const data = await res.json();
       
       if (Array.isArray(data.services) && data.services.length > 0) {
-        this.services = data.services;
+        const remoteIds = new Set(data.services.map(s => s.id));
+        const missingDefaults = INITIAL_SERVICES.filter(ds => !remoteIds.has(ds.id));
+        this.services = missingDefaults.length > 0 ? [...data.services, ...missingDefaults] : data.services;
         this.persist(STORAGE_KEYS.SERVICES, this.services);
       }
       if (Array.isArray(data.orders)) {
@@ -283,6 +316,14 @@ export class LaundryStore {
       }
       if (data.settings && Object.keys(data.settings).length > 0) {
         this.settings = { ...this.settings, ...data.settings };
+        if (data.settings.categories && Array.isArray(data.settings.categories)) {
+          const remoteCatIds = new Set(data.settings.categories.map(c => c.id));
+          const missingCats = INITIAL_CATEGORIES.filter(c => !remoteCatIds.has(c.id));
+          this.categories = missingCats.length > 0 
+            ? [...data.settings.categories, ...missingCats].sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99))
+            : data.settings.categories.sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+          this.persist(STORAGE_KEYS.CATEGORIES, this.categories);
+        }
         if (data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {
           const remoteCodes = data.settings.postalCodeRates;
           const existingCodes = new Set(remoteCodes.map(r => r.code));
@@ -546,30 +587,126 @@ export class LaundryStore {
     }
   }
 
+  // Categories Management
+  getCategories() {
+    return (this.categories || []).slice().sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+  }
+
+  getCategoryById(catId) {
+    return (this.categories || []).find(c => c.id === catId);
+  }
+
+  async addCategory(categoryData) {
+    const id = categoryData.id || ('cat_' + categoryData.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000));
+    const newCategory = {
+      id,
+      name: categoryData.name.trim(),
+      nameTh: categoryData.nameTh ? categoryData.nameTh.trim() : categoryData.name.trim(),
+      icon: categoryData.icon || 'folder',
+      badge: categoryData.badge || (categoryData.pricingType === 'piece' ? '🛏️ Per Piece' : '🧺 By Weight'),
+      pricingType: categoryData.pricingType || 'piece',
+      description: categoryData.description ? categoryData.description.trim() : '',
+      displayOrder: categoryData.displayOrder !== undefined ? Number(categoryData.displayOrder) : (this.categories.length + 1)
+    };
+
+    this.categories = [...this.categories, newCategory];
+    this.persist(STORAGE_KEYS.CATEGORIES, this.categories);
+    this.settings = { ...this.settings, categories: this.categories };
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
+    this.notify();
+
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: this.getAdminAuthHeaders(),
+      body: JSON.stringify(this.settings)
+    }).catch(err => console.warn('Failed to sync new category to backend:', err));
+
+    return newCategory;
+  }
+
+  async updateCategory(catId, updates) {
+    this.categories = this.categories.map(c => {
+      if (c.id === catId) {
+        return {
+          ...c,
+          ...updates,
+          name: updates.name !== undefined ? updates.name.trim() : c.name,
+          nameTh: updates.nameTh !== undefined ? updates.nameTh.trim() : c.nameTh,
+          description: updates.description !== undefined ? updates.description.trim() : c.description
+        };
+      }
+      return c;
+    });
+    this.persist(STORAGE_KEYS.CATEGORIES, this.categories);
+    this.settings = { ...this.settings, categories: this.categories };
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
+    this.notify();
+
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: this.getAdminAuthHeaders(),
+      body: JSON.stringify(this.settings)
+    }).catch(err => console.warn('Failed to sync updated category to backend:', err));
+  }
+
+  async deleteCategory(catId) {
+    if (this.categories.length <= 1) {
+      alert('Cannot delete the last remaining category.');
+      return;
+    }
+    const fallbackCatId = this.categories.find(c => c.id !== catId)?.id || 'laundry_by_weight';
+    this.services = this.services.map(s => {
+      if (s.categoryId === catId) {
+        return { ...s, categoryId: fallbackCatId };
+      }
+      return s;
+    });
+    this.persist(STORAGE_KEYS.SERVICES, this.services);
+
+    this.categories = this.categories.filter(c => c.id !== catId);
+    this.persist(STORAGE_KEYS.CATEGORIES, this.categories);
+    this.settings = { ...this.settings, categories: this.categories };
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
+    this.notify();
+
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: this.getAdminAuthHeaders(),
+      body: JSON.stringify(this.settings)
+    }).catch(err => console.warn('Failed to sync deleted category to backend:', err));
+  }
+
   // Add a brand new service dynamically
   addService(serviceData) {
-    const id = serviceData.id || serviceData.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000);
+    const id = serviceData.id || (serviceData.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000));
     const stdPrice = Number(serviceData.standardPricePerKg || serviceData.pricePerKg) || 65;
     const nextPrice = Number(serviceData.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
     const samePrice = Number(serviceData.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
+    const isPiece = serviceData.pricingType === 'piece' || serviceData.unit === 'piece';
+    const categoryId = serviceData.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight');
+    const pricingType = serviceData.pricingType || (isPiece ? 'piece' : 'weight');
+    const unit = serviceData.unit || (isPiece ? 'piece' : 'KG');
+
     const newService = {
       id,
+      categoryId,
+      pricingType,
+      unit,
       name: serviceData.name.trim(),
       nameTh: serviceData.nameTh ? serviceData.nameTh.trim() : serviceData.name.trim(),
-      description: serviceData.description.trim(),
-      unit: 'KG',
+      description: serviceData.description ? serviceData.description.trim() : '',
       pricePerKg: stdPrice,
       standardPricePerKg: stdPrice,
       nextDayPricePerKg: nextPrice,
       sameDayPricePerKg: samePrice,
       sameDayAvailable: serviceData.sameDayAvailable !== undefined ? Boolean(serviceData.sameDayAvailable) : true,
-      minWeightKg: Number(serviceData.minWeightKg) || 4.0,
+      minWeightKg: isPiece ? (Number(serviceData.minWeightKg) || 1.0) : Math.max(4.0, Number(serviceData.minWeightKg) || 4.0),
       turnaroundHours: Number(serviceData.turnaroundHours) || 48,
       popular: Boolean(serviceData.popular),
       features: serviceData.features && serviceData.features.length > 0
         ? serviceData.features
         : [
-            'Premium hypoallergenic detergent',
+            'Premium fabric care formula',
             'Care label inspection',
             'Sealed protective packaging',
             'Pickup & delivery across Bangkok'
@@ -621,8 +758,15 @@ export class LaundryStore {
     } else {
       unitPrice = Number(service.standardPricePerKg || service.pricePerKg || 65);
     }
-    const weightToBill = Math.max(Number(orderInput.estimatedWeightKg), Number(service.minWeightKg));
-    const calculatedTotal = Math.round(weightToBill * unitPrice);
+
+    const isPiece = service.pricingType === 'piece' || service.unit === 'piece' || orderInput.unit === 'piece';
+    const quantity = (orderInput.quantity !== undefined && orderInput.quantity !== null && orderInput.quantity !== '')
+      ? Number(orderInput.quantity)
+      : (isPiece ? 1 : Number(orderInput.estimatedWeightKg || 4.0));
+    const billableAmount = isPiece
+      ? quantity
+      : Math.max(Number(orderInput.estimatedWeightKg || 4.0), Number(service.minWeightKg || 4.0));
+    const calculatedTotal = Math.round(billableAmount * unitPrice);
 
     const postalCode = (orderInput.postalCode || DISTRICT_TO_POSTAL_CODE[orderInput.district] || '10110').trim();
     const deliveryCalc = this.calculateDeliveryFee(postalCode, calculatedTotal);
@@ -659,10 +803,13 @@ export class LaundryStore {
       roomNumber: orderInput.roomNumber,
       postalCode,
       leaveWithJuristic: Boolean(orderInput.leaveWithJuristic),
-      estimatedWeightKg: Number(orderInput.estimatedWeightKg),
+      estimatedWeightKg: isPiece ? null : Number(orderInput.estimatedWeightKg || 4.0),
       actualWeightKg: null,
-      minWeightAppliedKg: service.minWeightKg,
+      minWeightAppliedKg: isPiece ? 1.0 : service.minWeightKg,
       pricePerKg: unitPrice,
+      quantity,
+      unit: isPiece ? (service.unit || 'piece') : 'KG',
+      categoryId: service.categoryId || 'laundry_by_weight',
       serviceSubtotal: calculatedTotal,
       deliveryFee,
       totalPrice: grandTotal,
@@ -793,18 +940,34 @@ export class LaundryStore {
           updated.deliveryTime = serviceUpdates.deliveryTime;
         }
 
+        if (serviceUpdates.quantity !== undefined && serviceUpdates.quantity !== null && serviceUpdates.quantity !== '') {
+          updated.quantity = Number(serviceUpdates.quantity);
+        }
+        if (serviceUpdates.unit) {
+          updated.unit = serviceUpdates.unit;
+        }
+        if (serviceUpdates.categoryId) {
+          updated.categoryId = serviceUpdates.categoryId;
+        }
+
         if (actualWeightKg !== null && actualWeightKg !== undefined && actualWeightKg !== '') {
           updated.actualWeightKg = Number(actualWeightKg);
         }
 
+        const isPiece = updated.unit === 'piece' || (serviceUpdates && serviceUpdates.unit === 'piece');
         const effectiveKg = updated.actualWeightKg !== null && updated.actualWeightKg !== undefined
           ? Number(updated.actualWeightKg)
           : Number(updated.estimatedWeightKg || 4.0);
         const billableKg = Math.max(effectiveKg, updated.minWeightAppliedKg || 4.0);
         
+        const countOrWeight = isPiece ? (Number(updated.quantity) || 1) : billableKg;
+        const subtotal = Math.round(countOrWeight * Number(updated.pricePerKg));
+        const deliveryFee = updated.deliveryFee !== undefined ? Number(updated.deliveryFee) : 0;
+        
+        updated.serviceSubtotal = subtotal;
         updated.totalPrice = (serviceUpdates.totalPrice !== undefined && serviceUpdates.totalPrice !== null)
           ? Number(serviceUpdates.totalPrice)
-          : Math.round(billableKg * Number(updated.pricePerKg));
+          : (subtotal + deliveryFee);
 
         const newTimelineEvent = {
           status: updated.status,

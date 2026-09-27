@@ -62,13 +62,58 @@ export const TIME_SLOTS = [
   '18:00 - 20:30 (Evening Rush)'
 ];
 
+export const INITIAL_CATEGORIES = [
+  {
+    id: 'laundry_by_weight',
+    name: 'Laundry by Weight (KG)',
+    nameTh: 'ซัก อบ รีด ตามน้ำหนัก (กิโลกรัม)',
+    icon: 'scale',
+    badge: '🧺 By Weight (KG)',
+    pricingType: 'weight',
+    description: 'Everyday casual clothes, gym wear, shirts, socks, and garments billed transparently by digital certified scale weight.',
+    displayOrder: 1
+  },
+  {
+    id: 'bedding_linens',
+    name: 'Bedding, Linens & Comforters',
+    nameTh: 'เครื่องนอนและผ้านวม (คิดเป็นชิ้น)',
+    icon: 'bed',
+    badge: '🛏️ Per Piece / Item',
+    pricingType: 'piece',
+    description: 'Bulky bedsheets, duvet covers, comforters, pillowcases, and blankets washed in heavy-duty commercial machines with hypoallergenic sanitization.',
+    displayOrder: 2
+  },
+  {
+    id: 'household_curtains',
+    name: 'Curtains & Household Items',
+    nameTh: 'ผ้าม่านและของใช้ในบ้าน',
+    icon: 'home',
+    badge: '🛋️ Per Piece / Set',
+    pricingType: 'piece',
+    description: 'Window drapes, curtains, sofa covers, bath towels, and decorative textiles refreshed and steam-pressed.',
+    displayOrder: 3
+  },
+  {
+    id: 'delicate_dryclean',
+    name: 'Delicates & Special Care',
+    nameTh: 'ผ้าไหมและชุดพิเศษ',
+    icon: 'sparkles',
+    badge: '✨ Specialty Care',
+    pricingType: 'piece',
+    description: 'Formal blazers, evening silk dresses, wool suits, and luxury garments requiring gentle care.',
+    displayOrder: 4
+  }
+];
+
 export const INITIAL_SERVICES = [
   {
     id: 'wash_fold',
+    categoryId: 'laundry_by_weight',
     name: 'Wash / Fold',
     nameTh: 'ซัก อบ พับ',
-    description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and bed linens washed with premium detergent, tumble dried, and neatly folded.',
+    description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
     unit: 'KG',
+    pricingType: 'weight',
     pricePerKg: 65,
     standardPricePerKg: 65,
     nextDayPricePerKg: 85,
@@ -87,10 +132,12 @@ export const INITIAL_SERVICES = [
   },
   {
     id: 'wash_iron_fold',
+    categoryId: 'laundry_by_weight',
     name: 'Wash / Iron / Fold',
     nameTh: 'ซัก อบ รีด พับ',
     description: 'Ideal for workwear, cotton shirts, chinos, and dresses that require crisp steam ironing and tidy folded packaging.',
     unit: 'KG',
+    pricingType: 'weight',
     pricePerKg: 95,
     standardPricePerKg: 95,
     nextDayPricePerKg: 130,
@@ -109,10 +156,12 @@ export const INITIAL_SERVICES = [
   },
   {
     id: 'wash_iron_hang',
+    categoryId: 'laundry_by_weight',
     name: 'Wash / Iron / Hang',
     nameTh: 'ซัก อบ รีด แขวน',
     description: 'Perfect for business suits, formal button-downs, evening dresses, and delicate linen blouses returned wrinkle-free on high-grade hangers.',
     unit: 'KG',
+    pricingType: 'weight',
     pricePerKg: 120,
     standardPricePerKg: 120,
     nextDayPricePerKg: 160,
@@ -127,6 +176,164 @@ export const INITIAL_SERVICES = [
       'Heavy-duty hangers included at no extra cost',
       'Full-length breathable garment cover',
       'Direct-to-wardrobe ready on delivery'
+    ]
+  },
+  {
+    id: 'comforter_duvet',
+    categoryId: 'bedding_linens',
+    name: 'Duvet / Comforter / Blanket',
+    nameTh: 'ผ้านวม / ไส้ผ้านวม / ผ้าห่มหนา',
+    description: 'Bulky King/Queen comforters and thick winter blankets washed in high-capacity drums with anti-dust mite heat sanitization and fluffy loft restoration.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 220,
+    standardPricePerKg: 220,
+    nextDayPricePerKg: 280,
+    sameDayPricePerKg: 350,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: true,
+    features: [
+      'High-capacity commercial drum washer',
+      'Anti-dust mite thermal sanitization',
+      'Gentle tumble dry for loft restoration',
+      'Breathable zipper storage bag included'
+    ]
+  },
+  {
+    id: 'bedsheet_set',
+    categoryId: 'bedding_linens',
+    name: 'Bed Sheet / Fitted Sheet',
+    nameTh: 'ผ้าปูที่นอน (King / Queen / Single)',
+    description: 'Deep-cleaned bed sheets with fabric softening conditioner and hotel-grade flatwork steam ironing for an ultra-smooth bedtime feel.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 80,
+    standardPricePerKg: 80,
+    nextDayPricePerKg: 110,
+    sameDayPricePerKg: 150,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: true,
+    features: [
+      'Deep dirt and sweat extraction',
+      'Gentle fabric conditioning for silky touch',
+      'Steam ironed for smooth hotel-finish crispness',
+      'Individual moisture-proof protective packaging'
+    ]
+  },
+  {
+    id: 'duvet_cover',
+    categoryId: 'bedding_linens',
+    name: 'Duvet Cover',
+    nameTh: 'ปลอกผ้านวม',
+    description: 'Premium washing and professional steam ironing for duvet covers of all fabric blends and thread counts.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 90,
+    standardPricePerKg: 90,
+    nextDayPricePerKg: 120,
+    sameDayPricePerKg: 160,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: false,
+    features: [
+      'Color-safe fabric brightening detergent',
+      'Anti-static soft finish',
+      'Crisp steam pressing',
+      'Tidy compact folding'
+    ]
+  },
+  {
+    id: 'pillowcase',
+    categoryId: 'bedding_linens',
+    name: 'Pillowcase / Bolstercase',
+    nameTh: 'ปลอกหมอน / ปลอกหมอนข้าง',
+    description: 'Sanitized hot wash treatment to remove facial oils and allergens, finished with steam pressing.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 30,
+    standardPricePerKg: 30,
+    nextDayPricePerKg: 45,
+    sameDayPricePerKg: 60,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: false,
+    features: [
+      'Hypoallergenic sanitizing cycle',
+      'Gentle skin-friendly conditioner',
+      'Hand-finished steam ironed'
+    ]
+  },
+  {
+    id: 'mattress_topper',
+    categoryId: 'bedding_linens',
+    name: 'Mattress Protector / Topper',
+    nameTh: 'ผ้ารองกันเปื้อนที่นอน / ท็อปเปอร์',
+    description: 'Deep stain extraction and sanitized drying for quilted mattress protectors, toppers, and waterproof pads.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 180,
+    standardPricePerKg: 180,
+    nextDayPricePerKg: 240,
+    sameDayPricePerKg: 320,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: false,
+    features: [
+      'Deep stain lifting pre-treatment',
+      'Multi-layer moisture extraction',
+      'Low-heat protective drying'
+    ]
+  },
+  {
+    id: 'bath_towel',
+    categoryId: 'household_curtains',
+    name: 'Bath Towel & Bath Mat',
+    nameTh: 'ผ้าเช็ดตัวและผ้าเช็ดเท้า',
+    description: 'Plush washing, fabric conditioning, and high-heat sanitizing for fluffy, absorbent, fresh-smelling towels.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 45,
+    standardPricePerKg: 45,
+    nextDayPricePerKg: 60,
+    sameDayPricePerKg: 80,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: false,
+    features: [
+      'Fluffy loft restoration cycle',
+      'Anti-bacterial sanitizing rinse',
+      'Hotel-style compact rolling or folding'
+    ]
+  },
+  {
+    id: 'curtains_drapes',
+    categoryId: 'household_curtains',
+    name: 'Curtains / Window Drapes',
+    nameTh: 'ผ้าม่านและมู่ลี่ผ้า',
+    description: 'Dust mite removal, gentle fabric wash, and vertical steam pressing for blackout curtains and sheer drapes.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 160,
+    standardPricePerKg: 160,
+    nextDayPricePerKg: 220,
+    sameDayPricePerKg: 290,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: false,
+    features: [
+      'Allergen & dust mite thermal removal',
+      'Fabric shape and pleat preservation',
+      'Wrinkle-free steam finishing',
+      'Protective hanging or folded delivery'
     ]
   }
 ];

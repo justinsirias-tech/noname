@@ -9,7 +9,9 @@ import GoogleMapsCondoAutocomplete from './GoogleMapsCondoAutocomplete.jsx';
 
 export function BookingWizard({ services, initialServiceId, initialWeight, onBookingSuccess, onViewFullTerms }) {
   const [serviceId, setServiceId] = useState(initialServiceId || services[0]?.id || 'wash_fold');
+  const [activeCategory, setActiveCategory] = useState('all');
   const [estimatedWeightKg, setEstimatedWeightKg] = useState(initialWeight || 4.0);
+  const [pieceQuantity, setPieceQuantity] = useState(1);
   const [turnaroundSpeed, setTurnaroundSpeed] = useState('standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
   // Customer Info
@@ -55,6 +57,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
   const [showQrCode, setShowQrCode] = useState(false);
 
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
+  const categories = laundryStore.getCategories ? laundryStore.getCategories() : [];
 
   // Update selected service if props change
   useEffect(() => {
@@ -63,8 +66,9 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
   }, [initialServiceId, initialWeight]);
 
   const currentService = services.find(s => s.id === serviceId) || services[0];
+  const isPiece = currentService?.pricingType === 'piece' || currentService?.unit === 'piece';
   const isSameDayAvailable = currentService?.sameDayAvailable !== false;
-  const minWeight = Number(currentService?.minWeightKg || 4.0);
+  const minWeight = Number(currentService?.minWeightKg || (isPiece ? 1.0 : 4.0));
   const standardRate = Number(currentService?.standardPricePerKg || currentService?.pricePerKg || 65);
   const nextDayRate = Number(currentService?.nextDayPricePerKg || Math.round(standardRate * 1.3));
   const sameDayRate = Number(currentService?.sameDayPricePerKg || Math.round(standardRate * 1.75));
@@ -84,8 +88,10 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
   else if (activeSpeed === 'next_day_24h') priceRate = nextDayRate;
   else priceRate = standardRate;
 
-  const billableWeight = Math.max(Number(estimatedWeightKg), minWeight);
-  const estimatedTotal = Math.round(billableWeight * priceRate);
+  const billableAmount = isPiece
+    ? Math.max(1, Number(pieceQuantity))
+    : Math.max(Number(estimatedWeightKg), minWeight);
+  const estimatedTotal = Math.round(billableAmount * priceRate);
   const deliveryInfo = laundryStore.calculateDeliveryFee(postalCode, estimatedTotal);
   const grandEstimatedTotal = estimatedTotal + deliveryInfo.fee;
 
@@ -129,7 +135,10 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
       condoName: condoName.trim(),
       roomNumber: roomNumber.trim(),
       leaveWithJuristic,
-      estimatedWeightKg: Number(estimatedWeightKg),
+      estimatedWeightKg: isPiece ? null : Number(estimatedWeightKg),
+      quantity: isPiece ? pieceQuantity : Number(estimatedWeightKg),
+      unit: isPiece ? (currentService.unit || 'piece') : 'KG',
+      categoryId: currentService.categoryId || 'laundry_by_weight',
       pricePerKg: priceRate,
       serviceSubtotal: estimatedTotal,
       deliveryFee: deliveryInfo.fee,
@@ -303,23 +312,73 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
       <form onSubmit={handleSubmit} className="space-y-8">
         
-        {/* Step 1: Select Service & Weight */}
+        {/* Step 1: Select Service & Weight / Quantity */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">1</span>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Service & Turnaround Speed</h2>
-              <p className="text-xs text-slate-500">Select your laundry service and preferred turnaround speed. All billing is strictly by weight (KG).</p>
+              <h2 className="text-lg font-bold text-slate-900">Service, Linens & Turnaround Speed</h2>
+              <p className="text-xs text-slate-500">Select laundry by weight or specialty linens, comforters, and curtains billed per piece.</p>
             </div>
           </div>
 
+          {/* Category Tabs Filter */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setActiveCategory('all')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 border ${
+                activeCategory === 'all'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <span>All Services</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeCategory === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                {services.length}
+              </span>
+            </button>
+            {categories.map((cat) => {
+              const count = services.filter(s => s.categoryId === cat.id).length;
+              const isCatActive = activeCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory(cat.id);
+                    const firstInCat = services.find(s => s.categoryId === cat.id);
+                    if (firstInCat && currentService.categoryId !== cat.id) {
+                      setServiceId(firstInCat.id);
+                    }
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 border ${
+                    isCatActive
+                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon name={cat.icon || 'folder'} className="w-3.5 h-3.5" />
+                  <span>{cat.name}</span>
+                  {count > 0 && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isCatActive ? 'bg-sky-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Service Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {services.map((srv) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(activeCategory === 'all' ? services : services.filter(s => s.categoryId === activeCategory)).map((srv) => {
               const srvStd = srv.standardPricePerKg || srv.pricePerKg || 65;
               const srvNext = srv.nextDayPricePerKg || Math.round(srvStd * 1.3);
               const srvSame = srv.sameDayPricePerKg || Math.round(srvStd * 1.75);
               const isSelected = serviceId === srv.id;
+              const srvIsPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+              const unitLabel = srvIsPiece ? (srv.unit || 'piece') : 'KG';
 
               return (
                 <div
@@ -330,39 +389,52 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                       setTurnaroundSpeed('standard_48h');
                     }
                   }}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between ${
                     isSelected
-                      ? 'border-sky-600 bg-sky-50/60 shadow-sm'
+                      ? 'border-sky-600 bg-sky-50/60 shadow-sm ring-1 ring-sky-500'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-extrabold text-sm text-slate-900">{srv.name}</div>
-                      <div className="text-[11px] text-slate-500 font-medium">{srv.nameTh}</div>
-                    </div>
-                    {isSelected && (
-                      <div className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center shrink-0">
-                        <Icon name="check" className="w-3.5 h-3.5" />
+                  <div>
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-extrabold text-sm text-slate-900">{srv.name}</span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                            srvIsPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+                          }`}>
+                            {srvIsPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-medium">{srv.nameTh}</div>
                       </div>
-                    )}
+                      {isSelected && (
+                        <div className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center shrink-0">
+                          <Icon name="check" className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                      {srv.description}
+                    </p>
                   </div>
 
                   <div className="mt-3 pt-2.5 border-t border-slate-200/70 space-y-1">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-600 font-medium">Standard (48h):</span>
-                      <span className="font-extrabold text-slate-800">฿{srvStd} / KG</span>
+                      <span className="font-extrabold text-slate-800">฿{srvStd} / {unitLabel}</span>
                     </div>
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-sky-700 font-medium">Next Day (24h):</span>
-                      <span className="font-extrabold text-sky-700">฿{srvNext} / KG</span>
+                      <span className="font-extrabold text-sky-700">฿{srvNext} / {unitLabel}</span>
                     </div>
                     {srv.sameDayAvailable !== false ? (
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-amber-800 font-medium flex items-center gap-0.5">
                           <span>🚀 Same Day (&lt;18h):</span>
                         </span>
-                        <span className="font-extrabold text-amber-700">฿{srvSame} / KG</span>
+                        <span className="font-extrabold text-amber-700">฿{srvSame} / {unitLabel}</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between text-[11px] text-slate-400">
@@ -370,10 +442,10 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                         <span>N/A</span>
                       </div>
                     )}
-                  </div>
 
-                  <div className="text-[11px] text-slate-400 mt-2 font-mono">
-                    Min weight: {srv.minWeightKg || 4.0} KG
+                    <div className="text-[10px] text-slate-400 pt-1 font-mono">
+                      {srvIsPiece ? `Min quantity: ${srv.minWeightKg || 1} ${unitLabel}` : `Min billable: ${srv.minWeightKg || 4.0} KG`}
+                    </div>
                   </div>
                 </div>
               );
@@ -407,7 +479,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                       🕒 Standard 48h
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold text-xs">
-                      ฿{standardRate}/KG
+                      ฿{standardRate} / {isPiece ? (currentService.unit || 'pc') : 'KG'}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
@@ -441,7 +513,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                       ⚡ Next Day 24h
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-xs">
-                      ฿{nextDayRate}/KG
+                      ฿{nextDayRate} / {isPiece ? (currentService.unit || 'pc') : 'KG'}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
@@ -480,7 +552,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                       <span className="text-[9px] uppercase font-bold bg-amber-200 text-amber-900 px-1 py-0.2 rounded">&lt;18:00</span>
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs">
-                      ฿{sameDayRate}/KG
+                      ฿{sameDayRate} / {isPiece ? (currentService.unit || 'pc') : 'KG'}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
@@ -495,70 +567,122 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
             </div>
           </div>
 
-          {/* Weight Slider */}
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                Estimated Laundry Weight (KG)
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  step="0.5"
-                  value={estimatedWeightKg}
-                  onChange={(e) => setEstimatedWeightKg(parseFloat(e.target.value) || 1)}
-                  className="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-sm font-bold text-center text-slate-900"
-                />
-                <span className="text-xs font-bold text-slate-600">KG</span>
+          {/* Pricing Controls: Quantity Counter for Piece Items vs Weight Slider for KG Items */}
+          {isPiece ? (
+            <div className="bg-gradient-to-r from-sky-50 to-indigo-50/60 p-5 rounded-2xl border border-sky-200/80 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                    <Icon name="bed" className="w-4 h-4 text-sky-600" />
+                    <span>Item Quantity ({currentService.unit || 'Piece'})</span>
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Select the number of {currentService.name.toLowerCase()} items to process
+                  </p>
+                </div>
+
+                {/* Quantity Counter */}
+                <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setPieceQuantity(prev => Math.max(1, prev - 1))}
+                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center transition active:scale-95"
+                  >
+                    -
+                  </button>
+                  <span className="w-12 text-center text-lg font-black text-slate-900 font-mono">
+                    {pieceQuantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPieceQuantity(prev => Math.min(50, prev + 1))}
+                    className="w-8 h-8 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-base flex items-center justify-center transition active:scale-95"
+                  >
+                    +
+                  </button>
+                  <span className="text-xs font-bold text-slate-600 pr-1">
+                    {currentService.unit || 'pc'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-sky-200/60 flex items-center justify-between text-sm">
+                <div>
+                  <span className="font-semibold text-slate-700 block">Service Subtotal:</span>
+                  <span className="text-[11px] text-slate-500">
+                    {pieceQuantity} {currentService.unit || 'pieces'} × ฿{priceRate} / {currentService.unit || 'pc'} ({activeSpeed === 'same_day' ? 'Same Day' : activeSpeed === 'next_day_24h' ? 'Next Day' : 'Standard 48h'})
+                  </span>
+                </div>
+                <span className={`text-2xl font-black ${activeSpeed === 'same_day' ? 'text-amber-600' : 'text-sky-600'}`}>
+                  ฿{estimatedTotal} THB
+                </span>
               </div>
             </div>
+          ) : (
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  Estimated Laundry Weight (KG)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    step="0.5"
+                    value={estimatedWeightKg}
+                    onChange={(e) => setEstimatedWeightKg(parseFloat(e.target.value) || 1)}
+                    className="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-sm font-bold text-center text-slate-900"
+                  />
+                  <span className="text-xs font-bold text-slate-600">KG</span>
+                </div>
+              </div>
 
-            <input
-              type="range"
-              min="1.0"
-              max="20.0"
-              step="0.5"
-              value={estimatedWeightKg}
-              onChange={(e) => setEstimatedWeightKg(parseFloat(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
-            />
+              <input
+                type="range"
+                min="1.0"
+                max="20.0"
+                step="0.5"
+                value={estimatedWeightKg}
+                onChange={(e) => setEstimatedWeightKg(parseFloat(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+              />
 
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-1 flex-wrap gap-2">
-              <span>Selected: <strong>{estimatedWeightKg} KG</strong></span>
-              <span>Min Billed: <strong>{minWeight} KG</strong></span>
-              <span>
-                Active Rate: <strong className={activeSpeed === 'same_day' ? 'text-amber-800' : 'text-sky-700'}>
-                  ฿{priceRate}/KG ({activeSpeed === 'same_day' ? '⚡ Same Day' : '🕒 Next Day'})
-                </strong>
-              </span>
-            </div>
-
-            {Number(estimatedWeightKg) < minWeight && (
-              <p className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-2">
-                <Icon name="shieldAlert" className="w-4 h-4 text-amber-600 shrink-0" />
+              <div className="flex items-center justify-between text-xs text-slate-500 pt-1 flex-wrap gap-2">
+                <span>Selected: <strong>{estimatedWeightKg} KG</strong></span>
+                <span>Min Billed: <strong>{minWeight} KG</strong></span>
                 <span>
-                  The minimum weight for <strong>{currentService.name}</strong> is {minWeight} KG. Your order will be billed for at least {minWeight} KG (฿{minWeight * priceRate} THB).
-                </span>
-              </p>
-            )}
-
-            <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
-              <div>
-                <span className="font-semibold text-slate-700 block">Estimated Total:</span>
-                <span className="text-[11px] text-slate-400">
-                  {billableWeight} KG × ฿{priceRate}/KG ({activeSpeed === 'same_day' ? 'Same Day' : 'Next Day'})
+                  Active Rate: <strong className={activeSpeed === 'same_day' ? 'text-amber-800' : 'text-sky-700'}>
+                    ฿{priceRate}/KG ({activeSpeed === 'same_day' ? '⚡ Same Day' : '🕒 Next Day'})
+                  </strong>
                 </span>
               </div>
-              <span className={`text-2xl font-black ${activeSpeed === 'same_day' ? 'text-amber-600' : 'text-sky-600'}`}>
-                ฿{estimatedTotal} THB
-              </span>
+
+              {Number(estimatedWeightKg) < minWeight && (
+                <p className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-2">
+                  <Icon name="shieldAlert" className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    The minimum weight for <strong>{currentService.name}</strong> is {minWeight} KG. Your order will be billed for at least {minWeight} KG (฿{minWeight * priceRate} THB).
+                  </span>
+                </p>
+              )}
+
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
+                <div>
+                  <span className="font-semibold text-slate-700 block">Estimated Total:</span>
+                  <span className="text-[11px] text-slate-400">
+                    {billableAmount} KG × ฿{priceRate}/KG ({activeSpeed === 'same_day' ? 'Same Day' : 'Next Day'})
+                  </span>
+                </div>
+                <span className={`text-2xl font-black ${activeSpeed === 'same_day' ? 'text-amber-600' : 'text-sky-600'}`}>
+                  ฿{estimatedTotal} THB
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                * Official weight is verified on certified digital scales at our central Bangkok facility.
+              </p>
             </div>
-            <p className="text-[11px] text-slate-400">
-              * Official weight is verified on certified digital scales at our central Bangkok facility.
-            </p>
-          </div>
+          )}
         </div>
 
         {/* Step 2: Digital Contact Information (WhatsApp / LINE / Email) */}
@@ -1119,7 +1243,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
               <span className="text-slate-400 font-mono font-normal">Bangkok Postal Code: {postalCode}</span>
             </div>
             <div className="flex items-center justify-between text-slate-600">
-              <span>{currentService.name} ({billableWeight} KG × ฿{priceRate}/KG):</span>
+              <span>{currentService.name} ({isPiece ? `${billableAmount} ${currentService.unit || 'pieces'} × ฿${priceRate}/${currentService.unit || 'pc'}` : `${billableAmount} KG × ฿${priceRate}/KG`}):</span>
               <span className="font-semibold text-slate-800">฿{estimatedTotal} THB</span>
             </div>
             <div className="flex items-center justify-between text-slate-600">
