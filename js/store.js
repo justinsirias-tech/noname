@@ -759,14 +759,29 @@ export class LaundryStore {
       unitPrice = Number(service.standardPricePerKg || service.pricePerKg || 65);
     }
 
-    const isPiece = service.pricingType === 'piece' || service.unit === 'piece' || orderInput.unit === 'piece';
-    const quantity = (orderInput.quantity !== undefined && orderInput.quantity !== null && orderInput.quantity !== '')
-      ? Number(orderInput.quantity)
-      : (isPiece ? 1 : Number(orderInput.estimatedWeightKg || 4.0));
-    const billableAmount = isPiece
-      ? quantity
-      : Math.max(Number(orderInput.estimatedWeightKg || 4.0), Number(service.minWeightKg || 4.0));
-    const calculatedTotal = Math.round(billableAmount * unitPrice);
+    const hasMultiItems = Array.isArray(orderInput.items) && orderInput.items.length > 0;
+    const isPiece = !hasMultiItems && (service.pricingType === 'piece' || service.unit === 'piece' || orderInput.unit === 'piece');
+    const quantity = hasMultiItems
+      ? orderInput.items.filter(i => i.pricingType === 'piece' || i.unit === 'piece').reduce((s, i) => s + (Number(i.quantity) || 1), 0)
+      : ((orderInput.quantity !== undefined && orderInput.quantity !== null && orderInput.quantity !== '')
+        ? Number(orderInput.quantity)
+        : (isPiece ? 1 : Number(orderInput.estimatedWeightKg || 4.0)));
+    const totalEstWeight = hasMultiItems
+      ? orderInput.items.filter(i => i.pricingType !== 'piece' && i.unit !== 'piece').reduce((s, i) => s + (Number(i.estimatedWeightKg || i.billableAmount) || 0), 0)
+      : (isPiece ? null : Number(orderInput.estimatedWeightKg || 4.0));
+
+    let calculatedTotal = 0;
+    let mainServiceName = service.name;
+
+    if (hasMultiItems) {
+      calculatedTotal = orderInput.items.reduce((sum, it) => sum + (Number(it.subtotal) || 0), 0);
+      mainServiceName = orderInput.items.map(i => i.serviceName).join(' + ');
+    } else {
+      const billableAmount = isPiece
+        ? quantity
+        : Math.max(Number(orderInput.estimatedWeightKg || 4.0), Number(service.minWeightKg || 4.0));
+      calculatedTotal = Math.round(billableAmount * unitPrice);
+    }
 
     const postalCode = (orderInput.postalCode || DISTRICT_TO_POSTAL_CODE[orderInput.district] || '10110').trim();
     const deliveryCalc = this.calculateDeliveryFee(postalCode, calculatedTotal);
@@ -797,18 +812,19 @@ export class LaundryStore {
       contactValue: orderInput.contactValue,
       email: orderInput.email,
       serviceId: service.id,
-      serviceName: service.name,
+      serviceName: mainServiceName,
+      items: hasMultiItems ? orderInput.items : null,
       district: orderInput.district,
       condoName: orderInput.condoName,
       roomNumber: orderInput.roomNumber,
       postalCode,
       leaveWithJuristic: Boolean(orderInput.leaveWithJuristic),
-      estimatedWeightKg: isPiece ? null : Number(orderInput.estimatedWeightKg || 4.0),
+      estimatedWeightKg: totalEstWeight,
       actualWeightKg: null,
       minWeightAppliedKg: isPiece ? 1.0 : service.minWeightKg,
       pricePerKg: unitPrice,
       quantity,
-      unit: isPiece ? (service.unit || 'piece') : 'KG',
+      unit: isPiece ? (service.unit || 'piece') : (hasMultiItems ? 'bundle' : 'KG'),
       categoryId: service.categoryId || 'laundry_by_weight',
       serviceSubtotal: calculatedTotal,
       deliveryFee,

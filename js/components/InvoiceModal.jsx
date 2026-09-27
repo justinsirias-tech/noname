@@ -67,9 +67,16 @@ ${order.specialInstructions ? `Note: "${order.specialInstructions}"\n` : ''}━�
 🧼 *Service & Intake Breakdown:*
 • Service Plan: *${order.serviceName}*
 • Turnaround Speed: *${speedLabel}*
-${isPiece ? `• Quantity: *${quantity} ${unitLabel}(s)*
+${Array.isArray(order.items) && order.items.length > 0 
+  ? order.items.map(it => {
+      const isPc = it.pricingType === 'piece' || it.unit === 'piece';
+      const uLbl = it.unit || (isPc ? 'pc' : 'KG');
+      const qtyStr = isPc ? `${it.quantity} ${uLbl}` : `${it.billableAmount || it.estimatedWeightKg} KG`;
+      return `• ${it.serviceName}: ${qtyStr} × ฿${it.pricePerKg}/${uLbl} = *฿${it.subtotal} THB*`;
+    }).join('\n')
+  : (isPiece ? `• Quantity: *${quantity} ${unitLabel}(s)*
 • Rate per ${unitLabel}: *฿${unitRate} THB / ${unitLabel}*` : `• Intake Weight: *${certifiedWeight} KG* (Min ${minWeight} KG applied -> *${billableWeight} KG*)
-• Rate per KG: *฿${unitRate} THB / KG*`}
+• Rate per KG: *฿${unitRate} THB / KG*`)}
 • Service Subtotal: *฿${serviceSubtotal} THB*
 • Bangkok Delivery Fee (${order.postalCode || 'Bangkok'}): *${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE (฿0 THB)'}*
 • Pickup Window: *${order.pickupDate || 'Scheduled'} (${order.pickupTime || ''})*
@@ -407,34 +414,69 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <tr>
-                    <td className="py-3 pr-2">
-                      <div className="font-extrabold text-slate-900">{order.serviceName}</div>
-                      <div className="text-[11px] text-slate-500">
-                        Turnaround: <span className="font-bold text-sky-700">{speedLabel}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {isPiece ? 'Specialized linen / garment sanitization & protective packaging' : 'Certified facility wash, tumble dry & packaging'}
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 text-center font-mono font-bold text-slate-700">
-                      {isPiece ? `${quantity} ${unitLabel}` : `${certifiedWeight} KG`}
-                    </td>
-                    <td className="py-3 px-2 text-center font-mono font-bold text-slate-900">
-                      {isPiece ? `${quantity} ${unitLabel}` : `${billableWeight} KG`}
-                      {!isPiece && billableWeight > certifiedWeight && (
-                        <span className="block text-[9px] text-amber-700 font-normal">
-                          (Min {minWeight} KG applied)
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-2 text-right font-mono text-slate-700">
-                      ฿{unitRate} / {unitLabel}
-                    </td>
-                    <td className="py-3 pl-2 text-right font-mono font-extrabold text-slate-900">
-                      ฿{serviceSubtotal}
-                    </td>
-                  </tr>
+                  {Array.isArray(order.items) && order.items.length > 0 ? (
+                    order.items.map((it, idx) => {
+                      const itIsPiece = it.pricingType === 'piece' || it.unit === 'piece';
+                      const itUnit = it.unit || (itIsPiece ? 'pc' : 'KG');
+                      const itQty = itIsPiece ? it.quantity : (it.estimatedWeightKg || it.billableAmount || 1);
+                      const itBillable = it.billableAmount || itQty;
+
+                      return (
+                        <tr key={idx}>
+                          <td className="py-3 pr-2">
+                            <div className="font-extrabold text-slate-900">{it.serviceName}</div>
+                            <div className="text-[11px] text-slate-500">
+                              Turnaround: <span className="font-bold text-sky-700">{speedLabel}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {itIsPiece ? 'Specialized linen / garment sanitization & protective packaging' : 'Certified facility wash, tumble dry & packaging'}
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono font-bold text-slate-700">
+                            {itQty} {itUnit}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono font-bold text-slate-900">
+                            {itBillable} {itUnit}
+                          </td>
+                          <td className="py-3 px-2 text-right font-mono text-slate-700">
+                            ฿{it.pricePerKg} / {itUnit}
+                          </td>
+                          <td className="py-3 pl-2 text-right font-mono font-extrabold text-slate-900">
+                            ฿{it.subtotal}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td className="py-3 pr-2">
+                        <div className="font-extrabold text-slate-900">{order.serviceName}</div>
+                        <div className="text-[11px] text-slate-500">
+                          Turnaround: <span className="font-bold text-sky-700">{speedLabel}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {isPiece ? 'Specialized linen / garment sanitization & protective packaging' : 'Certified facility wash, tumble dry & packaging'}
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 text-center font-mono font-bold text-slate-700">
+                        {isPiece ? `${quantity} ${unitLabel}` : `${certifiedWeight} KG`}
+                      </td>
+                      <td className="py-3 px-2 text-center font-mono font-bold text-slate-900">
+                        {isPiece ? `${quantity} ${unitLabel}` : `${billableWeight} KG`}
+                        {!isPiece && billableWeight > certifiedWeight && (
+                          <span className="block text-[9px] text-amber-700 font-normal">
+                            (Min {minWeight} KG applied)
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-2 text-right font-mono text-slate-700">
+                        ฿{unitRate} / {unitLabel}
+                      </td>
+                      <td className="py-3 pl-2 text-right font-mono font-extrabold text-slate-900">
+                        ฿{serviceSubtotal}
+                      </td>
+                    </tr>
+                  )}
 
                   {/* Bangkok Fixed Pickup & Delivery Fee */}
                   <tr>

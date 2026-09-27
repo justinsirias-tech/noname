@@ -74,6 +74,7 @@ export function App() {
   // Booking Flow parameters
   const [bookingPrefillService, setBookingPrefillService] = useState(null);
   const [bookingPrefillWeight, setBookingPrefillWeight] = useState(null);
+  const [bookingPrefillItems, setBookingPrefillItems] = useState(null);
   const [activeTrackingId, setActiveTrackingId] = useState(initialParams.trackingId);
   const [initialOpenPayment, setInitialOpenPayment] = useState(initialParams.openPayment);
 
@@ -183,9 +184,10 @@ export function App() {
   };
 
   // Switch to Booking with selected service
-  const handleSelectServiceForBooking = (serviceId, minWeight) => {
+  const handleSelectServiceForBooking = (serviceId, minWeight, multiItems = null) => {
     setBookingPrefillService(serviceId);
     setBookingPrefillWeight(minWeight);
+    setBookingPrefillItems(multiItems);
     setCurrentView('book');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -386,6 +388,7 @@ export function App() {
             services={storeState.services}
             initialServiceId={bookingPrefillService}
             initialWeight={bookingPrefillWeight}
+            initialSelectedItems={bookingPrefillItems}
             onBookingSuccess={handleBookingSuccess}
             onViewFullTerms={() => navigateTo('terms')}
           />

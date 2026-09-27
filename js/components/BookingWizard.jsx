@@ -7,11 +7,33 @@ import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundrySt
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 import GoogleMapsCondoAutocomplete from './GoogleMapsCondoAutocomplete.jsx';
 
-export function BookingWizard({ services, initialServiceId, initialWeight, onBookingSuccess, onViewFullTerms }) {
-  const [serviceId, setServiceId] = useState(initialServiceId || services[0]?.id || 'wash_fold');
+export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, onBookingSuccess, onViewFullTerms }) {
+  // Support multi-service selection map: { [serviceId]: { weightKg, quantity } }
+  const [selectedServicesMap, setSelectedServicesMap] = useState(() => {
+    if (Array.isArray(initialSelectedItems) && initialSelectedItems.length > 0) {
+      const map = {};
+      initialSelectedItems.forEach(it => {
+        if (it && it.id) {
+          map[it.id] = {
+            weightKg: Number(it.weight || it.estimatedWeightKg || it.minWeight || 4.0),
+            quantity: Number(it.qty || it.quantity || 1)
+          };
+        }
+      });
+      if (Object.keys(map).length > 0) return map;
+    }
+    const defaultId = initialServiceId || services[0]?.id || 'wash_fold';
+    const defaultSrv = services.find(s => s.id === defaultId);
+    const isPc = defaultSrv?.pricingType === 'piece' || defaultSrv?.unit === 'piece';
+    return {
+      [defaultId]: {
+        weightKg: initialWeight || (isPc ? 1.0 : Number(defaultSrv?.minWeightKg || 4.0)),
+        quantity: 1
+      }
+    };
+  });
+
   const [activeCategory, setActiveCategory] = useState('all');
-  const [estimatedWeightKg, setEstimatedWeightKg] = useState(initialWeight || 4.0);
-  const [pieceQuantity, setPieceQuantity] = useState(1);
   const [turnaroundSpeed, setTurnaroundSpeed] = useState('standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
   // Customer Info
@@ -59,22 +81,100 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
   const categories = laundryStore.getCategories ? laundryStore.getCategories() : [];
 
-  // Update selected service if props change
+  // Update selected services if initialSelectedItems or initialServiceId changes
   useEffect(() => {
-    if (initialServiceId) setServiceId(initialServiceId);
-    if (initialWeight) setEstimatedWeightKg(initialWeight);
-  }, [initialServiceId, initialWeight]);
+    if (Array.isArray(initialSelectedItems) && initialSelectedItems.length > 0) {
+      const map = {};
+      initialSelectedItems.forEach(it => {
+        if (it && it.id) {
+          map[it.id] = {
+            weightKg: Number(it.weight || it.estimatedWeightKg || it.minWeight || 4.0),
+            quantity: Number(it.qty || it.quantity || 1)
+          };
+        }
+      });
+      if (Object.keys(map).length > 0) {
+        setSelectedServicesMap(map);
+        return;
+      }
+    }
+    if (initialServiceId) {
+      const srv = services.find(s => s.id === initialServiceId);
+      const isPc = srv?.pricingType === 'piece' || srv?.unit === 'piece';
+      setSelectedServicesMap({
+        [initialServiceId]: {
+          weightKg: initialWeight || (isPc ? 1.0 : Number(srv?.minWeightKg || 4.0)),
+          quantity: 1
+        }
+      });
+    }
+  }, [initialSelectedItems, initialServiceId, initialWeight]);
 
-  const currentService = services.find(s => s.id === serviceId) || services[0];
-  const isPiece = currentService?.pricingType === 'piece' || currentService?.unit === 'piece';
-  const isSameDayAvailable = currentService?.sameDayAvailable !== false;
-  const minWeight = Number(currentService?.minWeightKg || (isPiece ? 1.0 : 4.0));
-  const standardRate = Number(currentService?.standardPricePerKg || currentService?.pricePerKg || 65);
-  const nextDayRate = Number(currentService?.nextDayPricePerKg || Math.round(standardRate * 1.3));
-  const sameDayRate = Number(currentService?.sameDayPricePerKg || Math.round(standardRate * 1.75));
+  const handleToggleService = (srvId) => {
+    const srv = services.find(s => s.id === srvId);
+    if (!srv) return;
+    const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+    const defaultMin = Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
+
+    setSelectedServicesMap(prev => {
+      if (prev[srvId]) {
+        if (Object.keys(prev).length <= 1) return prev;
+        const next = { ...prev };
+        delete next[srvId];
+        return next;
+      } else {
+        return {
+          ...prev,
+          [srvId]: {
+            weightKg: isPiece ? 1.0 : defaultMin,
+            quantity: 1
+          }
+        };
+      }
+    });
+  };
+
+  const handleUpdateWeight = (srvId, newWeight) => {
+    setSelectedServicesMap(prev => ({
+      ...prev,
+      [srvId]: {
+        ...(prev[srvId] || {}),
+        weightKg: Math.max(1, parseFloat(newWeight) || 1)
+      }
+    }));
+  };
+
+  const handleUpdateQuantity = (srvId, delta) => {
+    setSelectedServicesMap(prev => {
+      const current = prev[srvId]?.quantity || 1;
+      const nextQty = Math.max(1, current + delta);
+      return {
+        ...prev,
+        [srvId]: {
+          ...(prev[srvId] || {}),
+          quantity: nextQty
+        }
+      };
+    });
+  };
+
+  const handleRemoveService = (srvId) => {
+    setSelectedServicesMap(prev => {
+      if (Object.keys(prev).length <= 1) return prev;
+      const next = { ...prev };
+      delete next[srvId];
+      return next;
+    });
+  };
+
+  // Turnaround speed and same day availability check across all selected items
+  const allSameDayAvailable = Object.keys(selectedServicesMap).every(id => {
+    const s = services.find(srv => srv.id === id);
+    return s?.sameDayAvailable !== false;
+  });
 
   let activeSpeed = turnaroundSpeed;
-  if (activeSpeed === 'same_day' && !isSameDayAvailable) {
+  if (activeSpeed === 'same_day' && !allSameDayAvailable) {
     activeSpeed = 'standard_48h';
   }
   if (!['standard_48h', 'next_day_24h', 'same_day'].includes(activeSpeed)) {
@@ -83,15 +183,46 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
     else activeSpeed = 'standard_48h';
   }
 
-  let priceRate = standardRate;
-  if (activeSpeed === 'same_day') priceRate = sameDayRate;
-  else if (activeSpeed === 'next_day_24h') priceRate = nextDayRate;
-  else priceRate = standardRate;
+  // Calculate detailed entries for all selected services
+  const selectedEntries = Object.keys(selectedServicesMap).map(id => {
+    const srv = services.find(s => s.id === id);
+    if (!srv) return null;
+    const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+    const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
+    const minWeight = Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
+    const stdRate = Number(srv.standardPricePerKg || srv.pricePerKg || 65);
+    const nextRate = Number(srv.nextDayPricePerKg || Math.round(stdRate * 1.3));
+    const sameRate = Number(srv.sameDayPricePerKg || Math.round(stdRate * 1.75));
 
-  const billableAmount = isPiece
-    ? Math.max(1, Number(pieceQuantity))
-    : Math.max(Number(estimatedWeightKg), minWeight);
-  const estimatedTotal = Math.round(billableAmount * priceRate);
+    let itemRate = stdRate;
+    if (activeSpeed === 'same_day') itemRate = sameRate;
+    else if (activeSpeed === 'next_day_24h') itemRate = nextRate;
+
+    const qty = selectedServicesMap[id]?.quantity || 1;
+    const weight = selectedServicesMap[id]?.weightKg || minWeight;
+    const billable = isPiece ? qty : Math.max(weight, minWeight);
+    const subtotal = Math.round(billable * itemRate);
+
+    return {
+      ...srv,
+      isPiece,
+      unitLabel,
+      minWeight,
+      stdRate,
+      nextRate,
+      sameRate,
+      rate: itemRate,
+      qty,
+      weight,
+      billable,
+      subtotal
+    };
+  }).filter(Boolean);
+
+  const primaryService = selectedEntries[0] || services[0];
+  const estimatedTotal = selectedEntries.reduce((sum, item) => sum + item.subtotal, 0);
+  const totalWeightKg = selectedEntries.filter(i => !i.isPiece).reduce((sum, i) => sum + i.billable, 0);
+  const totalPieces = selectedEntries.filter(i => i.isPiece).reduce((sum, i) => sum + i.qty, 0);
   const deliveryInfo = laundryStore.calculateDeliveryFee(postalCode, estimatedTotal);
   const grandEstimatedTotal = estimatedTotal + deliveryInfo.fee;
 
@@ -122,24 +253,38 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
     setIsSubmitting(true);
 
+    const items = selectedEntries.map(item => ({
+      serviceId: item.id,
+      serviceName: item.name,
+      pricingType: item.isPiece ? 'piece' : 'weight',
+      unit: item.unitLabel,
+      pricePerKg: item.rate,
+      quantity: item.qty,
+      estimatedWeightKg: item.isPiece ? null : item.weight,
+      billableAmount: item.billable,
+      subtotal: item.subtotal
+    }));
+
     const bookingPayload = {
       customerName: customerName.trim(),
       nickName: nickName.trim(),
       contactChannel,
       contactValue: contactValue.trim(),
       email: email.trim() || `${customerName.toLowerCase().replace(/\s+/g, '')}@customer.local`,
-      serviceId,
+      serviceId: primaryService.id,
+      serviceName: selectedEntries.map(i => i.name).join(' + '),
+      items,
       turnaroundSpeed: activeSpeed,
       district,
       postalCode,
       condoName: condoName.trim(),
       roomNumber: roomNumber.trim(),
       leaveWithJuristic,
-      estimatedWeightKg: isPiece ? null : Number(estimatedWeightKg),
-      quantity: isPiece ? pieceQuantity : Number(estimatedWeightKg),
-      unit: isPiece ? (currentService.unit || 'piece') : 'KG',
-      categoryId: currentService.categoryId || 'laundry_by_weight',
-      pricePerKg: priceRate,
+      estimatedWeightKg: totalWeightKg > 0 ? totalWeightKg : null,
+      quantity: totalPieces > 0 ? totalPieces : (totalWeightKg || 1),
+      unit: selectedEntries.length === 1 ? primaryService.unitLabel : 'bundle',
+      categoryId: primaryService.categoryId || 'laundry_by_weight',
+      pricePerKg: primaryService.rate,
       serviceSubtotal: estimatedTotal,
       deliveryFee: deliveryInfo.fee,
       totalPrice: grandEstimatedTotal,
@@ -168,6 +313,9 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
     setTimeout(() => {
       // Save order in store
       const order = laundryStore.createOrder(bookingPayload);
+      if (onBookingSuccess) {
+        onBookingSuccess(bookingPayload);
+      }
       setCompletedOrder(order);
       setIsSubmitting(false);
     }, 400);
@@ -345,13 +493,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() => {
-                    setActiveCategory(cat.id);
-                    const firstInCat = services.find(s => s.categoryId === cat.id);
-                    if (firstInCat && currentService.categoryId !== cat.id) {
-                      setServiceId(firstInCat.id);
-                    }
-                  }}
+                  onClick={() => setActiveCategory(cat.id)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 border ${
                     isCatActive
                       ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
@@ -370,28 +512,23 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
             })}
           </div>
 
-          {/* Service Cards */}
+          {/* Service Cards (Multi-Selectable) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {(activeCategory === 'all' ? services : services.filter(s => s.categoryId === activeCategory)).map((srv) => {
               const srvStd = srv.standardPricePerKg || srv.pricePerKg || 65;
               const srvNext = srv.nextDayPricePerKg || Math.round(srvStd * 1.3);
               const srvSame = srv.sameDayPricePerKg || Math.round(srvStd * 1.75);
-              const isSelected = serviceId === srv.id;
+              const isSelected = Boolean(selectedServicesMap[srv.id]);
               const srvIsPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
               const unitLabel = srvIsPiece ? (srv.unit || 'piece') : 'KG';
 
               return (
                 <div
                   key={srv.id}
-                  onClick={() => {
-                    setServiceId(srv.id);
-                    if (srv.sameDayAvailable === false && turnaroundSpeed === 'same_day') {
-                      setTurnaroundSpeed('standard_48h');
-                    }
-                  }}
+                  onClick={() => handleToggleService(srv.id)}
                   className={`p-4 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between ${
                     isSelected
-                      ? 'border-sky-600 bg-sky-50/60 shadow-sm ring-1 ring-sky-500'
+                      ? 'border-sky-600 bg-sky-50/70 shadow-sm ring-2 ring-sky-500/20'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   }`}
                 >
@@ -408,11 +545,14 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                         </div>
                         <div className="text-[11px] text-slate-500 font-medium">{srv.nameTh}</div>
                       </div>
-                      {isSelected && (
-                        <div className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center shrink-0">
-                          <Icon name="check" className="w-3.5 h-3.5" />
-                        </div>
-                      )}
+                      
+                      <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border transition ${
+                        isSelected 
+                          ? 'bg-sky-600 border-sky-600 text-white' 
+                          : 'border-slate-300 text-transparent bg-white hover:border-sky-400'
+                      }`}>
+                        <Icon name="check" className="w-3.5 h-3.5 stroke-[3]" />
+                      </div>
                     </div>
 
                     <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
@@ -454,9 +594,17 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
           {/* Turnaround Speed Selection (3-Tier Options) */}
           <div className="space-y-2.5 pt-1">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-              Select Turnaround Speed *
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                Select Turnaround Speed *
+              </label>
+              {!allSameDayAvailable && (
+                <span className="text-[11px] text-amber-700 font-medium">
+                  * Same Day not available for delicate linens / curtains
+                </span>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               {/* Option 1: Standard 48 Hours */}
               <div
@@ -479,7 +627,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                       🕒 Standard 48h
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold text-xs">
-                      ฿{standardRate} / {isPiece ? (currentService.unit || 'pc') : 'KG'}
+                      Base Rate
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
@@ -513,7 +661,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                       ⚡ Next Day 24h
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-xs">
-                      ฿{nextDayRate} / {isPiece ? (currentService.unit || 'pc') : 'KG'}
+                      +30% Rate
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
@@ -529,10 +677,10 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
               {/* Option 3: Same Day Express */}
               <div
                 onClick={() => {
-                  if (isSameDayAvailable) setTurnaroundSpeed('same_day');
+                  if (allSameDayAvailable) setTurnaroundSpeed('same_day');
                 }}
                 className={`p-4 rounded-2xl border-2 transition flex items-start gap-3 relative ${
-                  !isSameDayAvailable
+                  !allSameDayAvailable
                     ? 'opacity-50 border-slate-200 bg-slate-50 cursor-not-allowed'
                     : activeSpeed === 'same_day'
                     ? 'border-amber-500 bg-amber-50/80 shadow-sm ring-1 ring-amber-500 cursor-pointer'
@@ -552,7 +700,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                       <span className="text-[9px] uppercase font-bold bg-amber-200 text-amber-900 px-1 py-0.2 rounded">&lt;18:00</span>
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs">
-                      ฿{sameDayRate} / {isPiece ? (currentService.unit || 'pc') : 'KG'}
+                      +75% Rate
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
@@ -567,122 +715,160 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
             </div>
           </div>
 
-          {/* Pricing Controls: Quantity Counter for Piece Items vs Weight Slider for KG Items */}
-          {isPiece ? (
-            <div className="bg-gradient-to-r from-sky-50 to-indigo-50/60 p-5 rounded-2xl border border-sky-200/80 space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-                    <Icon name="bed" className="w-4 h-4 text-sky-600" />
-                    <span>Item Quantity ({currentService.unit || 'Piece'})</span>
-                  </label>
-                  <p className="text-[11px] text-slate-500">
-                    Select the number of {currentService.name.toLowerCase()} items to process
-                  </p>
-                </div>
-
-                {/* Quantity Counter */}
-                <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => setPieceQuantity(prev => Math.max(1, prev - 1))}
-                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center transition active:scale-95"
-                  >
-                    -
-                  </button>
-                  <span className="w-12 text-center text-lg font-black text-slate-900 font-mono">
-                    {pieceQuantity}
+          {/* Dedicated Section: Selected Services Itemized Controllers & Quantities */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                  <span>Selected Services &amp; Quantities</span>
+                  <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold">
+                    {selectedEntries.length} {selectedEntries.length === 1 ? 'Service' : 'Services'} Selected
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setPieceQuantity(prev => Math.min(50, prev + 1))}
-                    className="w-8 h-8 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-base flex items-center justify-center transition active:scale-95"
-                  >
-                    +
-                  </button>
-                  <span className="text-xs font-bold text-slate-600 pr-1">
-                    {currentService.unit || 'pc'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-sky-200/60 flex items-center justify-between text-sm">
-                <div>
-                  <span className="font-semibold text-slate-700 block">Service Subtotal:</span>
-                  <span className="text-[11px] text-slate-500">
-                    {pieceQuantity} {currentService.unit || 'pieces'} × ฿{priceRate} / {currentService.unit || 'pc'} ({activeSpeed === 'same_day' ? 'Same Day' : activeSpeed === 'next_day_24h' ? 'Next Day' : 'Standard 48h'})
-                  </span>
-                </div>
-                <span className={`text-2xl font-black ${activeSpeed === 'same_day' ? 'text-amber-600' : 'text-sky-600'}`}>
-                  ฿{estimatedTotal} THB
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  Estimated Laundry Weight (KG)
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    step="0.5"
-                    value={estimatedWeightKg}
-                    onChange={(e) => setEstimatedWeightKg(parseFloat(e.target.value) || 1)}
-                    className="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-sm font-bold text-center text-slate-900"
-                  />
-                  <span className="text-xs font-bold text-slate-600">KG</span>
-                </div>
-              </div>
-
-              <input
-                type="range"
-                min="1.0"
-                max="20.0"
-                step="0.5"
-                value={estimatedWeightKg}
-                onChange={(e) => setEstimatedWeightKg(parseFloat(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
-              />
-
-              <div className="flex items-center justify-between text-xs text-slate-500 pt-1 flex-wrap gap-2">
-                <span>Selected: <strong>{estimatedWeightKg} KG</strong></span>
-                <span>Min Billed: <strong>{minWeight} KG</strong></span>
-                <span>
-                  Active Rate: <strong className={activeSpeed === 'same_day' ? 'text-amber-800' : 'text-sky-700'}>
-                    ฿{priceRate}/KG ({activeSpeed === 'same_day' ? '⚡ Same Day' : '🕒 Next Day'})
-                  </strong>
-                </span>
-              </div>
-
-              {Number(estimatedWeightKg) < minWeight && (
-                <p className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-2">
-                  <Icon name="shieldAlert" className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>
-                    The minimum weight for <strong>{currentService.name}</strong> is {minWeight} KG. Your order will be billed for at least {minWeight} KG (฿{minWeight * priceRate} THB).
-                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Adjust weight or pieces for each chosen service. Click any card above to add or remove services.
                 </p>
-              )}
-
-              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
-                <div>
-                  <span className="font-semibold text-slate-700 block">Estimated Total:</span>
-                  <span className="text-[11px] text-slate-400">
-                    {billableAmount} KG × ฿{priceRate}/KG ({activeSpeed === 'same_day' ? 'Same Day' : 'Next Day'})
-                  </span>
-                </div>
-                <span className={`text-2xl font-black ${activeSpeed === 'same_day' ? 'text-amber-600' : 'text-sky-600'}`}>
-                  ฿{estimatedTotal} THB
-                </span>
               </div>
-              <p className="text-[11px] text-slate-400">
-                * Official weight is verified on certified digital scales at our central Bangkok facility.
-              </p>
             </div>
-          )}
+
+            <div className="space-y-3">
+              {selectedEntries.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-sm text-slate-900">{item.name}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        item.isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+                      }`}>
+                        {item.isPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
+                      </span>
+                      <span className="text-xs text-slate-500 font-medium">
+                        Rate: <strong className="text-slate-800">฿{item.rate} / {item.unitLabel}</strong> ({activeSpeed === 'same_day' ? 'Same Day' : activeSpeed === 'next_day_24h' ? 'Next Day' : 'Standard 48h'})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3">
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Subtotal</span>
+                        <span className="text-base font-black text-sky-700 font-mono">฿{item.subtotal} THB</span>
+                      </div>
+                      {selectedEntries.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveService(item.id)}
+                          className="px-2.5 py-1 text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+                          title="Remove this service"
+                        >
+                          ✕ Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {item.isPiece ? (
+                    /* Piece Counter */
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200 flex items-center justify-between flex-wrap gap-2">
+                      <div className="text-xs text-slate-600 font-medium">
+                        Quantity ({item.unitLabel}):
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQuantity(item.id, -1)}
+                          className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center transition active:scale-95"
+                        >
+                          -
+                        </button>
+                        <span className="w-10 text-center text-lg font-black text-slate-900 font-mono">
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQuantity(item.id, 1)}
+                          className="w-8 h-8 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-base flex items-center justify-center transition active:scale-95"
+                        >
+                          +
+                        </button>
+                        <span className="text-xs font-bold text-slate-600">
+                          {item.unitLabel}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Weight Stepper & Slider */
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700">
+                          Estimated Weight (KG)
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="30"
+                            step="0.5"
+                            value={item.weight}
+                            onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
+                            className="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-sm font-bold text-center text-slate-900"
+                          />
+                          <span className="text-xs font-bold text-slate-600">KG</span>
+                        </div>
+                      </div>
+
+                      <input
+                        type="range"
+                        min="1.0"
+                        max="20.0"
+                        step="0.5"
+                        value={item.weight}
+                        onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                      />
+
+                      <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5 flex-wrap gap-2">
+                        <span>Selected: <strong>{item.weight} KG</strong></span>
+                        <span>Min Billable: <strong>{item.minWeight} KG</strong></span>
+                        <span className="text-slate-600">Billable: <strong className="text-sky-700">{item.billable} KG</strong></span>
+                      </div>
+
+                      {item.weight < item.minWeight && (
+                        <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                          <Icon name="shieldAlert" className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>
+                            Min weight of {item.minWeight} KG applies for <strong>{item.name}</strong>.
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Total Aggregated Summary Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-900 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-sky-300 tracking-wider block">
+                  Aggregated Service Subtotal ({selectedEntries.length} Items)
+                </span>
+                <div className="text-xs text-slate-300 mt-0.5 flex items-center gap-2 flex-wrap">
+                  {totalWeightKg > 0 && <span>• Laundry Weight: <strong>{totalWeightKg.toFixed(1)} KG</strong></span>}
+                  {totalPieces > 0 && <span>• Specialty Linens: <strong>{totalPieces} pieces</strong></span>}
+                  <span>• {activeSpeed === 'same_day' ? '🚀 Same Day Express' : activeSpeed === 'next_day_24h' ? '⚡ Next Day (24h)' : '🕒 Standard (48h)'}</span>
+                </div>
+              </div>
+
+              <div className="flex items-baseline gap-1.5 self-end sm:self-auto">
+                <span className="text-2xl sm:text-3xl font-black text-sky-400 font-mono">
+                  ฿{estimatedTotal}
+                </span>
+                <span className="text-xs text-slate-300 font-bold">THB</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Step 2: Digital Contact Information (WhatsApp / LINE / Email) */}
@@ -1238,15 +1424,26 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
           {/* Order Pricing Breakdown with Postal Code Delivery Fee */}
           <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 text-xs space-y-2">
-            <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider flex items-center justify-between">
-              <span>Order Estimated Breakdown</span>
+            <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider flex items-center justify-between pb-1 border-b border-slate-200/80">
+              <span className="flex items-center gap-1.5">
+                <span>Order Estimated Breakdown</span>
+                <span className="text-[10px] bg-sky-100 text-sky-800 font-bold px-1.5 py-0.2 rounded">
+                  {selectedEntries.length} {selectedEntries.length === 1 ? 'Item' : 'Items'}
+                </span>
+              </span>
               <span className="text-slate-400 font-mono font-normal">Bangkok Postal Code: {postalCode}</span>
             </div>
-            <div className="flex items-center justify-between text-slate-600">
-              <span>{currentService.name} ({isPiece ? `${billableAmount} ${currentService.unit || 'pieces'} × ฿${priceRate}/${currentService.unit || 'pc'}` : `${billableAmount} KG × ฿${priceRate}/KG`}):</span>
-              <span className="font-semibold text-slate-800">฿{estimatedTotal} THB</span>
-            </div>
-            <div className="flex items-center justify-between text-slate-600">
+
+            {selectedEntries.map((item) => (
+              <div key={item.id} className="flex items-center justify-between text-slate-600 text-xs">
+                <span className="truncate pr-2">
+                  <strong className="text-slate-800">{item.name}</strong> ({item.isPiece ? `${item.qty} ${item.unitLabel} × ฿${item.rate}/${item.unitLabel}` : `${item.billable} KG × ฿${item.rate}/KG`}):
+                </span>
+                <span className="font-bold text-slate-800 shrink-0 font-mono">฿{item.subtotal} THB</span>
+              </div>
+            ))}
+
+            <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200/60">
               <span className="flex items-center gap-1.5">
                 <span>Fixed Pickup & Delivery ({deliveryInfo.district} - {postalCode}):</span>
                 {deliveryInfo.isFree && (
@@ -1259,9 +1456,10 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                 {deliveryInfo.isFree ? 'FREE (฿0)' : `฿${deliveryInfo.fee} THB`}
               </span>
             </div>
+
             <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm font-black text-slate-900">
               <span>Total Estimated Booking:</span>
-              <span className="text-sky-600 text-base">฿{grandEstimatedTotal} THB</span>
+              <span className="text-sky-600 text-base font-mono">฿{grandEstimatedTotal} THB</span>
             </div>
           </div>
 

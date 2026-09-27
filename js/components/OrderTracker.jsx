@@ -879,7 +879,8 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
 
             {/* Weight / Quantity Audit Box */}
             {(() => {
-              const isPiece = activeOrder.unit === 'piece' || activeOrder.pricingType === 'piece' || (activeOrder.quantity !== null && activeOrder.quantity !== undefined && activeOrder.quantity > 0);
+              const hasMultiItems = Array.isArray(activeOrder.items) && activeOrder.items.length > 0;
+              const isPiece = !hasMultiItems && (activeOrder.unit === 'piece' || activeOrder.pricingType === 'piece' || (activeOrder.quantity !== null && activeOrder.quantity !== undefined && activeOrder.quantity > 0));
               const unitLbl = isPiece ? (activeOrder.unit || 'Piece') : 'KG';
               const intakeQty = isPiece ? (activeOrder.quantity || activeOrder.estimatedWeightKg || 1) : activeOrder.estimatedWeightKg;
               const actualQty = isPiece ? (activeOrder.quantity || activeOrder.actualWeightKg || activeOrder.estimatedWeightKg || 1) : activeOrder.actualWeightKg;
@@ -887,24 +888,45 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
               return (
                 <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 mb-6">
                   <div className="flex items-center gap-2 mb-3">
-                    <Icon name={isPiece ? 'layers' : 'scale'} className="w-4 h-4 text-sky-600" />
+                    <Icon name={hasMultiItems ? 'layers' : isPiece ? 'layers' : 'scale'} className="w-4 h-4 text-sky-600" />
                     <h4 className="text-xs font-extrabold uppercase tracking-wide text-slate-700">
-                      {isPiece ? 'Item Quantity & Facility Intake Audit' : `Digital Scale Weight Audit (Min ${activeOrder.minWeightAppliedKg || 4.0} KG)`}
+                      {hasMultiItems ? `Multi-Service Intake & Order Audit (${activeOrder.items.length} Items)` : isPiece ? 'Item Quantity & Facility Intake Audit' : `Digital Scale Weight Audit (Min ${activeOrder.minWeightAppliedKg || 4.0} KG)`}
                     </h4>
                   </div>
 
+                  {hasMultiItems ? (
+                    <div className="space-y-2 mb-4">
+                      {activeOrder.items.map((it, idx) => {
+                        const itIsPiece = it.pricingType === 'piece' || it.unit === 'piece';
+                        const itUnit = it.unit || (itIsPiece ? 'pc' : 'KG');
+                        const itQty = itIsPiece ? it.quantity : (it.estimatedWeightKg || it.billableAmount || 1);
+                        return (
+                          <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900">{it.serviceName}</span>
+                              <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                                {itQty} {itUnit} @ ฿{it.pricePerKg}/{itUnit}
+                              </span>
+                            </div>
+                            <span className="font-extrabold text-slate-800 font-mono">฿{it.subtotal} THB</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                     <div className="bg-white p-3.5 rounded-xl border border-slate-200">
-                      <div className="text-[11px] text-slate-500 font-medium">{isPiece ? 'Customer Order Count' : 'Customer Estimated'}</div>
+                      <div className="text-[11px] text-slate-500 font-medium">{hasMultiItems ? 'Selected Services' : isPiece ? 'Customer Order Count' : 'Customer Estimated'}</div>
                       <div className="text-lg font-black text-slate-800 mt-0.5">
-                        {intakeQty} {unitLbl}{isPiece && intakeQty > 1 ? 's' : ''}
+                        {hasMultiItems ? `${activeOrder.items.length} Services` : `${intakeQty} ${unitLbl}${isPiece && intakeQty > 1 ? 's' : ''}`}
                       </div>
                     </div>
 
                     <div className="bg-white p-3.5 rounded-xl border border-slate-200">
-                      <div className="text-[11px] text-slate-500 font-medium">{isPiece ? 'Facility Intake Count' : 'Facility Scale Weighed'}</div>
+                      <div className="text-[11px] text-slate-500 font-medium">{hasMultiItems ? 'Facility Verification' : isPiece ? 'Facility Intake Count' : 'Facility Scale Weighed'}</div>
                       <div className="text-lg font-black text-sky-600 mt-0.5">
-                        {isPiece ? `${actualQty} ${unitLbl}${actualQty > 1 ? 's' : ''} Verified` : (activeOrder.actualWeightKg ? `${activeOrder.actualWeightKg} KG` : 'Pending Scale Intake')}
+                        {hasMultiItems ? 'Verified Intake' : isPiece ? `${actualQty} ${unitLbl}${actualQty > 1 ? 's' : ''} Verified` : (activeOrder.actualWeightKg ? `${activeOrder.actualWeightKg} KG` : 'Pending Scale Intake')}
                       </div>
                     </div>
 
@@ -918,18 +940,16 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
 
                   <div className="mt-3 text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span>Rate: ฿{activeOrder.pricePerKg} / {unitLbl} {!isPiece && `(Min ${activeOrder.minWeightAppliedKg || 4.0} KG applied)`}</span>
+                      {!hasMultiItems && <span>Rate: ฿{activeOrder.pricePerKg} / {unitLbl} {!isPiece && `(Min ${activeOrder.minWeightAppliedKg || 4.0} KG applied)`}</span>}
                       {Number(activeOrder.deliveryFee) > 0 ? (
                         <span className="font-semibold text-slate-700">• Fixed Delivery: ฿{activeOrder.deliveryFee} THB ({activeOrder.postalCode || 'Bangkok'})</span>
                       ) : (
                         <span className="font-semibold text-emerald-600">• FREE Bangkok Delivery</span>
                       )}
                     </div>
-                    {(activeOrder.actualWeightKg || isPiece) && (
-                      <span className="text-emerald-700 font-semibold">
-                        {isPiece ? '✓ Verified by Bangkok Care Team' : '✓ Verified on Certified Digital Scales'}
-                      </span>
-                    )}
+                    <span className="text-emerald-700 font-semibold">
+                      ✓ Verified by Bangkok Care Team &amp; Digital Scales
+                    </span>
                   </div>
                 </div>
               );

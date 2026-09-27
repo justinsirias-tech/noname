@@ -26,10 +26,11 @@ async function ensureDatabaseSchema() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS quantity NUMERIC DEFAULT 1;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS unit VARCHAR(32) DEFAULT 'KG';
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS category_id VARCHAR(64) DEFAULT 'laundry_by_weight';
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS items JSONB DEFAULT '[]'::jsonb;
       ALTER TABLE services ADD COLUMN IF NOT EXISTS category_id VARCHAR(64) DEFAULT 'laundry_by_weight';
       ALTER TABLE services ADD COLUMN IF NOT EXISTS pricing_type VARCHAR(32) DEFAULT 'weight';
     `);
-    console.log('[POSTGRES] Orders reconciliation, delivery fee, categories and linens schema verified.');
+    console.log('[POSTGRES] Orders reconciliation, delivery fee, categories, linens and multi-items schema verified.');
 
     // Seed missing default services
     const existingServices = await query('SELECT id FROM services');
@@ -344,6 +345,7 @@ function mapOrder(row) {
     quantity: row.quantity !== null && row.quantity !== undefined ? Number(row.quantity) : (row.actual_weight_kg || row.estimated_weight_kg || 1),
     unit: row.unit || 'KG',
     categoryId: row.category_id || 'laundry_by_weight',
+    items: row.items && Array.isArray(row.items) ? row.items : (typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || [])),
     timeline: Array.isArray(row.timeline) ? row.timeline : [],
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
   };
@@ -723,12 +725,12 @@ app.post('/api/orders', async (req, res) => {
         pickup_date, pickup_time, delivery_date, delivery_time,
         special_instructions, agreed_terms, cashless_policy_acknowledged,
         timeline, created_at, postal_code, delivery_fee,
-        quantity, unit, category_id
+        quantity, unit, category_id, items
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
         $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33,
-        $34, $35, $36
+        $34, $35, $36, $37
       )
       RETURNING *
     `, [
@@ -767,7 +769,8 @@ app.post('/api/orders', async (req, res) => {
       Number(o.deliveryFee) || 0,
       o.quantity !== undefined && o.quantity !== null ? Number(o.quantity) : (Number(o.actualWeightKg) || Number(o.estimatedWeightKg) || 1),
       o.unit || 'KG',
-      o.categoryId || 'laundry_by_weight'
+      o.categoryId || 'laundry_by_weight',
+      JSON.stringify(o.items || [])
     ]);
 
     res.status(201).json(mapOrder(result.rows[0]));
