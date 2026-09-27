@@ -35,7 +35,9 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
   const minWeight = Number(order.minWeightAppliedKg || 4.0);
   const billableWeight = Math.max(certifiedWeight, minWeight);
   const unitRate = Number(order.pricePerKg || 65);
-  const totalPrice = Number(order.totalPrice || Math.round(billableWeight * unitRate));
+  const serviceSubtotal = Number(order.serviceSubtotal !== undefined && order.serviceSubtotal !== null ? order.serviceSubtotal : Math.round(billableWeight * unitRate));
+  const deliveryFee = Number(order.deliveryFee !== undefined && order.deliveryFee !== null ? order.deliveryFee : 0);
+  const totalPrice = Number(order.totalPrice || (serviceSubtotal + deliveryFee));
 
   const subtotalExclTax = Math.round(totalPrice / 1.07);
   const vatAmount = totalPrice - subtotalExclTax;
@@ -55,7 +57,7 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
 👤 *Billed To:*
 Customer: *${order.customerName}*
 Residence: *${order.condoName || 'Bangkok Condominium'}* (Unit ${order.roomNumber || 'Lobby'})
-District: *${order.district || 'Bangkok'}*
+District: *${order.district || 'Bangkok'}* ${order.postalCode ? `(Postal Code: ${order.postalCode})` : ''}
 Contact: *${order.contactChannel.toUpperCase()}: ${order.contactValue}*
 ${order.specialInstructions ? `Note: "${order.specialInstructions}"\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━
 🧼 *Service & Scale Weigh-in Breakdown:*
@@ -63,6 +65,8 @@ ${order.specialInstructions ? `Note: "${order.specialInstructions}"\n` : ''}━�
 • Turnaround Speed: *${speedLabel}*
 • Intake Weight: *${certifiedWeight} KG* (Min ${minWeight} KG applied -> *${billableWeight} KG*)
 • Rate per KG: *฿${unitRate} THB / KG*
+• Service Subtotal: *฿${serviceSubtotal} THB*
+• Bangkok Delivery Fee (${order.postalCode || 'Bangkok'}): *${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE (฿0 THB)'}*
 • Pickup Window: *${order.pickupDate || 'Scheduled'} (${order.pickupTime || ''})*
 • Estimated Delivery: *${order.deliveryDate || 'Scheduled'} (${order.deliveryTime || ''})*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -423,7 +427,27 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
                       ฿{unitRate} / KG
                     </td>
                     <td className="py-3 pl-2 text-right font-mono font-extrabold text-slate-900">
-                      ฿{totalPrice}
+                      ฿{serviceSubtotal}
+                    </td>
+                  </tr>
+
+                  {/* Bangkok Fixed Pickup & Delivery Fee */}
+                  <tr>
+                    <td className="py-3 pr-2" colSpan={4}>
+                      <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <Icon name="truck" className="w-3.5 h-3.5 text-sky-600" />
+                        <span>Fixed Pickup & Delivery (Bangkok Postal Code: {order.postalCode || '10110'})</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Flat-rate two-way courier to condominium lobby / juristic reception
+                      </div>
+                    </td>
+                    <td className="py-3 pl-2 text-right font-mono font-extrabold text-slate-900">
+                      {deliveryFee > 0 ? (
+                        <span>฿{deliveryFee}</span>
+                      ) : (
+                        <span className="text-emerald-600 font-bold">FREE</span>
+                      )}
                     </td>
                   </tr>
                 </tbody>

@@ -21,8 +21,10 @@ async function ensureDatabaseSchema() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciled_by VARCHAR(128);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciliation_notes TEXT;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS bank_account_ref VARCHAR(128);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS postal_code VARCHAR(16) DEFAULT '10110';
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC DEFAULT 0;
     `);
-    console.log('[POSTGRES] Orders reconciliation columns verified.');
+    console.log('[POSTGRES] Orders reconciliation and delivery fee schema verified.');
   } catch (err) {
     console.warn('[POSTGRES WARNING] Could not verify reconciliation schema:', err.message);
   }
@@ -90,6 +92,8 @@ function mapOrder(row) {
     reconciledBy: row.reconciled_by || null,
     reconciliationNotes: row.reconciliation_notes || '',
     bankAccountRef: row.bank_account_ref || '',
+    postalCode: row.postal_code || '10110',
+    deliveryFee: row.delivery_fee !== null ? Number(row.delivery_fee) : 0,
     timeline: Array.isArray(row.timeline) ? row.timeline : [],
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
   };
@@ -447,11 +451,11 @@ app.post('/api/orders', async (req, res) => {
         payment_status, payment_method, payment_ref, tag_number,
         pickup_date, pickup_time, delivery_date, delivery_time,
         special_instructions, agreed_terms, cashless_policy_acknowledged,
-        timeline, created_at
+        timeline, created_at, postal_code, delivery_fee
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
+        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33
       )
       RETURNING *
     `, [
@@ -485,7 +489,9 @@ app.post('/api/orders', async (req, res) => {
       Boolean(o.agreedTerms),
       Boolean(o.cashlessPolicyAcknowledged),
       JSON.stringify(initialTimeline),
-      now
+      now,
+      o.postalCode || '10110',
+      Number(o.deliveryFee) || 0
     ]);
 
     res.status(201).json(mapOrder(result.rows[0]));

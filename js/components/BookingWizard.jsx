@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
+import { DISTRICT_TO_POSTAL_CODE } from '../data/postalCodesData.js';
 import { TermsModal } from './TermsModal.jsx';
 import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundryStore } from '../store.js';
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
@@ -26,6 +27,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
   // Bangkok Address Info
   const [district, setDistrict] = useState(BANGKOK_DISTRICTS[0]);
+  const [postalCode, setPostalCode] = useState(DISTRICT_TO_POSTAL_CODE[BANGKOK_DISTRICTS[0]] || '10110');
   const [condoName, setCondoName] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
   const [leaveWithJuristic, setLeaveWithJuristic] = useState(true);
@@ -84,6 +86,8 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
 
   const billableWeight = Math.max(Number(estimatedWeightKg), minWeight);
   const estimatedTotal = Math.round(billableWeight * priceRate);
+  const deliveryInfo = laundryStore.calculateDeliveryFee(postalCode, estimatedTotal);
+  const grandEstimatedTotal = estimatedTotal + deliveryInfo.fee;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -121,11 +125,15 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
       serviceId,
       turnaroundSpeed: activeSpeed,
       district,
+      postalCode,
       condoName: condoName.trim(),
       roomNumber: roomNumber.trim(),
       leaveWithJuristic,
       estimatedWeightKg: Number(estimatedWeightKg),
       pricePerKg: priceRate,
+      serviceSubtotal: estimatedTotal,
+      deliveryFee: deliveryInfo.fee,
+      totalPrice: grandEstimatedTotal,
       pickupDate,
       pickupTime,
       deliveryDate: activeSpeed === 'same_day' 
@@ -781,9 +789,22 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                   value={condoName}
                   onChange={(val) => setCondoName(val)}
                   district={district}
-                  onDistrictChange={(newDist) => setDistrict(newDist)}
+                  onDistrictChange={(newDist) => {
+                    setDistrict(newDist);
+                    if (DISTRICT_TO_POSTAL_CODE[newDist]) {
+                      setPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
+                    }
+                  }}
                   onSelectPlace={(place) => {
-                    if (place.district) setDistrict(place.district);
+                    if (place.district) {
+                      setDistrict(place.district);
+                      if (DISTRICT_TO_POSTAL_CODE[place.district]) {
+                        setPostalCode(DISTRICT_TO_POSTAL_CODE[place.district]);
+                      }
+                    }
+                    if (place.zipcode) {
+                      setPostalCode(place.zipcode);
+                    }
                   }}
                   apiKey={laundryStore.settings?.googleMapsApiKey || ''}
                   placeholder="Search condo name, e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn..."
@@ -791,8 +812,8 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                 />
               </div>
 
-              {/* 2-Column Responsive Grid: Bangkok District & Room/Tower */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* 3-Column Responsive Grid: Bangkok District, Postal Code & Unit */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-slate-700">
@@ -804,7 +825,13 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                   </div>
                   <select
                     value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
+                    onChange={(e) => {
+                      const newDist = e.target.value;
+                      setDistrict(newDist);
+                      if (DISTRICT_TO_POSTAL_CODE[newDist]) {
+                        setPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white font-medium text-slate-800 shadow-2xs"
                   >
                     {BANGKOK_DISTRICTS.map((d, i) => (
@@ -814,17 +841,71 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
                 </div>
 
                 <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Postal Code <span className="text-red-500">*</span>
+                    </label>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                      deliveryInfo.isFree 
+                        ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
+                        : 'text-sky-700 bg-sky-50 border-sky-200'
+                    }`}>
+                      {deliveryInfo.isFree ? 'FREE' : `฿${deliveryInfo.fee}`} Fee
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    pattern="[0-9]{5}"
+                    placeholder="e.g. 10110"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white font-mono font-bold text-slate-900 shadow-2xs"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Tower / Floor / Unit Number
+                    Tower / Floor / Unit
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Tower B, Floor 14, Room 1402"
+                    placeholder="e.g. Tower B, Rm 1402"
                     value={roomNumber}
                     onChange={(e) => setRoomNumber(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white shadow-2xs"
                   />
                 </div>
+              </div>
+
+              {/* Delivery Fee Notice Banner */}
+              <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm shrink-0">
+                    🚚
+                  </span>
+                  <div>
+                    <span className="font-bold text-slate-900 block">
+                      Pickup & Delivery: {deliveryInfo.isFree ? (
+                        <span className="text-emerald-600 font-black">FREE (฿0)</span>
+                      ) : (
+                        <span className="text-sky-600 font-black">฿{deliveryInfo.fee} THB</span>
+                      )}
+                    </span>
+                    <span className="text-[11px] text-slate-500 block">
+                      Bangkok Postal Code {postalCode} · {deliveryInfo.district} ({deliveryInfo.reason || 'Fixed zone rate'})
+                    </span>
+                  </div>
+                </div>
+                {deliveryInfo.isFree ? (
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200">
+                    Free Delivery Qualified
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Added to order total
+                  </span>
+                )}
               </div>
 
               {/* Condo Juristic Dropoff Card */}
@@ -1031,6 +1112,35 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
             </div>
           )}
 
+          {/* Order Pricing Breakdown with Postal Code Delivery Fee */}
+          <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 text-xs space-y-2">
+            <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider flex items-center justify-between">
+              <span>Order Estimated Breakdown</span>
+              <span className="text-slate-400 font-mono font-normal">Bangkok Postal Code: {postalCode}</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span>{currentService.name} ({billableWeight} KG × ฿{priceRate}/KG):</span>
+              <span className="font-semibold text-slate-800">฿{estimatedTotal} THB</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="flex items-center gap-1.5">
+                <span>Fixed Pickup & Delivery ({deliveryInfo.district} - {postalCode}):</span>
+                {deliveryInfo.isFree && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                    Free Promo
+                  </span>
+                )}
+              </span>
+              <span className={`font-semibold ${deliveryInfo.isFree ? 'text-emerald-600 font-bold' : 'text-slate-800'}`}>
+                {deliveryInfo.isFree ? 'FREE (฿0)' : `฿${deliveryInfo.fee} THB`}
+              </span>
+            </div>
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm font-black text-slate-900">
+              <span>Total Estimated Booking:</span>
+              <span className="text-sky-600 text-base">฿{grandEstimatedTotal} THB</span>
+            </div>
+          </div>
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -1046,7 +1156,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, onBoo
             ) : (
               <>
                 <Icon name="check" className="w-5 h-5" />
-                <span>Confirm & Submit Booking (Est. ฿{estimatedTotal} THB)</span>
+                <span>Confirm & Submit Booking (Est. ฿{grandEstimatedTotal} THB)</span>
               </>
             )}
           </button>

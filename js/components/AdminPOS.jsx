@@ -9,7 +9,9 @@ import { CustomerCRM } from './CustomerCRM.jsx';
 import { FaqManager } from './FaqManager.jsx';
 import { IncidentImageLightbox } from './IncidentImageAttachment.jsx';
 import { SalesReconciliation } from './SalesReconciliation.jsx';
+import { PostalCodeManager } from './PostalCodeManager.jsx';
 import GoogleMapsCondoAutocomplete from './GoogleMapsCondoAutocomplete.jsx';
+import { DISTRICT_TO_POSTAL_CODE } from '../data/postalCodesData.js';
 
 export function AdminPOS({
   adminUser,
@@ -202,10 +204,23 @@ export function AdminPOS({
   const [manualContact, setManualContact] = useState('');
   const [manualServiceId, setManualServiceId] = useState(services[0]?.id || 'wash_fold');
   const [manualDistrict, setManualDistrict] = useState(BANGKOK_DISTRICTS[0]);
+  const [manualPostalCode, setManualPostalCode] = useState(DISTRICT_TO_POSTAL_CODE[BANGKOK_DISTRICTS[0]] || '10110');
   const [manualCondo, setManualCondo] = useState('');
   const [manualWeight, setManualWeight] = useState('4.0');
   const [manualSpeed, setManualSpeed] = useState('standard_48h');
   const [manualSuccessMsg, setManualSuccessMsg] = useState('');
+
+  // Manual Order Live Calculation
+  const selManualSrv = services.find(s => s.id === manualServiceId) || services[0];
+  const manualEstKg = parseFloat(manualWeight) || 4.0;
+  const manualRate = manualSpeed === 'same_day'
+    ? (selManualSrv?.sameDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || 65) * 1.75))
+    : (manualSpeed === 'next_day_24h'
+      ? (selManualSrv?.nextDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || 65) * 1.3))
+      : (selManualSrv?.standardPricePerKg || selManualSrv?.pricePerKg || 65));
+  const manualSubtotal = Math.round(Math.max(manualEstKg, selManualSrv?.minWeightKg || 4.0) * manualRate);
+  const manualDeliveryFeeResult = laundryStore.calculateDeliveryFee ? laundryStore.calculateDeliveryFee(manualPostalCode, manualSubtotal) : { fee: 50, zoneName: 'Bangkok' };
+  const manualGrandTotal = manualSubtotal + manualDeliveryFeeResult.fee;
 
   // Stats Calculations
   const totalOrdersCount = orders.length;
@@ -461,6 +476,8 @@ export function AdminPOS({
       email: `${manualName.toLowerCase().replace(/\s+/g, '')}@chat.local`,
       serviceId: manualServiceId,
       district: manualDistrict,
+      postalCode: manualPostalCode,
+      deliveryFee: manualDeliveryFeeResult.fee,
       condoName: manualCondo.trim(),
       roomNumber: 'Lobby Juristic',
       leaveWithJuristic: true,
@@ -618,6 +635,7 @@ export function AdminPOS({
           { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
           { id: 'faq', label: 'FAQ Manager', icon: 'helpCircle', count: laundryStore.faqs ? laundryStore.faqs.length : 0 },
           { id: 'services-pricing', label: 'Services & Minimum Weights', icon: 'scale', count: services.length },
+          { id: 'postal-rates', label: 'Delivery & Postal Codes', icon: 'truck', count: laundryStore.getPostalCodeRates ? laundryStore.getPostalCodeRates().length : 0 },
           { id: 'gateway', label: 'Cashless Payment Gateway', icon: 'receipt' },
           { id: 'line-oa', label: 'LINE OA & Contact Channels', icon: 'line' },
           { id: 'incidents', label: 'Online Support & Tickets', icon: 'messageSquare', count: pendingIncidentsCount },
@@ -1921,20 +1939,45 @@ export function AdminPOS({
             </div>
 
             <div className="space-y-3">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block font-bold text-slate-700">Bangkok District *</label>
-                  <span className="text-[10px] text-slate-400">Auto-synced with Google Maps</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Bangkok District *</label>
+                  </div>
+                  <select
+                    value={manualDistrict}
+                    onChange={(e) => {
+                      const d = e.target.value;
+                      setManualDistrict(d);
+                      if (DISTRICT_TO_POSTAL_CODE[d]) {
+                        setManualPostalCode(DISTRICT_TO_POSTAL_CODE[d]);
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
+                  >
+                    {BANGKOK_DISTRICTS.map((d, i) => (
+                      <option key={i} value={d}>{d}</option>
+                    ))}
+                  </select>
                 </div>
-                <select
-                  value={manualDistrict}
-                  onChange={(e) => setManualDistrict(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
-                >
-                  {BANGKOK_DISTRICTS.map((d, i) => (
-                    <option key={i} value={d}>{d}</option>
-                  ))}
-                </select>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Bangkok Postal Code *</label>
+                    <span className="text-[10px] font-bold text-sky-600 font-mono">
+                      {manualDeliveryFeeResult.isFree ? 'FREE Delivery' : `฿${manualDeliveryFeeResult.fee}`}
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength="5"
+                    required
+                    placeholder="e.g. 10110"
+                    value={manualPostalCode}
+                    onChange={(e) => setManualPostalCode(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold"
+                  />
+                </div>
               </div>
 
               <div>
@@ -1944,13 +1987,40 @@ export function AdminPOS({
                 </div>
                 <GoogleMapsCondoAutocomplete
                   value={manualCondo}
-                  onChange={(val) => setManualCondo(val)}
+                  onChange={(val, place) => {
+                    setManualCondo(val);
+                    if (place?.zipcode) {
+                      setManualPostalCode(place.zipcode);
+                    }
+                  }}
                   district={manualDistrict}
-                  onDistrictChange={(newDist) => setManualDistrict(newDist)}
+                  onDistrictChange={(newDist) => {
+                    setManualDistrict(newDist);
+                    if (DISTRICT_TO_POSTAL_CODE[newDist]) {
+                      setManualPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
+                    }
+                  }}
                   apiKey={googleMapsApiKey}
                   placeholder="Search Bangkok condo or building..."
                   required
                 />
+              </div>
+
+              {/* Order Cost Preview */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] text-slate-500 block">Service Subtotal: ฿{manualSubtotal} THB</span>
+                  <span className="text-[11px] text-slate-600">
+                    Pickup & Delivery ({manualPostalCode}):{' '}
+                    <strong className={manualDeliveryFeeResult.isFree ? 'text-emerald-600' : 'text-slate-800'}>
+                      {manualDeliveryFeeResult.isFree ? 'FREE PROMO' : `฿${manualDeliveryFeeResult.fee} THB`}
+                    </strong>
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Estimated Total</span>
+                  <span className="text-base font-black text-emerald-600 font-mono">฿{manualGrandTotal} THB</span>
+                </div>
               </div>
             </div>
 
@@ -1962,6 +2032,11 @@ export function AdminPOS({
             </button>
           </form>
         </div>
+      )}
+
+      {/* TAB: BANGKOK POSTAL CODES & DELIVERY RATES */}
+      {activeTab === 'postal-rates' && (
+        <PostalCodeManager />
       )}
 
       {/* TAB 7: CUSTOMER CRM */}

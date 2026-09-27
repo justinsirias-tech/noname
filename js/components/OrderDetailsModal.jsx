@@ -81,7 +81,9 @@ export function OrderDetailsModal({
   // Recalculated price estimate based on modal inputs
   const previewWeight = parseFloat(editWeight) || order.estimatedWeightKg || 4.0;
   const billableKg = Math.max(previewWeight, activeMinWeight);
-  const previewPrice = Math.round(billableKg * currentRate);
+  const previewServiceSubtotal = Math.round(billableKg * currentRate);
+  const deliveryFee = Number(order.deliveryFee !== undefined && order.deliveryFee !== null ? order.deliveryFee : 0);
+  const previewPrice = previewServiceSubtotal + deliveryFee;
 
   const meta = ORDER_STATUSES[editStatus] || { label: editStatus, color: 'bg-slate-100 text-slate-800' };
   const isPaid = order.paymentStatus === 'PAID';
@@ -95,6 +97,9 @@ export function OrderDetailsModal({
     actualWeightKg: editWeight !== '' && editWeight !== null && editWeight !== undefined ? Number(editWeight) : order.actualWeightKg,
     pricePerKg: currentRate,
     minWeightAppliedKg: activeMinWeight,
+    serviceSubtotal: previewServiceSubtotal,
+    deliveryFee: deliveryFee,
+    postalCode: order.postalCode || '10110',
     totalPrice: previewPrice,
     deliveryDate: editDeliveryDate || order.deliveryDate,
     deliveryTime: editDeliveryTime || order.deliveryTime,
@@ -209,6 +214,8 @@ export function OrderDetailsModal({
         turnaroundSpeed: editTurnaroundSpeed,
         pricePerKg: currentRate,
         minWeightAppliedKg: activeMinWeight,
+        serviceSubtotal: previewServiceSubtotal,
+        deliveryFee: deliveryFee,
         totalPrice: previewPrice,
         deliveryDate: editDeliveryDate || order.deliveryDate,
         deliveryTime: editDeliveryTime || order.deliveryTime
@@ -653,9 +660,19 @@ export function OrderDetailsModal({
                     <span className="text-[11px] text-slate-500 block">
                       Total Billable (Min {activeMinWeight} KG applied):
                     </span>
-                    <span className="text-2xl font-black text-slate-900">
-                      ฿{previewPrice} <span className="text-xs text-slate-500 font-normal">THB (Cashless)</span>
-                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-black text-slate-900">
+                        ฿{previewPrice} <span className="text-xs text-slate-500 font-normal">THB (Cashless)</span>
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      <span>Service: ฿{previewServiceSubtotal}</span>
+                      {deliveryFee > 0 ? (
+                        <span className="ml-1 text-slate-700 font-medium">+ Fixed Delivery: ฿{deliveryFee} (Postal: {order.postalCode || '10110'})</span>
+                      ) : (
+                        <span className="ml-1 text-emerald-600 font-bold">✓ Free Delivery</span>
+                      )}
+                    </div>
                     {previewPrice !== Number(order.totalPrice) && (
                       <span className="text-[10px] text-amber-700 block font-bold mt-0.5">
                         (Was ฿{order.totalPrice} THB before modification)

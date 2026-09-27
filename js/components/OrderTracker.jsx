@@ -901,8 +901,15 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
                 </div>
               </div>
 
-              <div className="mt-3 text-[11px] text-slate-500 flex items-center justify-between">
-                <span>Rate: ฿{activeOrder.pricePerKg}/KG (Min {activeOrder.minWeightAppliedKg || 4.0} KG applied)</span>
+              <div className="mt-3 text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span>Rate: ฿{activeOrder.pricePerKg}/KG (Min {activeOrder.minWeightAppliedKg || 4.0} KG applied)</span>
+                  {Number(activeOrder.deliveryFee) > 0 ? (
+                    <span className="font-semibold text-slate-700">• Fixed Delivery: ฿{activeOrder.deliveryFee} THB ({activeOrder.postalCode || 'Bangkok'})</span>
+                  ) : (
+                    <span className="font-semibold text-emerald-600">• FREE Bangkok Delivery</span>
+                  )}
+                </div>
                 {activeOrder.actualWeightKg && (
                   <span className="text-emerald-700 font-semibold">
                     ✓ Verified on Certified Digital Scales
@@ -979,7 +986,9 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
                 </div>
                 <div className="font-extrabold text-slate-900 text-sm">{activeOrder.condoName}</div>
                 <div className="text-slate-600">{activeOrder.roomNumber || 'Condo Lobby / Juristic'}</div>
-                <div className="text-slate-500 mt-0.5">{activeOrder.district}</div>
+                <div className="text-slate-500 mt-0.5">
+                  {activeOrder.district}{activeOrder.postalCode ? ` (📮 ${activeOrder.postalCode})` : ''}
+                </div>
                 {activeOrder.leaveWithJuristic && (
                   <span className="inline-block mt-2 px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-bold">
                     Juristic Reception Drop-Off Authorized

@@ -1,6 +1,12 @@
 // State and LocalStorage / PostgreSQL Management for NoName Laundry
 import { INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_INCIDENTS, INITIAL_CUSTOMERS } from './data/servicesData.js';
 import { INITIAL_FAQS } from './data/faqData.js';
+import { 
+  DEFAULT_BANGKOK_POSTAL_CODES, 
+  DEFAULT_DELIVERY_CONFIG, 
+  calculateDeliveryFee as calcDeliveryFee,
+  DISTRICT_TO_POSTAL_CODE 
+} from './data/postalCodesData.js';
 
 const STORAGE_KEYS = {
   SERVICES: 'noname_laundry_services_v2',
@@ -9,6 +15,8 @@ const STORAGE_KEYS = {
   CUSTOMERS: 'noname_laundry_customers_v2',
   SETTINGS: 'noname_laundry_settings_v2',
   FAQS: 'noname_laundry_faqs_v2',
+  POSTAL_CODES: 'noname_postal_codes_v1',
+  DELIVERY_CONFIG: 'noname_delivery_config_v1',
 };
 
 export const CONTACT_CHANNELS = {
@@ -223,6 +231,12 @@ export class LaundryStore {
 
       const savedFaqs = localStorage.getItem(STORAGE_KEYS.FAQS);
       this.faqs = savedFaqs ? JSON.parse(savedFaqs) : INITIAL_FAQS;
+
+      const savedPostalCodes = localStorage.getItem(STORAGE_KEYS.POSTAL_CODES);
+      this.postalCodeRates = savedPostalCodes ? JSON.parse(savedPostalCodes) : DEFAULT_BANGKOK_POSTAL_CODES;
+
+      const savedDeliveryConfig = localStorage.getItem(STORAGE_KEYS.DELIVERY_CONFIG);
+      this.deliveryConfig = savedDeliveryConfig ? JSON.parse(savedDeliveryConfig) : DEFAULT_DELIVERY_CONFIG;
     } catch (e) {
       console.error('Error loading state from localStorage:', e);
       this.services = INITIAL_SERVICES.map(s => ({ ...s, minWeightKg: 4.0 }));
@@ -230,6 +244,8 @@ export class LaundryStore {
       this.incidents = INITIAL_INCIDENTS;
       this.customers = INITIAL_CUSTOMERS;
       this.faqs = INITIAL_FAQS;
+      this.postalCodeRates = DEFAULT_BANGKOK_POSTAL_CODES;
+      this.deliveryConfig = DEFAULT_DELIVERY_CONFIG;
     }
   }
 
@@ -257,6 +273,14 @@ export class LaundryStore {
       }
       if (data.settings && Object.keys(data.settings).length > 0) {
         this.settings = { ...this.settings, ...data.settings };
+        if (data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {
+          this.postalCodeRates = data.settings.postalCodeRates;
+          this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+        }
+        if (data.settings.deliveryConfig) {
+          this.deliveryConfig = data.settings.deliveryConfig;
+          this.persist(STORAGE_KEYS.DELIVERY_CONFIG, this.deliveryConfig);
+        }
         this.persist(STORAGE_KEYS.SETTINGS, this.settings);
         this.syncContactChannels(this.settings);
       }
@@ -585,6 +609,13 @@ export class LaundryStore {
     const weightToBill = Math.max(Number(orderInput.estimatedWeightKg), Number(service.minWeightKg));
     const calculatedTotal = Math.round(weightToBill * unitPrice);
 
+    const postalCode = (orderInput.postalCode || DISTRICT_TO_POSTAL_CODE[orderInput.district] || '10110').trim();
+    const deliveryCalc = this.calculateDeliveryFee(postalCode, calculatedTotal);
+    const deliveryFee = orderInput.deliveryFee !== undefined && orderInput.deliveryFee !== null 
+      ? Number(orderInput.deliveryFee) 
+      : deliveryCalc.fee;
+    const grandTotal = calculatedTotal + deliveryFee;
+
     let defaultDeliveryDate = 'Scheduled in 48 Hours (~2 Days)';
     let defaultDeliveryTime = '16:00 - 18:00 (Early Evening)';
     if (speed === 'same_day') {
@@ -611,12 +642,15 @@ export class LaundryStore {
       district: orderInput.district,
       condoName: orderInput.condoName,
       roomNumber: orderInput.roomNumber,
+      postalCode,
       leaveWithJuristic: Boolean(orderInput.leaveWithJuristic),
       estimatedWeightKg: Number(orderInput.estimatedWeightKg),
       actualWeightKg: null,
       minWeightAppliedKg: service.minWeightKg,
       pricePerKg: unitPrice,
-      totalPrice: calculatedTotal,
+      serviceSubtotal: calculatedTotal,
+      deliveryFee,
+      totalPrice: grandTotal,
       turnaroundSpeed: speed,
       status: 'BOOKING_REQUESTED',
       paymentStatus: 'PENDING', // PENDING, PAID
@@ -1348,6 +1382,131 @@ export class LaundryStore {
       return faq.isPublished;
     }
     return false;
+  }
+
+  // ==========================================
+  // BANGKOK POSTAL CODES & DELIVERY RATES
+  // ==========================================
+  getPostalCodeRates() {
+    return [...(this.postalCodeRates || DEFAULT_BANGKOK_POSTAL_CODES)].sort((a, b) => a.code.localeCompare(b.code));
+  }
+
+  getDeliveryConfig() {
+    return this.deliveryConfig || DEFAULT_DELIVERY_CONFIG;
+  }
+
+  calculateDeliveryFee(postalCode, subtotal = 0) {
+    return calcDeliveryFee(postalCode, subtotal, this.postalCodeRates, this.deliveryConfig);
+  }
+
+  async updatePostalCodeRate(code, updatedFields) {
+    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_BANGKOK_POSTAL_CODES];
+    const idx = this.postalCodeRates.findIndex(r => r.code === code);
+    if (idx !== -1) {
+      this.postalCodeRates[idx] = {
+        ...this.postalCodeRates[idx],
+        ...updatedFields,
+        fee: updatedFields.fee !== undefined ? Math.max(0, Number(updatedFields.fee)) : this.postalCodeRates[idx].fee,
+        freeDeliveryAbove: updatedFields.freeDeliveryAbove !== undefined ? Number(updatedFields.freeDeliveryAbove) : this.postalCodeRates[idx].freeDeliveryAbove
+      };
+    } else {
+      this.postalCodeRates.push({
+        code,
+        district: updatedFields.district || 'Bangkok',
+        areas: updatedFields.areas || '',
+        fee: Math.max(0, Number(updatedFields.fee || 50)),
+        isActive: updatedFields.isActive !== undefined ? Boolean(updatedFields.isActive) : true,
+        freeDeliveryAbove: Number(updatedFields.freeDeliveryAbove) || 600
+      });
+    }
+    this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+    this.notify();
+    await this.syncPostalRatesToBackend();
+    return this.postalCodeRates;
+  }
+
+  async addPostalCodeRate(rateData) {
+    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_BANGKOK_POSTAL_CODES];
+    const cleanCode = (rateData.code || '').trim();
+    if (!cleanCode) throw new Error('Postal code is required');
+    const existing = this.postalCodeRates.find(r => r.code === cleanCode);
+    if (existing) {
+      return this.updatePostalCodeRate(cleanCode, rateData);
+    }
+    const newEntry = {
+      code: cleanCode,
+      district: (rateData.district || 'Bangkok').trim(),
+      areas: (rateData.areas || '').trim(),
+      fee: Math.max(0, Number(rateData.fee) || 50),
+      isActive: rateData.isActive !== false,
+      freeDeliveryAbove: Number(rateData.freeDeliveryAbove) || 600
+    };
+    this.postalCodeRates.push(newEntry);
+    this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+    this.notify();
+    await this.syncPostalRatesToBackend();
+    return newEntry;
+  }
+
+  async deletePostalCodeRate(code) {
+    if (!this.postalCodeRates) return;
+    this.postalCodeRates = this.postalCodeRates.filter(r => r.code !== code);
+    this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+    this.notify();
+    await this.syncPostalRatesToBackend();
+  }
+
+  async togglePostalCodeActive(code) {
+    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_BANGKOK_POSTAL_CODES];
+    const entry = this.postalCodeRates.find(r => r.code === code);
+    if (entry) {
+      entry.isActive = !entry.isActive;
+      this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+      this.notify();
+      await this.syncPostalRatesToBackend();
+      return entry.isActive;
+    }
+    return false;
+  }
+
+  async updateDeliveryConfig(newConfig) {
+    this.deliveryConfig = {
+      ...(this.deliveryConfig || DEFAULT_DELIVERY_CONFIG),
+      ...newConfig
+    };
+    this.persist(STORAGE_KEYS.DELIVERY_CONFIG, this.deliveryConfig);
+    this.notify();
+    await this.syncPostalRatesToBackend();
+    return this.deliveryConfig;
+  }
+
+  async resetPostalCodeRates() {
+    this.postalCodeRates = [...DEFAULT_BANGKOK_POSTAL_CODES];
+    this.deliveryConfig = { ...DEFAULT_DELIVERY_CONFIG };
+    this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+    this.persist(STORAGE_KEYS.DELIVERY_CONFIG, this.deliveryConfig);
+    this.notify();
+    await this.syncPostalRatesToBackend();
+    return this.postalCodeRates;
+  }
+
+  async syncPostalRatesToBackend() {
+    try {
+      this.settings = {
+        ...this.settings,
+        postalCodeRates: this.postalCodeRates,
+        deliveryConfig: this.deliveryConfig
+      };
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: this.getAdminAuthHeaders(),
+        body: JSON.stringify(this.settings)
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn('Failed to sync postal code rates to backend:', e);
+      return false;
+    }
   }
 
   resetAllData() {
