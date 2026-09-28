@@ -1445,6 +1445,79 @@ export class LaundryStore {
     return true;
   }
 
+  
+  getCurrentCustomer() {
+    if (this.currentCustomer) return this.currentCustomer;
+    try {
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('noname_customer_session') : null;
+      if (saved) {
+        this.currentCustomer = JSON.parse(saved);
+        return this.currentCustomer;
+      }
+    } catch (e) {
+      console.warn('Error reading customer session:', e);
+    }
+    return null;
+  }
+
+  setCurrentCustomer(customer, token = null) {
+    this.currentCustomer = customer;
+    if (typeof localStorage !== 'undefined') {
+      if (customer) {
+        localStorage.setItem('noname_customer_session', JSON.stringify(customer));
+        if (token) {
+          localStorage.setItem('tls_customer_token', token);
+        }
+      } else {
+        localStorage.removeItem('noname_customer_session');
+        localStorage.removeItem('tls_customer_token');
+      }
+    }
+    this.notify();
+  }
+
+  getCustomerToken() {
+    if (typeof localStorage !== 'undefined') {
+      return localStorage.getItem('tls_customer_token') || null;
+    }
+    return null;
+  }
+
+  async loginCustomer(identifier, pinCode) {
+    try {
+      const res = await fetch('/api/customers/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, pinCode, password: pinCode })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูล');
+      }
+      this.setCurrentCustomer(data.customer, data.token);
+      if (Array.isArray(data.orders) && data.orders.length > 0) {
+        const existingIds = new Set(this.orders.map(o => o.id));
+        const newOrders = data.orders.filter(o => !existingIds.has(o.id));
+        if (newOrders.length > 0) {
+          this.orders = [...newOrders, ...this.orders];
+          this.persist(STORAGE_KEYS.ORDERS, this.orders);
+        }
+      }
+      return data;
+    } catch (err) {
+      const localRes = this.verifyCustomerPin(identifier, pinCode);
+      if (localRes.success) {
+        this.setCurrentCustomer(localRes.customer);
+        return { success: true, customer: localRes.customer };
+      }
+      throw err;
+    }
+  }
+
+  logoutCustomer() {
+    this.setCurrentCustomer(null);
+  }
+
   verifyCustomerPin(customerIdOrContact, pinCode) {
     const cust = (this.customers || []).find(c => 
       c.id === customerIdOrContact ||

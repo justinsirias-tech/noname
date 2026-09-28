@@ -7,7 +7,7 @@ import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundrySt
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 import GoogleMapsCondoAutocomplete from './GoogleMapsCondoAutocomplete.jsx';
 
-export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, onBookingSuccess, onViewFullTerms }) {
+export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, initialCustomer, onBookingSuccess, onViewFullTerms }) {
   // Support multi-service selection map: { [serviceId]: { weightKg, quantity } }
   const [selectedServicesMap, setSelectedServicesMap] = useState(() => {
     if (Array.isArray(initialSelectedItems) && initialSelectedItems.length > 0) {
@@ -37,24 +37,25 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const [turnaroundSpeed, setTurnaroundSpeed] = useState('standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
   // Customer Info
-  const [customerName, setCustomerName] = useState('');
-  const [nickName, setNickName] = useState('');
-  const [contactChannel, setContactChannel] = useState('line'); // default to line since very popular in Bangkok
-  const [contactValue, setContactValue] = useState('');
-  const [email, setEmail] = useState('');
+  const primaryAddr = initialCustomer?.addresses?.[0];
+  const [customerName, setCustomerName] = useState(initialCustomer?.fullName || '');
+  const [nickName, setNickName] = useState(initialCustomer?.nickName || '');
+  const [contactChannel, setContactChannel] = useState(initialCustomer?.lineId ? 'line' : (initialCustomer?.mobileNumber ? 'whatsapp' : 'line'));
+  const [contactValue, setContactValue] = useState(initialCustomer?.lineId || initialCustomer?.mobileNumber || '');
+  const [email, setEmail] = useState(initialCustomer?.email || '');
 
   // Thai Company Tax Info
-  const [isCompanyTax, setIsCompanyTax] = useState(false);
-  const [companyName, setCompanyName] = useState('');
-  const [companyTaxId, setCompanyTaxId] = useState('');
-  const [companyBranch, setCompanyBranch] = useState('Head Office (สำนักงานใหญ่)');
+  const [isCompanyTax, setIsCompanyTax] = useState(Boolean(initialCustomer?.companyTax?.required));
+  const [companyName, setCompanyName] = useState(initialCustomer?.companyTax?.companyName || '');
+  const [companyTaxId, setCompanyTaxId] = useState(initialCustomer?.companyTax?.taxId || '');
+  const [companyBranch, setCompanyBranch] = useState(initialCustomer?.companyTax?.branch || 'Head Office (สำนักงานใหญ่)');
 
   // Bangkok Address Info
-  const [district, setDistrict] = useState(BANGKOK_DISTRICTS[0]);
-  const [postalCode, setPostalCode] = useState(DISTRICT_TO_POSTAL_CODE[BANGKOK_DISTRICTS[0]] || '10110');
-  const [condoName, setCondoName] = useState('');
-  const [roomNumber, setRoomNumber] = useState('');
-  const [leaveWithJuristic, setLeaveWithJuristic] = useState(true);
+  const [district, setDistrict] = useState(primaryAddr?.district || BANGKOK_DISTRICTS[0]);
+  const [postalCode, setPostalCode] = useState(primaryAddr?.postalCode || DISTRICT_TO_POSTAL_CODE[primaryAddr?.district || BANGKOK_DISTRICTS[0]] || '10110');
+  const [condoName, setCondoName] = useState(primaryAddr?.label || primaryAddr?.placeName || primaryAddr?.address || '');
+  const [roomNumber, setRoomNumber] = useState(primaryAddr?.roomNumber || '');
+  const [leaveWithJuristic, setLeaveWithJuristic] = useState(primaryAddr?.leaveWithJuristic !== false);
 
   // Schedule Info
   const tomorrow = new Date();
@@ -267,6 +268,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
 
     const bookingPayload = {
       customerName: customerName.trim(),
+      customerId: initialCustomer?.id || null,
       nickName: nickName.trim(),
       contactChannel,
       contactValue: contactValue.trim(),

@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const { query } = require('./db');
 const { hashPassword, verifyPassword, createSession, getSession, deleteSession, requireAdminAuth } = require('./auth');
+const { createTlsProxyRouter, callTlsApi, TLS_API_URL, TLS_BRAND } = require('./tlsProxy');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// TLS Multi-Brand Cloud Proxy Router (Server Test & Production)
+app.use('/api/external', createTlsProxyRouter());
+app.use('/api/tls', createTlsProxyRouter());
 
 // Ensure PostgreSQL schema has reconciliation columns, categories and linens
 async function ensureDatabaseSchema() {
@@ -21,6 +26,7 @@ async function ensureDatabaseSchema() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciled_by VARCHAR(128);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS reconciliation_notes TEXT;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS bank_account_ref VARCHAR(128);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id VARCHAR(64);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS postal_code VARCHAR(16) DEFAULT '10110';
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC DEFAULT 0;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS quantity NUMERIC DEFAULT 1;
@@ -387,6 +393,7 @@ function mapOrder(row) {
     reconciledAt: row.reconciled_at ? new Date(row.reconciled_at).toISOString() : null,
     reconciledBy: row.reconciled_by || null,
     reconciliationNotes: row.reconciliation_notes || '',
+    customerId: row.customer_id || null,
     bankAccountRef: row.bank_account_ref || '',
     postalCode: row.postal_code || '10110',
     deliveryFee: row.delivery_fee !== null ? Number(row.delivery_fee) : 0,
@@ -395,6 +402,32 @@ function mapOrder(row) {
     categoryId: row.category_id || 'laundry_by_weight',
     items: row.items && Array.isArray(row.items) ? row.items : (typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || [])),
     timeline: Array.isArray(row.timeline) ? row.timeline : [],
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
+  };
+}
+
+
+function mapCustomer(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    nickName: row.nick_name || '',
+    gender: row.gender || 'Rather not say',
+    dateOfBirth: row.date_of_birth || '',
+    mobileNumber: row.mobile_number,
+    isWhatsApp: Boolean(row.is_whatsapp),
+    secondaryMobile: row.secondary_mobile || '',
+    isSecondaryWhatsApp: Boolean(row.is_secondary_whatsapp),
+    email: row.email || '',
+    lineId: row.line_id || '',
+    pinCode: row.pin_code || '123456',
+    isVerified: Boolean(row.is_verified),
+    verifiedVia: row.verified_via || null,
+    tier: row.tier || 'Regular',
+    notes: row.notes || '',
+    companyTax: typeof row.company_tax === 'string' ? JSON.parse(row.company_tax) : (row.company_tax || {}),
+    addresses: typeof row.addresses === 'string' ? JSON.parse(row.addresses) : (Array.isArray(row.addresses) ? row.addresses : []),
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
   };
 }
@@ -1346,9 +1379,501 @@ app.post('/api/settings', requireAdminAuth, async (req, res) => {
   }
 });
 
+// 7. Customers API
+app.get('/api/customers', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM customers ORDER BY created_at DESC');
+    res.json(result.rows.map(mapCustomer));
+  } catch (err) {
+    console.error('Error fetching customers:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Customer Authentication (Login via TLS Cloud Backend or Local DB Fallback)
+app.post('/api/customers/login', async (req, res) => {
+  try {
+    const { identifier, pinCode, password } = req.body;
+    const authSecret = (password || pinCode || '').trim();
+
+    if (!identifier || !authSecret) {
+      return res.status(400).json({ error: 'กรุณากรอกเบอร์มือถือ (หรือ Customer ID) และรหัสผ่าน/PIN' });
+    }
+
+    const cleanInput = identifier.trim();
+
+    // 1. Prioritize TLS Cloud Backend (Test Server or Production Server via TLS_API_URL)
+    try {
+      const tlsLoginRes = await callTlsApi('/api/v1/external/auth/login', {
+        method: 'POST',
+        body: {
+          identifier: cleanInput,
+          phone: cleanInput,
+          email: cleanInput,
+          password: authSecret,
+          brand: TLS_BRAND
+        }
+      });
+
+      if (tlsLoginRes.ok && tlsLoginRes.data?.success && tlsLoginRes.data?.customer) {
+        console.log(`[AUTH] Successfully logged in via TLS Cloud (${TLS_API_URL}):`, tlsLoginRes.data.customer.name);
+        const tlsCust = tlsLoginRes.data.customer;
+        const token = tlsLoginRes.data.token;
+
+        // Fetch customer's orders from TLS Cloud
+        let orders = [];
+        try {
+          const tlsOrdersRes = await callTlsApi('/api/v1/external/orders', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (tlsOrdersRes.ok && Array.isArray(tlsOrdersRes.data)) {
+            orders = tlsOrdersRes.data;
+          }
+        } catch (oErr) {
+          console.warn('[AUTH] Error fetching TLS orders:', oErr.message);
+        }
+
+        // Normalize TLS Customer to NoName Frontend format
+        const normalizedCustomer = {
+          id: tlsCust.id,
+          fullName: tlsCust.name || tlsCust.fullName || cleanInput,
+          name: tlsCust.name,
+          nickName: tlsCust.nickName || '',
+          gender: tlsCust.gender || 'Rather not say',
+          mobileNumber: tlsCust.phone || cleanInput,
+          phone: tlsCust.phone || cleanInput,
+          email: tlsCust.email || '',
+          lineId: tlsCust.lineId || '',
+          tier: tlsCust.tier || 'Regular',
+          isVIP: Boolean(tlsCust.isVIP),
+          creditBalance: tlsCust.creditBalance || 0,
+          addresses: Array.isArray(tlsCust.addresses) ? tlsCust.addresses.map(a => ({
+            id: a.id,
+            label: a.label || a.placeName || 'Home',
+            placeName: a.placeName || '',
+            address: a.address || '',
+            district: a.district || '',
+            roomNumber: a.roomNumber || '',
+            latitude: a.latitude,
+            longitude: a.longitude,
+            googleMapsUrl: a.googleMapsUrl || (a.latitude && a.longitude ? `https://maps.google.com/?q=${a.latitude},${a.longitude}` : ''),
+            leaveWithJuristic: a.leaveWithJuristic !== false,
+            isPrimary: Boolean(a.isPrimary)
+          })) : []
+        };
+
+        // Cache/upsert into local customers table for offline/POS availability
+        try {
+          await query(`
+            INSERT INTO customers (
+              id, full_name, nick_name, gender, mobile_number, email, tier, addresses, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+            ON CONFLICT (id) DO UPDATE SET
+              full_name = EXCLUDED.full_name,
+              nick_name = EXCLUDED.nick_name,
+              mobile_number = EXCLUDED.mobile_number,
+              email = EXCLUDED.email,
+              tier = EXCLUDED.tier,
+              addresses = EXCLUDED.addresses,
+              updated_at = NOW()
+          `, [
+            normalizedCustomer.id,
+            normalizedCustomer.fullName,
+            normalizedCustomer.nickName,
+            normalizedCustomer.gender,
+            normalizedCustomer.mobileNumber,
+            normalizedCustomer.email,
+            normalizedCustomer.tier,
+            JSON.stringify(normalizedCustomer.addresses)
+          ]);
+        } catch (syncErr) {
+          console.warn('[AUTH] Local DB customer sync notice:', syncErr.message);
+        }
+
+        return res.json({
+          success: true,
+          source: 'tls_cloud',
+          token,
+          customer: normalizedCustomer,
+          orders
+        });
+      }
+    } catch (tlsErr) {
+      console.warn('[AUTH] TLS Cloud login attempt failed, trying local DB fallback:', tlsErr.message);
+    }
+
+    // 2. Fallback to Local PostgreSQL database check
+    const digitsOnly = cleanInput.replace(/\D/g, '');
+    const last8Digits = digitsOnly.length >= 8 ? digitsOnly.slice(-8) : digitsOnly;
+
+    const custRes = await query(`
+      SELECT * FROM customers 
+      WHERE LOWER(id) = LOWER($1)
+         OR LOWER(email) = LOWER($1)
+         OR LOWER(mobile_number) = LOWER($1)
+         OR ($2 <> '' AND regexp_replace(mobile_number, '[^0-9]', '', 'g') LIKE '%' || $2)
+      LIMIT 1
+    `, [cleanInput, last8Digits]);
+
+    if (custRes.rows.length === 0) {
+      return res.status(401).json({ error: 'ไม่พบบัญชีลูกค้า กรุณาตรวจสอบเบอร์มือถือหรือลงทะเบียนใหม่' });
+    }
+
+    const row = custRes.rows[0];
+    const customerPin = (row.pin_code || '123456').trim();
+    if (customerPin !== authSecret) {
+      return res.status(401).json({ error: 'รหัสผ่าน หรือ PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' });
+    }
+
+    const customer = mapCustomer(row);
+
+    // Fetch this customer's laundry orders from local DB
+    const ordersRes = await query(`
+      SELECT * FROM orders 
+      WHERE customer_id = $1 
+         OR LOWER(customer_name) = LOWER($2)
+         OR contact_value = $3
+      ORDER BY created_at DESC
+    `, [customer.id, customer.fullName, customer.mobileNumber]);
+
+    const orders = ordersRes.rows.map(mapOrder);
+    const token = 'cust_session_' + Buffer.from(`${customer.id}:${Date.now()}`).toString('base64');
+
+    res.json({
+      success: true,
+      source: 'local_db',
+      token,
+      customer,
+      orders
+    });
+  } catch (err) {
+    console.error('Customer login error:', err);
+    res.status(500).json({ error: 'Internal server error during login' });
+  }
+});
+
+// Get Customer Orders (from TLS Cloud if token exists, or Local DB)
+app.get('/api/customers/:id/orders', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const authHeader = req.headers.authorization;
+
+    // If request contains JWT token from TLS, fetch from TLS Cloud API
+    if (authHeader && authHeader.startsWith('Bearer eyJ')) {
+      const tlsOrdersRes = await callTlsApi('/api/v1/external/orders', {
+        method: 'GET',
+        headers: { 'Authorization': authHeader }
+      });
+      if (tlsOrdersRes.ok && Array.isArray(tlsOrdersRes.data)) {
+        return res.json(tlsOrdersRes.data);
+      }
+    }
+
+    const custRes = await query('SELECT * FROM customers WHERE id = $1', [id]);
+    if (custRes.rows.length === 0) {
+      return res.json([]);
+    }
+    const customer = mapCustomer(custRes.rows[0]);
+
+    const ordersRes = await query(`
+      SELECT * FROM orders 
+      WHERE customer_id = $1 
+         OR LOWER(customer_name) = LOWER($2)
+         OR contact_value = $3
+      ORDER BY created_at DESC
+    `, [customer.id, customer.fullName, customer.mobileNumber]);
+
+    res.json(ordersRes.rows.map(mapOrder));
+  } catch (err) {
+    console.error('Error fetching customer orders:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public Customer Registration (Syncs to TLS Cloud + Local DB)
+app.post('/api/customers/register', async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data.fullName || !data.mobileNumber) {
+      return res.status(400).json({ error: 'Full name and mobile number are required.' });
+    }
+
+    let addresses = Array.isArray(data.addresses) ? data.addresses : [];
+    if (addresses.length === 0 && (data.condoName || data.address || data.district)) {
+      addresses = [{
+        id: 'ADDR-' + Math.floor(100 + Math.random() * 900),
+        label: (data.condoName || data.addressLabel || 'Home').trim(),
+        address: data.address ? data.address.trim() : `${(data.condoName || '').trim()}, ${data.district || 'Bangkok'}`,
+        district: data.district || 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+        roomNumber: (data.roomNumber || '').trim(),
+        googleMapsUrl: (data.googleMapsUrl || '').trim() || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(((data.condoName || data.address || '') + ' ' + (data.district || 'Bangkok')).trim())}`,
+        leaveWithJuristic: data.leaveWithJuristic !== undefined ? Boolean(data.leaveWithJuristic) : true,
+        isPrimary: true
+      }];
+    }
+
+    const primaryAddress = addresses.find(a => a.isPrimary) || addresses[0];
+
+    // 1. Register to TLS Cloud Backend
+    let tlsToken = null;
+    let registeredCustId = data.id || ('CUST-' + Math.floor(1000 + Math.random() * 9000));
+    try {
+      const cleanPhone = (data.mobileNumber || '').replace(/[^0-9]/g, '');
+      const tlsPayload = {
+        name: data.fullName.trim(),
+        phone: cleanPhone,
+        password: data.pinCode || '123456',
+        email: data.email ? data.email.trim().toLowerCase() : undefined,
+        nickName: (data.nickName || '').trim() || undefined,
+        gender: data.gender || 'Rather not say',
+        address: primaryAddress ? {
+          label: primaryAddress.label || 'Home',
+          placeName: primaryAddress.label || undefined,
+          latitude: primaryAddress.latitude ? parseFloat(primaryAddress.latitude) : undefined,
+          longitude: primaryAddress.longitude ? parseFloat(primaryAddress.longitude) : undefined,
+          googleMapsUrl: primaryAddress.googleMapsUrl || undefined,
+          address: primaryAddress.address,
+          roomNumber: primaryAddress.roomNumber || undefined,
+          district: primaryAddress.district || undefined,
+          leaveWithJuristic: primaryAddress.leaveWithJuristic !== false,
+          isPrimary: true
+        } : undefined
+      };
+
+      const tlsRegisterRes = await callTlsApi('/api/v1/external/auth/register', {
+        method: 'POST',
+        body: tlsPayload
+      });
+
+      if (tlsRegisterRes.ok && tlsRegisterRes.data?.customer) {
+        console.log('[REGISTRATION] Successfully registered on TLS Cloud:', tlsRegisterRes.data.customer.id);
+        registeredCustId = tlsRegisterRes.data.customer.id;
+        tlsToken = tlsRegisterRes.data.token;
+      } else {
+        console.warn('[REGISTRATION] TLS Cloud register note:', tlsRegisterRes.data);
+      }
+    } catch (tlsErr) {
+      console.warn('[REGISTRATION] TLS Cloud register attempt failed:', tlsErr.message);
+    }
+
+    // 2. Persist to local PostgreSQL DB
+    const now = new Date();
+    const result = await query(`
+      INSERT INTO customers (
+        id, full_name, nick_name, gender, date_of_birth,
+        mobile_number, is_whatsapp, secondary_mobile, is_secondary_whatsapp,
+        email, line_id, pin_code, is_verified, verified_via, tier,
+        notes, company_tax, addresses, created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9,
+        $10, $11, $12, $13, $14, $15,
+        $16, $17, $18, $19, $19
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        addresses = EXCLUDED.addresses,
+        updated_at = NOW()
+      RETURNING *
+    `, [
+      registeredCustId,
+      data.fullName.trim(),
+      (data.nickName || '').trim(),
+      data.gender || 'Rather not say',
+      data.dateOfBirth || null,
+      data.mobileNumber.trim(),
+      data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : true,
+      (data.secondaryMobile || '').trim(),
+      Boolean(data.isSecondaryWhatsApp),
+      (data.email || '').trim().toLowerCase(),
+      (data.lineId || '').trim(),
+      data.pinCode || '123456',
+      Boolean(data.isVerified),
+      data.verifiedVia || null,
+      data.tier || 'New',
+      data.notes || '',
+      JSON.stringify(data.companyTax || {}),
+      JSON.stringify(addresses),
+      now
+    ]);
+
+    const mapped = mapCustomer(result.rows[0]);
+    console.log(`[CUSTOMER REGISTERED] ID: ${mapped.id}, Name: ${mapped.fullName}, Mobile: ${mapped.mobileNumber}`);
+    res.status(201).json({
+      success: true,
+      token: tlsToken || ('cust_session_' + Buffer.from(`${mapped.id}:${Date.now()}`).toString('base64')),
+      customer: mapped
+    });
+  } catch (err) {
+    console.error('Error registering customer:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin / Store Sync Customer
+app.post('/api/customers', async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data.fullName) {
+      return res.status(400).json({ error: 'Customer full name is required.' });
+    }
+
+    const id = data.id || ('CUST-' + Math.floor(1000 + Math.random() * 9000));
+    const now = new Date();
+
+    let addresses = Array.isArray(data.addresses) ? data.addresses : [];
+    if (addresses.length === 0 && (data.condoName || data.address || data.district)) {
+      addresses = [{
+        id: 'ADDR-' + Math.floor(100 + Math.random() * 900),
+        label: (data.condoName || data.addressLabel || 'Home').trim(),
+        address: data.address ? data.address.trim() : `${(data.condoName || '').trim()}, ${data.district || 'Bangkok'}`,
+        district: data.district || 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+        roomNumber: (data.roomNumber || '').trim(),
+        googleMapsUrl: (data.googleMapsUrl || '').trim() || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(((data.condoName || data.address || '') + ' ' + (data.district || 'Bangkok')).trim())}`,
+        leaveWithJuristic: data.leaveWithJuristic !== undefined ? Boolean(data.leaveWithJuristic) : true,
+        isPrimary: true
+      }];
+    }
+
+    const result = await query(`
+      INSERT INTO customers (
+        id, full_name, nick_name, gender, date_of_birth,
+        mobile_number, is_whatsapp, secondary_mobile, is_secondary_whatsapp,
+        email, line_id, pin_code, is_verified, verified_via, tier,
+        notes, company_tax, addresses, created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9,
+        $10, $11, $12, $13, $14, $15,
+        $16, $17, $18, $19, $19
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        nick_name = EXCLUDED.nick_name,
+        gender = EXCLUDED.gender,
+        date_of_birth = EXCLUDED.date_of_birth,
+        mobile_number = EXCLUDED.mobile_number,
+        is_whatsapp = EXCLUDED.is_whatsapp,
+        secondary_mobile = EXCLUDED.secondary_mobile,
+        is_secondary_whatsapp = EXCLUDED.is_secondary_whatsapp,
+        email = EXCLUDED.email,
+        line_id = EXCLUDED.line_id,
+        pin_code = EXCLUDED.pin_code,
+        is_verified = EXCLUDED.is_verified,
+        verified_via = EXCLUDED.verified_via,
+        tier = EXCLUDED.tier,
+        notes = EXCLUDED.notes,
+        company_tax = EXCLUDED.company_tax,
+        addresses = EXCLUDED.addresses,
+        updated_at = NOW()
+      RETURNING *
+    `, [
+      id,
+      data.fullName.trim(),
+      (data.nickName || '').trim(),
+      data.gender || 'Rather not say',
+      data.dateOfBirth || null,
+      data.mobileNumber ? data.mobileNumber.trim() : '',
+      data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : true,
+      (data.secondaryMobile || '').trim(),
+      Boolean(data.isSecondaryWhatsApp),
+      (data.email || '').trim().toLowerCase(),
+      (data.lineId || '').trim(),
+      data.pinCode || '123456',
+      Boolean(data.isVerified),
+      data.verifiedVia || null,
+      data.tier || 'Regular',
+      data.notes || '',
+      JSON.stringify(data.companyTax || {}),
+      JSON.stringify(addresses),
+      now
+    ]);
+
+    res.status(201).json(mapCustomer(result.rows[0]));
+  } catch (err) {
+    console.error('Error saving customer:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    const result = await query(`
+      UPDATE customers SET
+        full_name = COALESCE($1, full_name),
+        nick_name = COALESCE($2, nick_name),
+        gender = COALESCE($3, gender),
+        date_of_birth = COALESCE($4, date_of_birth),
+        mobile_number = COALESCE($5, mobile_number),
+        is_whatsapp = COALESCE($6, is_whatsapp),
+        secondary_mobile = COALESCE($7, secondary_mobile),
+        is_secondary_whatsapp = COALESCE($8, is_secondary_whatsapp),
+        email = COALESCE($9, email),
+        line_id = COALESCE($10, line_id),
+        pin_code = COALESCE($11, pin_code),
+        tier = COALESCE($12, tier),
+        notes = COALESCE($13, notes),
+        company_tax = COALESCE($14::jsonb, company_tax),
+        addresses = COALESCE($15::jsonb, addresses),
+        updated_at = NOW()
+      WHERE id = $16
+      RETURNING *
+    `, [
+      data.fullName ? data.fullName.trim() : null,
+      data.nickName ? data.nickName.trim() : null,
+      data.gender || null,
+      data.dateOfBirth || null,
+      data.mobileNumber ? data.mobileNumber.trim() : null,
+      data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : null,
+      data.secondaryMobile ? data.secondaryMobile.trim() : null,
+      data.isSecondaryWhatsApp !== undefined ? Boolean(data.isSecondaryWhatsApp) : null,
+      data.email ? data.email.trim().toLowerCase() : null,
+      data.lineId ? data.lineId.trim() : null,
+      data.pinCode || null,
+      data.tier || null,
+      data.notes || null,
+      data.companyTax ? JSON.stringify(data.companyTax) : null,
+      data.addresses ? JSON.stringify(data.addresses) : null,
+      id
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    res.json(mapCustomer(result.rows[0]));
+  } catch (err) {
+    console.error('Error updating customer:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM customers WHERE id = $1', [id]);
+    res.json({ success: true, deletedId: id });
+  } catch (err) {
+    console.error('Error deleting customer:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 // Static assets serving
 const publicDir = path.join(__dirname, '..');
-app.use(express.static(publicDir));
+app.use(express.static(publicDir, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('app.js') || filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // Fallback for SPA routing
 app.get('*', (req, res) => {
