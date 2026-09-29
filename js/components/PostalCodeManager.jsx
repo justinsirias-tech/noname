@@ -203,12 +203,13 @@ export function PostalCodeManager() {
   };
 
   // City-specific Counts
-  const bangkokCount = rates.filter(r => (r.city || 'Bangkok') === 'Bangkok').length;
-  const pattayaCount = rates.filter(r => r.city === 'Pattaya').length;
-  const activeCount = rates.filter(r => r.isActive !== false).length;
+  const validRates = rates.filter(r => Boolean(r.subdistrict));
+  const bangkokCount = validRates.filter(r => (r.city || 'Bangkok') === 'Bangkok').length;
+  const pattayaCount = validRates.filter(r => r.city === 'Pattaya').length;
+  const activeCount = validRates.filter(r => r.isActive !== false).length;
 
   // Filtering
-  const filteredRates = rates.filter(r => {
+  const filteredRates = validRates.filter(r => {
     const itemCity = r.city || 'Bangkok';
     const matchesCity = 
       selectedCityTab === 'ALL' || 

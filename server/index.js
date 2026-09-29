@@ -279,11 +279,16 @@ async function ensureDatabaseSchema() {
       }
 
       if (!currentSettings.postalCodeRates || !Array.isArray(currentSettings.postalCodeRates) || currentSettings.postalCodeRates.length === 0) {
-        currentSettings.postalCodeRates = defaultDeliveryZones.length > 0 ? defaultDeliveryZones : [
-          { code: '10110', district: 'Khlong Toei / Watthana', districtTh: 'คลองเตย / วัฒนา', areas: 'Sukhumvit 1-71, Asoke, Phrom Phong, Thonglor, Ekkamai, Phra Khanong', fee: 50, isActive: true, freeDeliveryAbove: 600 }
-        ];
+        currentSettings.postalCodeRates = defaultDeliveryZones.length > 0 ? defaultDeliveryZones : [];
         needsSettingsUpdate = true;
       } else if (defaultDeliveryZones.length > 0) {
+        // Clean out any legacy district-level postal entries that lack a subdistrict or id
+        const cleanExisting = currentSettings.postalCodeRates.filter(r => r.subdistrict && (r.id || r.subdistrictTh));
+        if (cleanExisting.length !== currentSettings.postalCodeRates.length) {
+          currentSettings.postalCodeRates = cleanExisting;
+          needsSettingsUpdate = true;
+        }
+
         // Ensure all 180 Bangkok sub-districts and Pattaya zones exist
         const existingIds = new Set(currentSettings.postalCodeRates.map(r => r.id || `${r.city || 'Bangkok'}-${r.subdistrict || r.district}-${r.code}`));
         const missingZones = defaultDeliveryZones.filter(dz => !existingIds.has(dz.id || `${dz.city}-${dz.subdistrict}-${dz.code}`));

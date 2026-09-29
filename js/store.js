@@ -18,7 +18,7 @@ const STORAGE_KEYS = {
   CUSTOMERS: 'noname_laundry_customers_v2',
   SETTINGS: 'noname_laundry_settings_v2',
   FAQS: 'noname_laundry_faqs_v2',
-  POSTAL_CODES: 'noname_postal_codes_v1',
+  POSTAL_CODES: 'noname_delivery_zones_v2',
   DELIVERY_CONFIG: 'noname_delivery_config_v1',
 };
 
@@ -264,9 +264,11 @@ export class LaundryStore {
       const savedFaqs = localStorage.getItem(STORAGE_KEYS.FAQS);
       this.faqs = savedFaqs ? JSON.parse(savedFaqs) : INITIAL_FAQS;
 
-      const savedPostalCodes = localStorage.getItem(STORAGE_KEYS.POSTAL_CODES);
+      const savedPostalCodes = localStorage.getItem(STORAGE_KEYS.POSTAL_CODES) || localStorage.getItem('noname_postal_codes_v1');
       let parsedRates = savedPostalCodes ? JSON.parse(savedPostalCodes) : DEFAULT_ALL_DELIVERY_ZONES;
       if (Array.isArray(parsedRates)) {
+        // Strip out legacy 26-district-level rates without subdistricts
+        parsedRates = parsedRates.filter(r => Boolean(r.subdistrict) && Boolean(r.id || r.subdistrictTh));
         const existingKeys = new Set(parsedRates.map(r => r.id || `${r.city || 'Bangkok'}-${r.subdistrict || r.district}-${r.code}`));
         const missingDefaults = DEFAULT_ALL_DELIVERY_ZONES.filter(d => !existingKeys.has(d.id || `${d.city}-${d.subdistrict}-${d.code}`));
         if (missingDefaults.length > 0) {
@@ -276,6 +278,7 @@ export class LaundryStore {
         parsedRates = DEFAULT_ALL_DELIVERY_ZONES;
       }
       this.postalCodeRates = parsedRates;
+      this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
 
       const savedDeliveryConfig = localStorage.getItem(STORAGE_KEYS.DELIVERY_CONFIG);
       this.deliveryConfig = savedDeliveryConfig ? JSON.parse(savedDeliveryConfig) : DEFAULT_DELIVERY_CONFIG;
@@ -327,7 +330,8 @@ export class LaundryStore {
           this.persist(STORAGE_KEYS.CATEGORIES, this.categories);
         }
         if (data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {
-          const remoteCodes = data.settings.postalCodeRates;
+          // Strip out legacy 26-district-level rates without subdistricts
+          const remoteCodes = data.settings.postalCodeRates.filter(r => Boolean(r.subdistrict) && Boolean(r.id || r.subdistrictTh));
           const existingKeys = new Set(remoteCodes.map(r => r.id || `${r.city || 'Bangkok'}-${r.subdistrict || r.district}-${r.code}`));
           const missingDefaults = DEFAULT_ALL_DELIVERY_ZONES.filter(d => !existingKeys.has(d.id || `${d.city}-${d.subdistrict}-${d.code}`));
           this.postalCodeRates = missingDefaults.length > 0
@@ -1657,7 +1661,7 @@ export class LaundryStore {
   // DELIVERY ZONES & RATES (BANGKOK & PATTAYA)
   // ==========================================
   getPostalCodeRates(cityFilter = null) {
-    const list = [...(this.postalCodeRates || DEFAULT_ALL_DELIVERY_ZONES)];
+    const list = [...(this.postalCodeRates || DEFAULT_ALL_DELIVERY_ZONES)].filter(r => Boolean(r.subdistrict));
     if (cityFilter && cityFilter !== 'ALL') {
       return list.filter(r => (r.city || 'Bangkok').toLowerCase() === cityFilter.toLowerCase());
     }
