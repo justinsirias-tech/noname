@@ -1,0 +1,22 @@
+# robots.txt for NoName Laundry (Bangkok & Pattaya)
+User-agent: *
+Allow: /
+Allow: /#services
+Allow: /#how-it-works
+Allow: /#coverage
+Allow: /#faq
+Allow: /#track-order
+Allow: /#pricing
+
+# Disallow private administrative and system endpoints
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/admin/
+Disallow: /api/orders/batch-reconcile
+Disallow: /api/reports/
+
+# Crawl Delay
+Crawl-delay: 1
+
+# XML Sitemap
+Sitemap: https://nonamelaundry.com/sitemap.xml

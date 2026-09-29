@@ -1,0 +1,17 @@
+{
+  "name": "NoName Laundry - Bangkok & Pattaya Digital Laundry by KG",
+  "short_name": "NoName Laundry",
+  "description": "Bangkok & Pattaya 100% digital laundry service by KG. Transparent digital scale weigh-in, condo juristic lobby pickup, and 24-48h turnaround.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#082f49",
+  "theme_color": "#0284c7",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧺</text></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- Homepage & Booking Wizard -->
+  <url>
+    <loc>https://nonamelaundry.com/</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonamelaundry.com/" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://nonamelaundry.com/?lang=th" />
+  </url>
+
+  <!-- Pricing by the KG -->
+  <url>
+    <loc>https://nonamelaundry.com/#pricing</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Laundry Services List -->
+  <url>
+    <loc>https://nonamelaundry.com/#services</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- How It Works (4-Step Process) -->
+  <url>
+    <loc>https://nonamelaundry.com/#how-it-works</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Bangkok (50 Districts & 180 Sub-districts) & Pattaya Coverage -->
+  <url>
+    <loc>https://nonamelaundry.com/#coverage</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Frequently Asked Questions -->
+  <url>
+    <loc>https://nonamelaundry.com/#faq</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Real-Time Order Tracker -->
+  <url>
+    <loc>https://nonamelaundry.com/#track-order</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Terms & Service Policies -->
+  <url>
+    <loc>https://nonamelaundry.com/#terms</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+</urlset>

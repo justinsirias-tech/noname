@@ -1865,6 +1865,22 @@ app.use(express.static(publicDir, {
   }
 }));
 
+// Explicit SEO & Crawler Endpoints
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.sendFile(path.join(publicDir, 'robots.txt'));
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml');
+  res.sendFile(path.join(publicDir, 'sitemap.xml'));
+});
+
+app.get('/manifest.json', (req, res) => {
+  res.type('application/json');
+  res.sendFile(path.join(publicDir, 'manifest.json'));
+});
+
 // Fallback for SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));

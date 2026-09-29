@@ -81,6 +81,16 @@ async function build() {
     console.log('Copied css directory -> public/css');
   }
 
+  // 6. Copy SEO assets (robots.txt, sitemap.xml, manifest.json) to public/
+  const seoFiles = ['robots.txt', 'sitemap.xml', 'manifest.json'];
+  for (const f of seoFiles) {
+    const srcPath = path.join(rootDir, f);
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, path.join(publicDir, f));
+      console.log(`Copied ${f} -> public/${f}`);
+    }
+  }
+
   console.log('--- Build Complete: Output directory "public" successfully generated! ---');
 }
 
