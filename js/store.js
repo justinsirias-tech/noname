@@ -785,18 +785,8 @@ export class LaundryStore {
       calculatedTotal = Math.round(billableAmount * unitPrice);
     }
 
-    const targetCity = orderInput.city || (orderInput.postalCode?.startsWith('20') ? 'Pattaya' : 'Bangkok');
-    const targetDistrict = orderInput.district || (targetCity === 'Pattaya' ? 'Bang Lamung' : 'Watthana');
-    const targetSubdistrict = orderInput.subdistrict || '';
-    const postalCode = (orderInput.postalCode || DISTRICT_TO_POSTAL_CODE[targetDistrict] || (targetCity === 'Pattaya' ? '20150' : '10110')).trim();
-    
-    const locationInput = {
-      city: targetCity,
-      district: targetDistrict,
-      subdistrict: targetSubdistrict,
-      postalCode
-    };
-    const deliveryCalc = this.calculateDeliveryFee(locationInput, calculatedTotal);
+    const postalCode = (orderInput.postalCode || DISTRICT_TO_POSTAL_CODE[orderInput.district] || '10110').trim();
+    const deliveryCalc = this.calculateDeliveryFee(postalCode, calculatedTotal);
     const deliveryFee = orderInput.deliveryFee !== undefined && orderInput.deliveryFee !== null 
       ? Number(orderInput.deliveryFee) 
       : deliveryCalc.fee;
@@ -826,9 +816,7 @@ export class LaundryStore {
       serviceId: service.id,
       serviceName: mainServiceName,
       items: hasMultiItems ? orderInput.items : null,
-      city: targetCity,
-      district: targetDistrict,
-      subdistrict: targetSubdistrict || deliveryCalc.subdistrict || '',
+      district: orderInput.district,
       condoName: orderInput.condoName,
       roomNumber: orderInput.roomNumber,
       postalCode,
@@ -1459,6 +1447,79 @@ export class LaundryStore {
     return true;
   }
 
+  
+  getCurrentCustomer() {
+    if (this.currentCustomer) return this.currentCustomer;
+    try {
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('noname_customer_session') : null;
+      if (saved) {
+        this.currentCustomer = JSON.parse(saved);
+        return this.currentCustomer;
+      }
+    } catch (e) {
+      console.warn('Error reading customer session:', e);
+    }
+    return null;
+  }
+
+  setCurrentCustomer(customer, token = null) {
+    this.currentCustomer = customer;
+    if (typeof localStorage !== 'undefined') {
+      if (customer) {
+        localStorage.setItem('noname_customer_session', JSON.stringify(customer));
+        if (token) {
+          localStorage.setItem('tls_customer_token', token);
+        }
+      } else {
+        localStorage.removeItem('noname_customer_session');
+        localStorage.removeItem('tls_customer_token');
+      }
+    }
+    this.notify();
+  }
+
+  getCustomerToken() {
+    if (typeof localStorage !== 'undefined') {
+      return localStorage.getItem('tls_customer_token') || null;
+    }
+    return null;
+  }
+
+  async loginCustomer(identifier, pinCode) {
+    try {
+      const res = await fetch('/api/customers/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, pinCode, password: pinCode })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูล');
+      }
+      this.setCurrentCustomer(data.customer, data.token);
+      if (Array.isArray(data.orders) && data.orders.length > 0) {
+        const existingIds = new Set(this.orders.map(o => o.id));
+        const newOrders = data.orders.filter(o => !existingIds.has(o.id));
+        if (newOrders.length > 0) {
+          this.orders = [...newOrders, ...this.orders];
+          this.persist(STORAGE_KEYS.ORDERS, this.orders);
+        }
+      }
+      return data;
+    } catch (err) {
+      const localRes = this.verifyCustomerPin(identifier, pinCode);
+      if (localRes.success) {
+        this.setCurrentCustomer(localRes.customer);
+        return { success: true, customer: localRes.customer };
+      }
+      throw err;
+    }
+  }
+
+  logoutCustomer() {
+    this.setCurrentCustomer(null);
+  }
+
   verifyCustomerPin(customerIdOrContact, pinCode) {
     const cust = (this.customers || []).find(c => 
       c.id === customerIdOrContact ||
@@ -1632,7 +1693,7 @@ export class LaundryStore {
         areas: updatedFields.areas || '',
         fee: Math.max(0, Number(updatedFields.fee || 50)),
         isActive: updatedFields.isActive !== undefined ? Boolean(updatedFields.isActive) : true,
-        freeDeliveryAbove: Number(updatedFields.freeDeliveryAbove) || 600
+        freeDeliveryAbove: Number(updatedFields.freeDeliveryAbove || 600)
       });
     }
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);

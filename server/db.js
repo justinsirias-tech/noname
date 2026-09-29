@@ -7,9 +7,11 @@ if (!connectionString) {
   console.error('DATABASE_URL environment variable is not defined!');
 }
 
+const isLocal = connectionString && (connectionString.includes('localhost') || connectionString.includes('127.0.0.1')) && !connectionString.includes('sslmode=require');
+
 const pool = new Pool({
   connectionString,
-  ssl: {
+  ssl: isLocal ? false : {
     rejectUnauthorized: false
   },
   max: 10,

@@ -12,6 +12,9 @@ import { AdminPOS } from './components/AdminPOS.jsx';
 import { AdminLogin } from './components/AdminLogin.jsx';
 import { DigitalContactModal } from './components/DigitalContactModal.jsx';
 import { FaqSection } from './components/FaqSection.jsx';
+import { CustomerRegister } from './components/CustomerRegister.jsx';
+import { CustomerLogin } from './components/CustomerLogin.jsx';
+import { CustomerPortal } from './components/CustomerPortal.jsx';
 import { Footer } from './components/Footer.jsx';
 import { Icon } from './components/Icons.jsx';
 
@@ -81,6 +84,10 @@ export function App() {
   // Modals & Notifications
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Customer Authentication & Profile State
+  const [currentCustomer, setCurrentCustomer] = useState(() => laundryStore.getCurrentCustomer());
+  const [prefillCustomer, setPrefillCustomer] = useState(null);
 
   // Verify stored admin token on mount
   useEffect(() => {
@@ -265,7 +272,7 @@ export function App() {
         }
 
         const target = hash || path;
-        if (['admin', 'track', 'services', 'terms', 'book', 'how-it-works', 'faq'].includes(target)) {
+        if (['admin', 'track', 'services', 'terms', 'book', 'how-it-works', 'faq', 'login', 'portal', 'register'].includes(target)) {
           setCurrentView(target);
         } else if (!hash) {
           setCurrentView('home');
@@ -406,6 +413,70 @@ export function App() {
         {currentView === 'terms' && (
           <TermsAndConditions
             setView={navigateTo}
+          />
+        )}
+
+                {currentView === 'login' && (
+          <CustomerLogin
+            onLoginSuccess={(customer) => {
+              setCurrentCustomer(customer);
+              triggerToast(`ยินดีต้อนรับคุณ ${customer.nickName || customer.fullName}!`);
+              navigateTo('portal');
+            }}
+            onNavigateToRegister={() => navigateTo('register')}
+            onNavigateHome={() => navigateTo('home')}
+          />
+        )}
+
+        {currentView === 'portal' && (
+          !currentCustomer ? (
+            <CustomerLogin
+              onLoginSuccess={(customer) => {
+                setCurrentCustomer(customer);
+                triggerToast(`ยินดีต้อนรับคุณ ${customer.nickName || customer.fullName}!`);
+                navigateTo('portal');
+              }}
+              onNavigateToRegister={() => navigateTo('register')}
+              onNavigateHome={() => navigateTo('home')}
+            />
+          ) : (
+            <CustomerPortal
+              customer={currentCustomer}
+              onNavigateHome={() => navigateTo('home')}
+              onBookNewOrder={(cust) => {
+                setPrefillCustomer(cust);
+                navigateTo('book');
+              }}
+              onTrackOrder={(orderId) => {
+                setActiveTrackingId(orderId);
+                navigateTo('track');
+              }}
+              onLogout={() => {
+                laundryStore.logoutCustomer();
+                setCurrentCustomer(null);
+                triggerToast('ออกจากระบบเรียบร้อยแล้ว');
+                navigateTo('home');
+              }}
+            />
+          )
+        )}
+
+        {currentView === 'register' && (
+          <CustomerRegister
+            onRegisterSuccess={(customer) => {
+              laundryStore.setCurrentCustomer(customer);
+              setCurrentCustomer(customer);
+              triggerToast(`ยินดีต้อนรับคุณ ${customer.fullName}! ลงทะเบียนและเข้าสู่ระบบเรียบร้อยแล้ว`);
+              navigateTo('portal');
+            }}
+            onNavigateToBook={(customer) => {
+              laundryStore.setCurrentCustomer(customer);
+              setCurrentCustomer(customer);
+              setPrefillCustomer(customer);
+              navigateTo('book');
+            }}
+            onNavigateToLogin={() => navigateTo('login')}
+            onNavigateHome={() => navigateTo('home')}
           />
         )}
 
