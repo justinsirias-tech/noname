@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧺</text></svg>" />
-    <link rel="manifest" href="./manifest.json" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0284c7" />
     
     <!-- Primary SEO Meta Tags -->
@@ -52,7 +52,7 @@
     <link rel="preconnect" href="https://esm.sh" />
     <link rel="dns-prefetch" href="https://cdn.tailwindcss.com" />
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
-    <link rel="preload" href="./dist/app.js?v=tls2026" as="script" crossorigin="anonymous" />
+    <link rel="preload" href="/dist/app.js?v=tls2026" as="script" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <!-- Google Fonts (Display Swap for instant text rendering) -->
@@ -88,7 +88,7 @@
     </script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="./css/custom.css" />
+    <link rel="stylesheet" href="/css/custom.css" />
 
     <!-- Comprehensive JSON-LD Structured Data Schema (@graph) for Google Rich Snippets -->
     <script type="application/ld+json">
@@ -402,21 +402,37 @@
             <p class="text-xs text-slate-500 mt-1">Sub-district level pickup and delivery with real-time fee calculation.</p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="p-6 rounded-3xl bg-white border border-slate-200">
-              <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <span>🏙️</span> Bangkok (All 50 Districts & 180 Sub-districts)
-              </h3>
-              <p class="text-xs text-slate-600 mt-2 leading-relaxed">
-                Full coverage across <strong>Watthana</strong> (Thonglor, Ekkamai, Phrom Phong, Asoke), <strong>Khlong Toei</strong>, <strong>Bang Rak</strong> (Silom), <strong>Sathon</strong>, <strong>Pathum Wan</strong> (Siam, Chidlom, Ploenchit), <strong>Phaya Thai</strong> (Ari), <strong>Huai Khwang</strong> (Ratchada), <strong>Chatuchak</strong> (Mo Chit), <strong>Yan Nawa</strong> (Rama 3), <strong>Phra Nakhon</strong>, <strong>Dusit</strong>, <strong>Thon Buri</strong>, <strong>Khlong San</strong> (ICONSIAM area), <strong>Bang Na</strong>, <strong>Suan Luang</strong>, <strong>Phasi Charoen</strong>, <strong>Bang Sue</strong>, <strong>Don Mueang</strong>, and all remaining 32 outer districts.
-              </p>
+            <div class="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col justify-between">
+              <div>
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <span>🏙️</span> Bangkok (All 50 Districts & 180 Sub-districts)
+                </h3>
+                <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+                  Full coverage across <strong>Watthana</strong> (Thonglor, Ekkamai, Phrom Phong, Asoke), <strong>Khlong Toei</strong>, <strong>Bang Rak</strong> (Silom), <strong>Sathon</strong>, <strong>Pathum Wan</strong> (Siam, Chidlom, Ploenchit), <strong>Phaya Thai</strong> (Ari), <strong>Huai Khwang</strong> (Ratchada), <strong>Chatuchak</strong> (Mo Chit), <strong>Yan Nawa</strong> (Rama 3), <strong>Phra Nakhon</strong>, <strong>Dusit</strong>, <strong>Thon Buri</strong>, <strong>Khlong San</strong> (ICONSIAM area), <strong>Bang Na</strong>, <strong>Suan Luang</strong>, <strong>Phasi Charoen</strong>, <strong>Bang Sue</strong>, <strong>Don Mueang</strong>, and all remaining 32 outer districts.
+                </p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="/bangkok" class="inline-flex items-center gap-1.5 text-sky-600 hover:text-sky-700 font-bold text-xs">
+                  <span>Explore Bangkok Local Services &amp; 180 Sub-districts</span>
+                  <span>→</span>
+                </a>
+              </div>
             </div>
-            <div class="p-6 rounded-3xl bg-white border border-slate-200">
-              <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <span>🏖️</span> Pattaya (13 Municipal & Beach Zones)
-              </h3>
-              <p class="text-xs text-slate-600 mt-2 leading-relaxed">
-                Daily collection across <strong>Central Pattaya</strong> (Beach Rd, Second Rd, Soi Buakhao), <strong>North Pattaya & Wongamat Beach</strong> (Naklua), <strong>Pratumnak Hill</strong> (Cosy Beach), <strong>South Pattaya</strong>, <strong>Jomtien Beach</strong>, <strong>Na Jomtien</strong> (Beachfront, Marina), and <strong>East Pattaya / Darkside</strong> (Soi Khao Noi, Khao Talo, Lake Mabprachan).
-              </p>
+            <div class="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col justify-between">
+              <div>
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <span>🏖️</span> Pattaya (13 Municipal & Beach Zones)
+                </h3>
+                <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+                  Daily collection across <strong>Central Pattaya</strong> (Beach Rd, Second Rd, Soi Buakhao), <strong>North Pattaya & Wongamat Beach</strong> (Naklua), <strong>Pratumnak Hill</strong> (Cosy Beach), <strong>South Pattaya</strong>, <strong>Jomtien Beach</strong>, <strong>Na Jomtien</strong> (Beachfront, Marina), and <strong>East Pattaya / Darkside</strong> (Soi Khao Noi, Khao Talo, Lake Mabprachan).
+                </p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="/pattaya" class="inline-flex items-center gap-1.5 text-sky-600 hover:text-sky-700 font-bold text-xs">
+                  <span>Explore Pattaya Local Services &amp; Beach Zones</span>
+                  <span>→</span>
+                </a>
+              </div>
             </div>
           </div>
         </section>
@@ -454,7 +470,7 @@
     </div>
 
     <!-- Instant Pre-Bundled ES Module Execution (Zero Babel, Instant Startup) -->
-    <script type="module" src="./dist/app.js?v=tls2026"></script>
+    <script type="module" src="/dist/app.js?v=tls2026"></script>
 
   </body>
 </html>

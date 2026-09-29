@@ -12,7 +12,7 @@ import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundrySt
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 import GoogleMapsCondoAutocomplete from './GoogleMapsCondoAutocomplete.jsx';
 
-export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, initialCustomer, onBookingSuccess, onViewFullTerms }) {
+export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, initialCustomer, initialCity, onBookingSuccess, onViewFullTerms }) {
   // Support multi-service selection map: { [serviceId]: { weightKg, quantity } }
   const [selectedServicesMap, setSelectedServicesMap] = useState(() => {
     if (Array.isArray(initialSelectedItems) && initialSelectedItems.length > 0) {
@@ -56,13 +56,20 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const [companyBranch, setCompanyBranch] = useState(initialCustomer?.companyTax?.branch || 'Head Office (สำนักงานใหญ่)');
 
   // Service City & Address Info (Bangkok & Pattaya)
-  const [serviceCity, setServiceCity] = useState('Bangkok'); // 'Bangkok' | 'Pattaya'
-  const [district, setDistrict] = useState(BANGKOK_DISTRICTS[0]);
+  const isPattayaInit = (initialCity === 'Pattaya') || (primaryAddr?.city === 'Pattaya');
+  const [serviceCity, setServiceCity] = useState(isPattayaInit ? 'Pattaya' : 'Bangkok'); // 'Bangkok' | 'Pattaya'
+  const [district, setDistrict] = useState(
+    isPattayaInit ? (PATTAYA_SUBDISTRICTS_LIST[0]?.district || 'Bang Lamung') : BANGKOK_DISTRICTS[0]
+  );
   const [subdistrict, setSubdistrict] = useState(
-    BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.name || 'Khlong Toei Nuea'
+    isPattayaInit
+      ? (PATTAYA_SUBDISTRICTS_LIST[0]?.name || 'Central Pattaya / Beach Rd')
+      : (BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.name || 'Khlong Toei Nuea')
   );
   const [postalCode, setPostalCode] = useState(
-    BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.code || '10110'
+    isPattayaInit
+      ? (PATTAYA_SUBDISTRICTS_LIST[0]?.code || '20150')
+      : (BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.code || '10110')
   );
   const [condoName, setCondoName] = useState(primaryAddr?.label || primaryAddr?.placeName || primaryAddr?.address || '');
   const [roomNumber, setRoomNumber] = useState(primaryAddr?.roomNumber || '');
@@ -121,6 +128,26 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
       });
     }
   }, [initialSelectedItems, initialServiceId, initialWeight]);
+
+  useEffect(() => {
+    if (initialCity === 'Pattaya') {
+      setServiceCity('Pattaya');
+      const firstPty = PATTAYA_SUBDISTRICTS_LIST[0];
+      if (firstPty) {
+        setDistrict(firstPty.district);
+        setSubdistrict(firstPty.name);
+        setPostalCode(firstPty.code);
+      }
+    } else if (initialCity === 'Bangkok') {
+      setServiceCity('Bangkok');
+      const defaultBkkDist = BANGKOK_DISTRICTS[0];
+      const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[defaultBkkDist] || [];
+      const defaultSub = subList[0];
+      setDistrict(defaultBkkDist);
+      setSubdistrict(defaultSub ? defaultSub.name : 'Khlong Toei Nuea');
+      setPostalCode(defaultSub ? defaultSub.code : (DISTRICT_TO_POSTAL_CODE[defaultBkkDist] || '10110'));
+    }
+  }, [initialCity]);
 
   const handleToggleService = (srvId) => {
     const srv = services.find(s => s.id === srvId);

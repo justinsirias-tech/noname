@@ -60,11 +60,25 @@ async function build() {
     fs.copyFileSync(bundleOut, path.join(publicDistDir, 'app.js'));
   }
 
-  // 4. Copy index.html to public/index.html
+  // 4. Copy index.html and city subfolders to public/
   const rootIndexHtml = path.join(rootDir, 'index.html');
   if (fs.existsSync(rootIndexHtml)) {
     fs.copyFileSync(rootIndexHtml, path.join(publicDir, 'index.html'));
     console.log('Copied index.html -> public/index.html');
+  }
+
+  const cities = ['bangkok', 'pattaya'];
+  for (const city of cities) {
+    const citySrcDir = path.join(rootDir, city);
+    const cityDestDir = path.join(publicDir, city);
+    if (fs.existsSync(citySrcDir)) {
+      fs.mkdirSync(cityDestDir, { recursive: true });
+      const cityHtml = path.join(citySrcDir, 'index.html');
+      if (fs.existsSync(cityHtml)) {
+        fs.copyFileSync(cityHtml, path.join(cityDestDir, 'index.html'));
+        console.log(`Copied ${city}/index.html -> public/${city}/index.html`);
+      }
+    }
   }
 
   // 5. Copy css directory to public/css if present

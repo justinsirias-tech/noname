@@ -1881,6 +1881,15 @@ app.get('/manifest.json', (req, res) => {
   res.sendFile(path.join(publicDir, 'manifest.json'));
 });
 
+// Dedicated Localized Subfolder Landing Pages
+app.get(['/bangkok', '/bangkok/'], (req, res) => {
+  res.sendFile(path.join(publicDir, 'bangkok', 'index.html'));
+});
+
+app.get(['/pattaya', '/pattaya/'], (req, res) => {
+  res.sendFile(path.join(publicDir, 'pattaya', 'index.html'));
+});
+
 // Fallback for SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));

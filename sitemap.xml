@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
-  <!-- Homepage & Booking Wizard -->
+  <!-- Main Root Portal -->
   <url>
     <loc>https://nonamelaundry.com/</loc>
     <lastmod>2026-09-29</lastmod>
@@ -10,6 +10,26 @@
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://nonamelaundry.com/" />
     <xhtml:link rel="alternate" hreflang="th" href="https://nonamelaundry.com/?lang=th" />
+  </url>
+
+  <!-- Dedicated Bangkok Localized Landing Page (50 Districts & 180 Sub-districts) -->
+  <url>
+    <loc>https://nonamelaundry.com/bangkok</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonamelaundry.com/bangkok" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://nonamelaundry.com/bangkok?lang=th" />
+  </url>
+
+  <!-- Dedicated Pattaya Localized Landing Page (Central, Wongamat, Pratumnak, Jomtien & East Pattaya) -->
+  <url>
+    <loc>https://nonamelaundry.com/pattaya</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonamelaundry.com/pattaya" />
+    <xhtml:link rel="alternate" hreflang="th" href="https://nonamelaundry.com/pattaya?lang=th" />
   </url>
 
   <!-- Pricing by the KG -->
@@ -36,7 +56,7 @@
     <priority>0.8</priority>
   </url>
 
-  <!-- Bangkok (50 Districts & 180 Sub-districts) & Pattaya Coverage -->
+  <!-- Service Coverage -->
   <url>
     <loc>https://nonamelaundry.com/#coverage</loc>
     <lastmod>2026-09-29</lastmod>

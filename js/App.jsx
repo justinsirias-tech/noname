@@ -19,13 +19,21 @@ import { Footer } from './components/Footer.jsx';
 import { Icon } from './components/Icons.jsx';
 
 const getInitialUrlParams = () => {
-  if (typeof window === 'undefined') return { view: 'home', trackingId: '', openPayment: false };
+  if (typeof window === 'undefined') return { view: 'home', trackingId: '', openPayment: false, city: 'Bangkok' };
   try {
     const url = new URL(window.location.href);
     const trackId = url.searchParams.get('track') || url.searchParams.get('order') || url.searchParams.get('id') || '';
     const payParam = url.searchParams.get('pay');
     const hash = window.location.hash.replace('#', '').toLowerCase();
     const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+
+    // Detect localized city from pathname
+    let city = 'Bangkok';
+    if (path.includes('pattaya')) {
+      city = 'Pattaya';
+    } else if (path.includes('bangkok')) {
+      city = 'Bangkok';
+    }
 
     const openPayment = payParam === '1' || payParam === 'true' || hash === 'pay';
     let view = 'home';
@@ -41,16 +49,25 @@ const getInitialUrlParams = () => {
       view = 'book';
     } else if (hash === 'faq' || path === 'faq') {
       view = 'faq';
+    } else if (hash === 'how-it-works' || path === 'how-it-works') {
+      view = 'how-it-works';
+    } else if (hash === 'login' || path === 'login') {
+      view = 'login';
+    } else if (hash === 'register' || path === 'register') {
+      view = 'register';
+    } else if (hash === 'portal' || path === 'portal') {
+      view = 'portal';
     }
-    return { view, trackingId: trackId, openPayment };
+    return { view, trackingId: trackId, openPayment, city };
   } catch (e) {
-    return { view: 'home', trackingId: '', openPayment: false };
+    return { view: 'home', trackingId: '', openPayment: false, city: 'Bangkok' };
   }
 };
 
 export function App() {
   const initialParams = getInitialUrlParams();
   const [currentView, setCurrentView] = useState(initialParams.view);
+  const [currentCity, setCurrentCity] = useState(initialParams.city || 'Bangkok');
   const [storeState, setStoreState] = useState(() => ({
     services: [...laundryStore.services],
     orders: [...laundryStore.orders],
@@ -262,6 +279,13 @@ export function App() {
         const hash = window.location.hash.replace('#', '').toLowerCase();
         const path = window.location.pathname.replace(/^\//, '').toLowerCase();
 
+        // Sync city from URL
+        if (path.includes('pattaya')) {
+          setCurrentCity('Pattaya');
+        } else if (path.includes('bangkok')) {
+          setCurrentCity('Bangkok');
+        }
+
         if (trackId) {
           setActiveTrackingId(trackId);
           setCurrentView('track');
@@ -304,12 +328,26 @@ export function App() {
     };
   }, []);
 
+  const handleSwitchCity = (newCity) => {
+    setCurrentCity(newCity);
+    if (typeof window !== 'undefined') {
+      const citySlug = newCity.toLowerCase();
+      const currentHash = window.location.hash ? window.location.hash : '';
+      const newUrl = `/${citySlug}${currentHash}`;
+      window.history.pushState(null, '', newUrl);
+    }
+    triggerToast(`Location switched to ${newCity}`);
+  };
+
   const navigateTo = (view) => {
     setCurrentView(view);
     if (typeof window !== 'undefined') {
+      const isPattayaPath = window.location.pathname.includes('/pattaya');
+      const isBangkokPath = window.location.pathname.includes('/bangkok');
+      const cityPath = currentCity === 'Pattaya' ? '/pattaya' : (isBangkokPath ? '/bangkok' : (isPattayaPath ? '/pattaya' : window.location.pathname));
       if (view === 'home') {
         if (window.location.hash) {
-          history.replaceState(null, '', window.location.pathname);
+          history.replaceState(null, '', cityPath);
         }
       } else {
         window.location.hash = view;
@@ -337,6 +375,9 @@ export function App() {
           currentView={currentView}
           setView={navigateTo}
           onOpenContactModal={() => setIsContactModalOpen(true)}
+          customer={currentCustomer}
+          currentCity={currentCity}
+          onSwitchCity={handleSwitchCity}
         />
       )}
 
@@ -348,6 +389,8 @@ export function App() {
               services={storeState.services}
               setView={navigateTo}
               onSelectServiceForBooking={handleSelectServiceForBooking}
+              city={currentCity}
+              onSwitchCity={handleSwitchCity}
             />
             <DigitalSupportBanner
               onOpenContactModal={() => setIsContactModalOpen(true)}
@@ -396,6 +439,8 @@ export function App() {
             initialServiceId={bookingPrefillService}
             initialWeight={bookingPrefillWeight}
             initialSelectedItems={bookingPrefillItems}
+            initialCustomer={currentCustomer || prefillCustomer}
+            initialCity={currentCity}
             onBookingSuccess={handleBookingSuccess}
             onViewFullTerms={() => navigateTo('terms')}
           />

@@ -2,13 +2,31 @@
   "version": 2,
   "buildCommand": "node build.js",
   "outputDirectory": "public",
+  "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.js"
     },
     {
-      "source": "/((?!api/|dist/|css/|.*\\..*).*)",
+      "source": "/bangkok",
+      "destination": "/bangkok/index.html"
+    },
+    {
+      "source": "/bangkok/",
+      "destination": "/bangkok/index.html"
+    },
+    {
+      "source": "/pattaya",
+      "destination": "/pattaya/index.html"
+    },
+    {
+      "source": "/pattaya/",
+      "destination": "/pattaya/index.html"
+    },
+    {
+      "source": "/((?!api/|dist/|css/|bangkok|pattaya|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]
