@@ -3,9 +3,11 @@ import { INITIAL_CATEGORIES, INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_INCIDENTS
 import { INITIAL_FAQS } from './data/faqData.js';
 import { 
   DEFAULT_BANGKOK_POSTAL_CODES, 
+  DEFAULT_ALL_DELIVERY_ZONES,
   DEFAULT_DELIVERY_CONFIG, 
   calculateDeliveryFee as calcDeliveryFee,
-  DISTRICT_TO_POSTAL_CODE 
+  DISTRICT_TO_POSTAL_CODE,
+  SERVICE_CITIES
 } from './data/postalCodesData.js';
 
 const STORAGE_KEYS = {
@@ -263,15 +265,15 @@ export class LaundryStore {
       this.faqs = savedFaqs ? JSON.parse(savedFaqs) : INITIAL_FAQS;
 
       const savedPostalCodes = localStorage.getItem(STORAGE_KEYS.POSTAL_CODES);
-      let parsedRates = savedPostalCodes ? JSON.parse(savedPostalCodes) : DEFAULT_BANGKOK_POSTAL_CODES;
+      let parsedRates = savedPostalCodes ? JSON.parse(savedPostalCodes) : DEFAULT_ALL_DELIVERY_ZONES;
       if (Array.isArray(parsedRates)) {
-        const existingCodes = new Set(parsedRates.map(r => r.code));
-        const missingDefaults = DEFAULT_BANGKOK_POSTAL_CODES.filter(d => !existingCodes.has(d.code));
+        const existingKeys = new Set(parsedRates.map(r => r.id || `${r.city || 'Bangkok'}-${r.subdistrict || r.district}-${r.code}`));
+        const missingDefaults = DEFAULT_ALL_DELIVERY_ZONES.filter(d => !existingKeys.has(d.id || `${d.city}-${d.subdistrict}-${d.code}`));
         if (missingDefaults.length > 0) {
-          parsedRates = [...parsedRates, ...missingDefaults].sort((a, b) => a.code.localeCompare(b.code));
+          parsedRates = [...parsedRates, ...missingDefaults].sort((a, b) => (a.city || '').localeCompare(b.city || '') || a.code.localeCompare(b.code));
         }
       } else {
-        parsedRates = DEFAULT_BANGKOK_POSTAL_CODES;
+        parsedRates = DEFAULT_ALL_DELIVERY_ZONES;
       }
       this.postalCodeRates = parsedRates;
 
@@ -285,7 +287,7 @@ export class LaundryStore {
       this.incidents = INITIAL_INCIDENTS;
       this.customers = INITIAL_CUSTOMERS;
       this.faqs = INITIAL_FAQS;
-      this.postalCodeRates = DEFAULT_BANGKOK_POSTAL_CODES;
+      this.postalCodeRates = DEFAULT_ALL_DELIVERY_ZONES;
       this.deliveryConfig = DEFAULT_DELIVERY_CONFIG;
     }
   }
@@ -326,10 +328,10 @@ export class LaundryStore {
         }
         if (data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {
           const remoteCodes = data.settings.postalCodeRates;
-          const existingCodes = new Set(remoteCodes.map(r => r.code));
-          const missingDefaults = DEFAULT_BANGKOK_POSTAL_CODES.filter(d => !existingCodes.has(d.code));
+          const existingKeys = new Set(remoteCodes.map(r => r.id || `${r.city || 'Bangkok'}-${r.subdistrict || r.district}-${r.code}`));
+          const missingDefaults = DEFAULT_ALL_DELIVERY_ZONES.filter(d => !existingKeys.has(d.id || `${d.city}-${d.subdistrict}-${d.code}`));
           this.postalCodeRates = missingDefaults.length > 0
-            ? [...remoteCodes, ...missingDefaults].sort((a, b) => a.code.localeCompare(b.code))
+            ? [...remoteCodes, ...missingDefaults].sort((a, b) => (a.city || '').localeCompare(b.city || '') || a.code.localeCompare(b.code))
             : remoteCodes;
           this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
         }
@@ -783,8 +785,18 @@ export class LaundryStore {
       calculatedTotal = Math.round(billableAmount * unitPrice);
     }
 
-    const postalCode = (orderInput.postalCode || DISTRICT_TO_POSTAL_CODE[orderInput.district] || '10110').trim();
-    const deliveryCalc = this.calculateDeliveryFee(postalCode, calculatedTotal);
+    const targetCity = orderInput.city || (orderInput.postalCode?.startsWith('20') ? 'Pattaya' : 'Bangkok');
+    const targetDistrict = orderInput.district || (targetCity === 'Pattaya' ? 'Bang Lamung' : 'Watthana');
+    const targetSubdistrict = orderInput.subdistrict || '';
+    const postalCode = (orderInput.postalCode || DISTRICT_TO_POSTAL_CODE[targetDistrict] || (targetCity === 'Pattaya' ? '20150' : '10110')).trim();
+    
+    const locationInput = {
+      city: targetCity,
+      district: targetDistrict,
+      subdistrict: targetSubdistrict,
+      postalCode
+    };
+    const deliveryCalc = this.calculateDeliveryFee(locationInput, calculatedTotal);
     const deliveryFee = orderInput.deliveryFee !== undefined && orderInput.deliveryFee !== null 
       ? Number(orderInput.deliveryFee) 
       : deliveryCalc.fee;
@@ -814,7 +826,9 @@ export class LaundryStore {
       serviceId: service.id,
       serviceName: mainServiceName,
       items: hasMultiItems ? orderInput.items : null,
-      district: orderInput.district,
+      city: targetCity,
+      district: targetDistrict,
+      subdistrict: targetSubdistrict || deliveryCalc.subdistrict || '',
       condoName: orderInput.condoName,
       roomNumber: orderInput.roomNumber,
       postalCode,
@@ -1579,23 +1593,27 @@ export class LaundryStore {
   }
 
   // ==========================================
-  // BANGKOK POSTAL CODES & DELIVERY RATES
+  // DELIVERY ZONES & RATES (BANGKOK & PATTAYA)
   // ==========================================
-  getPostalCodeRates() {
-    return [...(this.postalCodeRates || DEFAULT_BANGKOK_POSTAL_CODES)].sort((a, b) => a.code.localeCompare(b.code));
+  getPostalCodeRates(cityFilter = null) {
+    const list = [...(this.postalCodeRates || DEFAULT_ALL_DELIVERY_ZONES)];
+    if (cityFilter && cityFilter !== 'ALL') {
+      return list.filter(r => (r.city || 'Bangkok').toLowerCase() === cityFilter.toLowerCase());
+    }
+    return list.sort((a, b) => (a.city || '').localeCompare(b.city || '') || a.code.localeCompare(b.code));
   }
 
   getDeliveryConfig() {
     return this.deliveryConfig || DEFAULT_DELIVERY_CONFIG;
   }
 
-  calculateDeliveryFee(postalCode, subtotal = 0) {
-    return calcDeliveryFee(postalCode, subtotal, this.postalCodeRates, this.deliveryConfig);
+  calculateDeliveryFee(locationInput, subtotal = 0) {
+    return calcDeliveryFee(locationInput, subtotal, this.postalCodeRates, this.deliveryConfig);
   }
 
-  async updatePostalCodeRate(code, updatedFields) {
-    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_BANGKOK_POSTAL_CODES];
-    const idx = this.postalCodeRates.findIndex(r => r.code === code);
+  async updatePostalCodeRate(idOrCode, updatedFields) {
+    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_ALL_DELIVERY_ZONES];
+    const idx = this.postalCodeRates.findIndex(r => r.id === idOrCode || r.code === idOrCode);
     if (idx !== -1) {
       this.postalCodeRates[idx] = {
         ...this.postalCodeRates[idx],
@@ -1605,8 +1623,12 @@ export class LaundryStore {
       };
     } else {
       this.postalCodeRates.push({
-        code,
+        id: idOrCode,
+        city: updatedFields.city || 'Bangkok',
         district: updatedFields.district || 'Bangkok',
+        subdistrict: updatedFields.subdistrict || '',
+        subdistrictTh: updatedFields.subdistrictTh || '',
+        code: updatedFields.code || idOrCode,
         areas: updatedFields.areas || '',
         fee: Math.max(0, Number(updatedFields.fee || 50)),
         isActive: updatedFields.isActive !== undefined ? Boolean(updatedFields.isActive) : true,
@@ -1620,16 +1642,25 @@ export class LaundryStore {
   }
 
   async addPostalCodeRate(rateData) {
-    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_BANGKOK_POSTAL_CODES];
+    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_ALL_DELIVERY_ZONES];
     const cleanCode = (rateData.code || '').trim();
     if (!cleanCode) throw new Error('Postal code is required');
-    const existing = this.postalCodeRates.find(r => r.code === cleanCode);
-    if (existing) {
-      return this.updatePostalCodeRate(cleanCode, rateData);
+    const city = rateData.city || (cleanCode.startsWith('20') ? 'Pattaya' : 'Bangkok');
+    const subdistrict = (rateData.subdistrict || '').trim();
+    const generatedId = rateData.id || `${city.toLowerCase().slice(0, 3)}-${(rateData.district || 'zone').toLowerCase().replace(/\s+/g, '-')}-${(subdistrict || cleanCode).toLowerCase().replace(/\s+/g, '-')}`;
+
+    const existingIdx = this.postalCodeRates.findIndex(r => r.id === generatedId || (r.code === cleanCode && r.subdistrict === subdistrict));
+    if (existingIdx !== -1) {
+      return this.updatePostalCodeRate(this.postalCodeRates[existingIdx].id || generatedId, rateData);
     }
     const newEntry = {
+      id: generatedId,
+      city,
+      district: (rateData.district || city).trim(),
+      districtTh: rateData.districtTh || '',
+      subdistrict: subdistrict || (rateData.district || city).trim(),
+      subdistrictTh: rateData.subdistrictTh || '',
       code: cleanCode,
-      district: (rateData.district || 'Bangkok').trim(),
       areas: (rateData.areas || '').trim(),
       fee: Math.max(0, Number(rateData.fee) || 50),
       isActive: rateData.isActive !== false,
@@ -1642,17 +1673,17 @@ export class LaundryStore {
     return newEntry;
   }
 
-  async deletePostalCodeRate(code) {
+  async deletePostalCodeRate(idOrCode) {
     if (!this.postalCodeRates) return;
-    this.postalCodeRates = this.postalCodeRates.filter(r => r.code !== code);
+    this.postalCodeRates = this.postalCodeRates.filter(r => r.id !== idOrCode && r.code !== idOrCode);
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
     this.notify();
     await this.syncPostalRatesToBackend();
   }
 
-  async togglePostalCodeActive(code) {
-    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_BANGKOK_POSTAL_CODES];
-    const entry = this.postalCodeRates.find(r => r.code === code);
+  async togglePostalCodeActive(idOrCode) {
+    if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_ALL_DELIVERY_ZONES];
+    const entry = this.postalCodeRates.find(r => r.id === idOrCode || r.code === idOrCode);
     if (entry) {
       entry.isActive = !entry.isActive;
       this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
@@ -1675,7 +1706,7 @@ export class LaundryStore {
   }
 
   async resetPostalCodeRates() {
-    this.postalCodeRates = [...DEFAULT_BANGKOK_POSTAL_CODES];
+    this.postalCodeRates = [...DEFAULT_ALL_DELIVERY_ZONES];
     this.deliveryConfig = { ...DEFAULT_DELIVERY_CONFIG };
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
     this.persist(STORAGE_KEYS.DELIVERY_CONFIG, this.deliveryConfig);

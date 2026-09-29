@@ -404,8 +404,10 @@ export function OrderDetailsModal({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <span className="text-slate-400 block text-[11px] font-semibold">District Service Area</span>
-                    <span className="font-medium text-slate-800">{order.district || 'Bangkok Central Area'}</span>
+                    <span className="text-slate-400 block text-[11px] font-semibold">Destination & Sub-district</span>
+                    <span className="font-medium text-slate-800">
+                      {order.subdistrict ? `${order.subdistrict}, ` : ''}{order.district ? `${order.district}, ` : ''}{order.city || 'Bangkok'} {order.postalCode ? `(📮 ${order.postalCode})` : ''}
+                    </span>
                   </div>
                 </div>
 
@@ -668,9 +670,9 @@ export function OrderDetailsModal({
                     <div className="text-[11px] text-slate-500 mt-0.5">
                       <span>Service: ฿{previewServiceSubtotal}</span>
                       {deliveryFee > 0 ? (
-                        <span className="ml-1 text-slate-700 font-medium">+ Fixed Delivery: ฿{deliveryFee} (Postal: {order.postalCode || '10110'})</span>
+                        <span className="ml-1 text-slate-700 font-medium">+ Fixed Delivery: ฿{deliveryFee} ({order.city || 'Bangkok'} · {order.subdistrict || order.district || order.postalCode})</span>
                       ) : (
-                        <span className="ml-1 text-emerald-600 font-bold">✓ Free Delivery</span>
+                        <span className="ml-1 text-emerald-600 font-bold">✓ Free Delivery Promo</span>
                       )}
                     </div>
                     {previewPrice !== Number(order.totalPrice) && (

@@ -942,9 +942,9 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
                     <div className="flex items-center gap-2 flex-wrap">
                       {!hasMultiItems && <span>Rate: ฿{activeOrder.pricePerKg} / {unitLbl} {!isPiece && `(Min ${activeOrder.minWeightAppliedKg || 4.0} KG applied)`}</span>}
                       {Number(activeOrder.deliveryFee) > 0 ? (
-                        <span className="font-semibold text-slate-700">• Fixed Delivery: ฿{activeOrder.deliveryFee} THB ({activeOrder.postalCode || 'Bangkok'})</span>
+                        <span className="font-semibold text-slate-700">• Fixed Delivery: ฿{activeOrder.deliveryFee} THB ({activeOrder.city || 'Bangkok'} · {activeOrder.subdistrict || activeOrder.district || activeOrder.postalCode})</span>
                       ) : (
-                        <span className="font-semibold text-emerald-600">• FREE Bangkok Delivery</span>
+                        <span className="font-semibold text-emerald-600">• FREE {activeOrder.city || 'Bangkok'} Delivery Promo</span>
                       )}
                     </div>
                     <span className="text-emerald-700 font-semibold">
@@ -1019,12 +1019,12 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="text-slate-400 uppercase font-bold text-[10px] tracking-wider mb-1">
-                  Bangkok Pickup Location
+                  {activeOrder.city || 'Bangkok'} Pickup Location
                 </div>
                 <div className="font-extrabold text-slate-900 text-sm">{activeOrder.condoName}</div>
                 <div className="text-slate-600">{activeOrder.roomNumber || 'Condo Lobby / Juristic'}</div>
                 <div className="text-slate-500 mt-0.5">
-                  {activeOrder.district}{activeOrder.postalCode ? ` (📮 ${activeOrder.postalCode})` : ''}
+                  {activeOrder.subdistrict ? `${activeOrder.subdistrict}, ` : ''}{activeOrder.district ? `${activeOrder.district}, ` : ''}{activeOrder.city || 'Bangkok'}{activeOrder.postalCode ? ` (📮 ${activeOrder.postalCode})` : ''}
                 </div>
                 {activeOrder.leaveWithJuristic && (
                   <span className="inline-block mt-2 px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-bold">

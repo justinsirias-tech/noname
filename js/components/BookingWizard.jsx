@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
-import { DISTRICT_TO_POSTAL_CODE } from '../data/postalCodesData.js';
+import { 
+  DISTRICT_TO_POSTAL_CODE, 
+  BANGKOK_DISTRICTS_TO_SUBDISTRICTS, 
+  PATTAYA_SUBDISTRICTS_LIST,
+  SERVICE_CITIES 
+} from '../data/postalCodesData.js';
 import { TermsModal } from './TermsModal.jsx';
 import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundryStore } from '../store.js';
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
@@ -49,9 +54,15 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const [companyTaxId, setCompanyTaxId] = useState('');
   const [companyBranch, setCompanyBranch] = useState('Head Office (สำนักงานใหญ่)');
 
-  // Bangkok Address Info
+  // Service City & Address Info (Bangkok & Pattaya)
+  const [serviceCity, setServiceCity] = useState('Bangkok'); // 'Bangkok' | 'Pattaya'
   const [district, setDistrict] = useState(BANGKOK_DISTRICTS[0]);
-  const [postalCode, setPostalCode] = useState(DISTRICT_TO_POSTAL_CODE[BANGKOK_DISTRICTS[0]] || '10110');
+  const [subdistrict, setSubdistrict] = useState(
+    BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.name || 'Khlong Toei Nuea'
+  );
+  const [postalCode, setPostalCode] = useState(
+    BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.code || '10110'
+  );
   const [condoName, setCondoName] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
   const [leaveWithJuristic, setLeaveWithJuristic] = useState(true);
@@ -223,7 +234,12 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const estimatedTotal = selectedEntries.reduce((sum, item) => sum + item.subtotal, 0);
   const totalWeightKg = selectedEntries.filter(i => !i.isPiece).reduce((sum, i) => sum + i.billable, 0);
   const totalPieces = selectedEntries.filter(i => i.isPiece).reduce((sum, i) => sum + i.qty, 0);
-  const deliveryInfo = laundryStore.calculateDeliveryFee(postalCode, estimatedTotal);
+  const deliveryInfo = laundryStore.calculateDeliveryFee({
+    city: serviceCity,
+    district,
+    subdistrict,
+    postalCode
+  }, estimatedTotal);
   const grandEstimatedTotal = estimatedTotal + deliveryInfo.fee;
 
   const handleSubmit = (e) => {
@@ -241,7 +257,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
     }
 
     if (!condoName.trim()) {
-      setErrorMessage('Please enter your Bangkok Condominium or building name.');
+      setErrorMessage(`Please enter your ${serviceCity} condominium, hotel, building, or villa name.`);
       return;
     }
 
@@ -275,7 +291,9 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
       serviceName: selectedEntries.map(i => i.name).join(' + '),
       items,
       turnaroundSpeed: activeSpeed,
+      city: serviceCity,
       district,
+      subdistrict,
       postalCode,
       condoName: condoName.trim(),
       roomNumber: roomNumber.trim(),
@@ -1090,10 +1108,64 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                 </div>
               </div>
 
-              {/* Primary Search: Condominium / Building / House */}
+              {/* Service City Selector: Bangkok vs Pattaya */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Condominium / Building / House Name <span className="text-red-500">*</span>
+                  Service City / Destination <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setServiceCity('Bangkok');
+                      const defaultBkkDist = BANGKOK_DISTRICTS[0];
+                      const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[defaultBkkDist] || [];
+                      const defaultSub = subList[0];
+                      setDistrict(defaultBkkDist);
+                      setSubdistrict(defaultSub ? defaultSub.name : '');
+                      setPostalCode(defaultSub ? defaultSub.code : (DISTRICT_TO_POSTAL_CODE[defaultBkkDist] || '10110'));
+                    }}
+                    className={`p-3 rounded-2xl border-2 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+                      serviceCity === 'Bangkok'
+                        ? 'border-sky-500 bg-sky-50/80 text-sky-900 shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="text-base">🏙️</span>
+                    <div className="text-left">
+                      <div className="leading-tight">Bangkok</div>
+                      <div className="text-[10px] font-medium opacity-75">กรุงเทพฯ (Khwaeng rates)</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setServiceCity('Pattaya');
+                      const firstPty = PATTAYA_SUBDISTRICTS_LIST[0];
+                      setDistrict(firstPty.district);
+                      setSubdistrict(firstPty.name);
+                      setPostalCode(firstPty.code);
+                    }}
+                    className={`p-3 rounded-2xl border-2 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+                      serviceCity === 'Pattaya'
+                        ? 'border-sky-500 bg-sky-50/80 text-sky-900 shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="text-base">🏖️</span>
+                    <div className="text-left">
+                      <div className="leading-tight">Pattaya</div>
+                      <div className="text-[10px] font-medium opacity-75">พัทยา / บางละมุง / สัตหีบ</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Primary Search: Condominium / Hotel / Building / House */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {serviceCity === 'Pattaya' ? 'Hotel / Condominium / Villa / Residence' : 'Condominium / Building / House Name'} <span className="text-red-500">*</span>
                 </label>
                 <GoogleMapsCondoAutocomplete
                   value={condoName}
@@ -1101,92 +1173,214 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                   district={district}
                   onDistrictChange={(newDist) => {
                     setDistrict(newDist);
-                    if (DISTRICT_TO_POSTAL_CODE[newDist]) {
-                      setPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
+                    if (serviceCity === 'Bangkok') {
+                      const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[newDist] || [];
+                      if (subList.length > 0) {
+                        setSubdistrict(subList[0].name);
+                        setPostalCode(subList[0].code);
+                      } else if (DISTRICT_TO_POSTAL_CODE[newDist]) {
+                        setPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
+                      }
                     }
                   }}
                   onSelectPlace={(place) => {
-                    if (place.district) {
-                      setDistrict(place.district);
-                      if (DISTRICT_TO_POSTAL_CODE[place.district]) {
-                        setPostalCode(DISTRICT_TO_POSTAL_CODE[place.district]);
-                      }
-                    }
                     if (place.zipcode) {
                       setPostalCode(place.zipcode);
+                      if (place.zipcode.startsWith('20')) {
+                        setServiceCity('Pattaya');
+                      } else if (place.zipcode.startsWith('10')) {
+                        setServiceCity('Bangkok');
+                      }
+                    }
+                    if (place.district) {
+                      setDistrict(place.district);
+                      const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[place.district] || [];
+                      if (subList.length > 0) {
+                        setSubdistrict(subList[0].name);
+                      }
                     }
                   }}
                   apiKey={laundryStore.settings?.googleMapsApiKey || ''}
-                  placeholder="Search condo name, e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn..."
+                  placeholder={serviceCity === 'Pattaya' ? 'Search hotel, condo, villa, e.g. Riviera Wongamat / Unixx / Grande Centre Point...' : 'Search condo name, e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn...'}
                   required
                 />
               </div>
 
-              {/* 3-Column Responsive Grid: Bangkok District, Postal Code & Unit */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Bangkok District <span className="text-red-500">*</span>
+              {/* Responsive Location Grid for Bangkok vs Pattaya */}
+              {serviceCity === 'Bangkok' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  {/* Bangkok District */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      District (Khet) <span className="text-red-500">*</span>
                     </label>
-                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
-                      Auto-synced
-                    </span>
+                    <select
+                      value={district}
+                      onChange={(e) => {
+                        const newDist = e.target.value;
+                        setDistrict(newDist);
+                        const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[newDist] || [];
+                        if (subList.length > 0) {
+                          setSubdistrict(subList[0].name);
+                          setPostalCode(subList[0].code);
+                        } else if (DISTRICT_TO_POSTAL_CODE[newDist]) {
+                          setPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
+                        }
+                      }}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white font-medium text-slate-800 shadow-2xs"
+                    >
+                      {BANGKOK_DISTRICTS.map((d, i) => (
+                        <option key={i} value={d}>{d}</option>
+                      ))}
+                    </select>
                   </div>
-                  <select
-                    value={district}
-                    onChange={(e) => {
-                      const newDist = e.target.value;
-                      setDistrict(newDist);
-                      if (DISTRICT_TO_POSTAL_CODE[newDist]) {
-                        setPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
-                      }
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white font-medium text-slate-800 shadow-2xs"
-                  >
-                    {BANGKOK_DISTRICTS.map((d, i) => (
-                      <option key={i} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Postal Code <span className="text-red-500">*</span>
+                  {/* Bangkok Sub-district (Khwaeng) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Sub-district (Khwaeng) <span className="text-red-500">*</span>
+                      </label>
+                      <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-1 py-0.5 rounded">
+                        Fee rate
+                      </span>
+                    </div>
+                    <select
+                      value={subdistrict}
+                      onChange={(e) => {
+                        const chosenSub = e.target.value;
+                        setSubdistrict(chosenSub);
+                        const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[district] || [];
+                        const found = subList.find(s => s.name === chosenSub);
+                        if (found) {
+                          setPostalCode(found.code);
+                        }
+                      }}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white font-semibold text-slate-900 shadow-2xs"
+                    >
+                      {(BANGKOK_DISTRICTS_TO_SUBDISTRICTS[district] || [
+                        { name: subdistrict || 'Central', nameTh: 'ชั้นใน', code: postalCode, fee: 50 }
+                      ]).map((sub, idx) => (
+                        <option key={idx} value={sub.name}>
+                          {sub.name} {sub.nameTh ? `(${sub.nameTh})` : ''} — ฿{sub.fee || 50}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Postal Code */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Postal Code <span className="text-red-500">*</span>
+                      </label>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                        deliveryInfo.isFree 
+                          ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
+                          : 'text-sky-700 bg-sky-50 border-sky-200'
+                      }`}>
+                        {deliveryInfo.isFree ? 'FREE' : `฿${deliveryInfo.fee}`}
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      pattern="[0-9]{5}"
+                      placeholder="10110"
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white font-mono font-bold text-slate-900 shadow-2xs"
+                    />
+                  </div>
+
+                  {/* Room / Unit */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Tower / Unit
                     </label>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                      deliveryInfo.isFree 
-                        ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
-                        : 'text-sky-700 bg-sky-50 border-sky-200'
-                    }`}>
-                      {deliveryInfo.isFree ? 'FREE' : `฿${deliveryInfo.fee}`} Fee
-                    </span>
+                    <input
+                      type="text"
+                      placeholder="Tower B, Rm 1402"
+                      value={roomNumber}
+                      onChange={(e) => setRoomNumber(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white shadow-2xs"
+                    />
                   </div>
-                  <input
-                    type="text"
-                    required
-                    pattern="[0-9]{5}"
-                    placeholder="e.g. 10110"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white font-mono font-bold text-slate-900 shadow-2xs"
-                  />
                 </div>
+              ) : (
+                /* Pattaya Grid */
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Pattaya Sub-district / Zone */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Pattaya Sub-district / Area <span className="text-red-500">*</span>
+                      </label>
+                      <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-1 py-0.5 rounded">
+                        Zone fee
+                      </span>
+                    </div>
+                    <select
+                      value={subdistrict}
+                      onChange={(e) => {
+                        const chosenName = e.target.value;
+                        setSubdistrict(chosenName);
+                        const found = PATTAYA_SUBDISTRICTS_LIST.find(p => p.name === chosenName);
+                        if (found) {
+                          setDistrict(found.district);
+                          setPostalCode(found.code);
+                        }
+                      }}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white font-semibold text-slate-900 shadow-2xs"
+                    >
+                      {PATTAYA_SUBDISTRICTS_LIST.map((zone, idx) => (
+                        <option key={idx} value={zone.name}>
+                          {zone.name} ({zone.nameTh}) — ฿{zone.fee}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Tower / Floor / Unit
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Tower B, Rm 1402"
-                    value={roomNumber}
-                    onChange={(e) => setRoomNumber(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white shadow-2xs"
-                  />
+                  {/* Postal Code */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Postal Code <span className="text-red-500">*</span>
+                      </label>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                        deliveryInfo.isFree 
+                          ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
+                          : 'text-sky-700 bg-sky-50 border-sky-200'
+                      }`}>
+                        {deliveryInfo.isFree ? 'FREE' : `฿${deliveryInfo.fee}`}
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      pattern="[0-9]{5}"
+                      placeholder="20150"
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white font-mono font-bold text-slate-900 shadow-2xs"
+                    />
+                  </div>
+
+                  {/* Room / Suite / Villa */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Room / Villa / Floor
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Villa 4 / Rm 801"
+                      value={roomNumber}
+                      onChange={(e) => setRoomNumber(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white shadow-2xs"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Delivery Fee Notice Banner */}
               <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
@@ -1203,7 +1397,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                       )}
                     </span>
                     <span className="text-[11px] text-slate-500 block">
-                      Bangkok Postal Code {postalCode} · {deliveryInfo.district} ({deliveryInfo.reason || 'Fixed zone rate'})
+                      {serviceCity} · {deliveryInfo.subdistrict || subdistrict || deliveryInfo.district} (📮 {postalCode}) · {deliveryInfo.reason || 'Fixed sub-district zone rate'}
                     </span>
                   </div>
                 </div>
@@ -1431,7 +1625,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                   {selectedEntries.length} {selectedEntries.length === 1 ? 'Item' : 'Items'}
                 </span>
               </span>
-              <span className="text-slate-400 font-mono font-normal">Bangkok Postal Code: {postalCode}</span>
+              <span className="text-slate-400 font-mono font-normal">{serviceCity} Postal Code: {postalCode}</span>
             </div>
 
             {selectedEntries.map((item) => (
@@ -1445,7 +1639,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
 
             <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200/60">
               <span className="flex items-center gap-1.5">
-                <span>Fixed Pickup & Delivery ({deliveryInfo.district} - {postalCode}):</span>
+                <span>Fixed Pickup & Delivery ({deliveryInfo.subdistrict || deliveryInfo.district} - {postalCode}):</span>
                 {deliveryInfo.isFree && (
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                     Free Promo

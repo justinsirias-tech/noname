@@ -60,8 +60,8 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 👤 *Billed To:*
 Customer: *${order.customerName}*
-Residence: *${order.condoName || 'Bangkok Condominium'}* (Unit ${order.roomNumber || 'Lobby'})
-District: *${order.district || 'Bangkok'}* ${order.postalCode ? `(Postal Code: ${order.postalCode})` : ''}
+Residence: *${order.condoName || ((order.city || 'Bangkok') + ' Residence')}* (Unit ${order.roomNumber || 'Lobby'})
+Area: *${order.subdistrict ? order.subdistrict + ', ' : ''}${order.district || ''}, ${order.city || 'Bangkok'}* ${order.postalCode ? `(Postal Code: ${order.postalCode})` : ''}
 Contact: *${order.contactChannel.toUpperCase()}: ${order.contactValue}*
 ${order.specialInstructions ? `Note: "${order.specialInstructions}"\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━
 🧼 *Service & Intake Breakdown:*
@@ -78,7 +78,7 @@ ${Array.isArray(order.items) && order.items.length > 0
 • Rate per ${unitLabel}: *฿${unitRate} THB / ${unitLabel}*` : `• Intake Weight: *${certifiedWeight} KG* (Min ${minWeight} KG applied -> *${billableWeight} KG*)
 • Rate per KG: *฿${unitRate} THB / KG*`)}
 • Service Subtotal: *฿${serviceSubtotal} THB*
-• Bangkok Delivery Fee (${order.postalCode || 'Bangkok'}): *${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE (฿0 THB)'}*
+• Pickup & Delivery Fee (${order.city || 'Bangkok'} · ${order.subdistrict || order.district || order.postalCode}): *${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE (฿0 THB)'}*
 • Pickup Window: *${order.pickupDate || 'Scheduled'} (${order.pickupTime || ''})*
 • Estimated Delivery: *${order.deliveryDate || 'Scheduled'} (${order.deliveryTime || ''})*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -358,9 +358,9 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
                   Billed To / Customer Information
                 </span>
                 <div className="font-extrabold text-slate-900 text-sm">{order.customerName}</div>
-                <div className="text-slate-700 font-semibold mt-0.5">{order.condoName || 'Bangkok Residence'}</div>
+                <div className="text-slate-700 font-semibold mt-0.5">{order.condoName || ((order.city || 'Bangkok') + ' Residence')}</div>
                 <div className="text-slate-600">Unit / Room: {order.roomNumber || 'Lobby Reception'}</div>
-                <div className="text-slate-500">{order.district || 'Bangkok'}</div>
+                <div className="text-slate-500">{order.subdistrict ? `${order.subdistrict}, ` : ''}{order.district ? `${order.district}, ` : ''}{order.city || 'Bangkok'} {order.postalCode ? `(📮 ${order.postalCode})` : ''}</div>
                 <div className="mt-1 pt-1 border-t border-slate-200 text-[11px] text-slate-600">
                   Contact: <strong className="uppercase">{order.contactChannel}</strong> ({order.contactValue})
                   {order.email && <div className="text-slate-500">{order.email}</div>}
@@ -483,7 +483,7 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
                     <td className="py-3 pr-2" colSpan={4}>
                       <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
                         <Icon name="truck" className="w-3.5 h-3.5 text-sky-600" />
-                        <span>Fixed Pickup & Delivery (Bangkok Postal Code: {order.postalCode || '10110'})</span>
+                        <span>Fixed Pickup & Delivery ({order.city || 'Bangkok'} · {order.subdistrict || order.district || 'Zone'} - {order.postalCode || '10110'})</span>
                       </div>
                       <div className="text-[10px] text-slate-400">
                         Flat-rate two-way courier to condominium lobby / juristic reception
