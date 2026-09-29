@@ -278,36 +278,19 @@ async function ensureDatabaseSchema() {
         needsSettingsUpdate = true;
       }
 
-      if (!currentSettings.postalCodeRates || currentSettings.postalCodeRates.length === 0) {
-        currentSettings.postalCodeRates = [
-          { code: '10100', district: 'Pom Prap Sattru Phai / Samphanthawong', districtTh: 'ป้อมปราบศัตรูพ่าย / สัมพันธวงศ์', areas: 'Chinatown, Yaowarat, Khlong Thom, Sampheng, Wat Mangkon, Pom Prap', fee: 50, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10110', district: 'Watthana / Khlong Toei', districtTh: 'วัฒนา / คลองเตย', areas: 'Sukhumvit (Soi 1–71), Thonglor, Ekkamai, Phrom Phong, Asoke, Nana, Phra Khanong', fee: 50, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10120', district: 'Bang Kho Laem / Yannawa / Sathon', districtTh: 'บางคอแหลม / ยานนาวา / สาทร', areas: 'Sathorn, Chong Nonsi, Rama 3, Chan Road, Suan Phlu, Charoen Krung (South), Asiatique', fee: 50, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10140', district: 'Rat Burana / Thung Khru', districtTh: 'ราษฎร์บูรณะ / ทุ่งครุ', areas: 'Pracha Uthit, Rat Burana, Bang Mod, KMUTT, Suksawat Road', fee: 70, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10150', district: 'Bang Bon / Bang Khun Thian / Chom Thong', districtTh: 'บางบอน / บางขุนเทียน / จอมทอง', areas: 'Rama 2, Dao Khanong, Chom Thong, Bang Khun Thian, Central Rama 2, Bang Bon', fee: 80, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10160', district: 'Bang Khae / Nong Khaem / Phasi Charoen', districtTh: 'บางแค / หนองแขม / ภาษีเจริญ', areas: 'Phetkasem, Bang Wa Interchange, The Mall Bang Khae, Nong Khaem, Phutthamonthon Sai 1', fee: 80, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10170', district: 'Taling Chan / Thawi Watthana', districtTh: 'ตลิ่งชัน / ทวีวัฒนา', areas: 'Borommaratchachonnani, Phutthamonthon Sai 2–3, Taling Chan Floating Market, Ratchaphruek (West)', fee: 80, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10200', district: 'Phra Nakhon', districtTh: 'พระนคร', areas: 'Rattanakosin Island, Banglamphu, Sanam Luang, Khao San Road, Giant Swing, Grand Palace', fee: 60, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10210', district: 'Don Mueang / Lak Si', districtTh: 'ดอนเมือง / หลักสี่', areas: 'Don Mueang Airport, Chaeng Watthana, Lak Si, Song Prapha, Government Complex', fee: 80, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10220', district: 'Bang Khen / Sai Mai', districtTh: 'บางเขน / สายไหม', areas: 'Anusawari, Ram Inthra, Sai Mai, Sukhaphiban 5, Watcharaphon, Phahonyothin (Km 21+)', fee: 80, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10230', district: 'Khan Na Yao / Lat Phrao', districtTh: 'คันนายาว / ลาดพร้าว', areas: 'Lat Phrao, Chok Chai 4, Sena Nikhom, Khan Na Yao, Ram Inthra (Lower), Fashion Island', fee: 70, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10240', district: 'Bang Kapi / Bueng Kum / Saphan Sung', districtTh: 'บางกะปิ / บึงกุ่ม / สะพานสูง', areas: 'Ramkhamhaeng, Hua Mak, Nawamin, Seri Thai, Saphan Sung, The Mall Bangkapi', fee: 70, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10250', district: 'Prawet / Suan Luang', districtTh: 'ประเวศ / สวนหลวง', areas: 'Phatthanakan, On Nut (Outer), Srinakarin, Suan Luang Rama IX, Seacon Square', fee: 70, isActive: true, freeDeliveryAbove: 700 },
-          { code: '10260', district: 'Bang Na / Phra Khanong', districtTh: 'บางนา / พระโขนง', areas: 'Udom Suk, Bang Na-Trat, Bearing, BITEC, Central Bangna, Bang Chak, Sukhumvit 101–107', fee: 60, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10300', district: 'Dusit', districtTh: 'ดุสิต', areas: 'Dusit Palace, Chitralada, Ratchawat, Sri Yan, Government House, Samsen', fee: 60, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10310', district: 'Wang Thonglang / Huai Khwang', districtTh: 'วังทองหลาง / ห้วยขวาง', areas: 'Rama 9, Ratchadaphisek, Meng Jai, Town in Town, Pracha Uthit, Thailand Cultural Centre', fee: 60, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10330', district: 'Pathum Wan', districtTh: 'ปทุมวัน', areas: 'Siam, Chidlom, Ploenchit, Wireless Road (Witthayu), Langsuan, Ratchadamri, MBK, CentralWorld', fee: 50, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10400', district: 'Din Daeng / Phaya Thai / Ratchathewi', districtTh: 'ดินแดง / พญาไท / ราชเทวี', areas: 'Ari, Sanam Pao, Victory Monument, Pratunam, Rangnam, Phayathai BTS, Din Daeng Flat', fee: 50, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10500', district: 'Bang Rak', districtTh: 'บางรัก', areas: 'Silom, Surawong, Si Phraya, Charoen Krung (North), Samyan, Mahanakhon', fee: 50, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10510', district: 'Khlong Sam Wa / Min Buri', districtTh: 'คลองสามวา / มีนบุรี', areas: 'Min Buri, Sam Wa East/West, Suwinthawong, Nimit Mai, Hatairath, Safari World', fee: 90, isActive: true, freeDeliveryAbove: 800 },
-          { code: '10520', district: 'Lat Krabang', districtTh: 'ลาดกระบัง', areas: 'Suvarnabhumi Airport Area, KMITL, Chalong Krung, Rom Klao, King Kaew Junction', fee: 90, isActive: true, freeDeliveryAbove: 800 },
-          { code: '10530', district: 'Nong Chok', districtTh: 'หนองจอก', areas: 'Nong Chok, Lam Phak Chi, Khu Khwang, Eastern Bangkok Green Zone', fee: 90, isActive: true, freeDeliveryAbove: 800 },
-          { code: '10600', district: 'Bang Phlat / Bangkok Noi / Bangkok Yai / Khlong San / Thon Buri', districtTh: 'บางพลัด / บางกอกน้อย / บางกอกใหญ่ / คลองสาน / ธนบุรี', areas: 'Wongwian Yai, Khlong San, Charan Sanitwong, Siriraj Hospital, Pin Klao, Itsaraphap', fee: 60, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10700', district: 'Bangkok Noi / Bang Phlat', districtTh: 'บางกอกน้อย / บางพลัด', areas: 'Arun Amarin, Bang Khun Non, Phran Nok, Rama 8 Bridge, Bang Bamru', fee: 60, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10800', district: 'Bang Sue', districtTh: 'บางซื่อ', areas: 'Bang Sue Grand Station, Tao Poon, Pracha Chuen, Wongsawang, Rama 7 Bridge', fee: 60, isActive: true, freeDeliveryAbove: 600 },
-          { code: '10900', district: 'Chatuchak', districtTh: 'จตุจักร', areas: 'Mo Chit, Chatuchak Weekend Market, Lat Phrao Intersection, Kasetsart University, Ratchayothin, Sena', fee: 60, isActive: true, freeDeliveryAbove: 600 }
+      if (!currentSettings.postalCodeRates || !Array.isArray(currentSettings.postalCodeRates) || currentSettings.postalCodeRates.length === 0) {
+        currentSettings.postalCodeRates = defaultDeliveryZones.length > 0 ? defaultDeliveryZones : [
+          { code: '10110', district: 'Khlong Toei / Watthana', districtTh: 'คลองเตย / วัฒนา', areas: 'Sukhumvit 1-71, Asoke, Phrom Phong, Thonglor, Ekkamai, Phra Khanong', fee: 50, isActive: true, freeDeliveryAbove: 600 }
         ];
         needsSettingsUpdate = true;
+      } else if (defaultDeliveryZones.length > 0) {
+        // Ensure all 180 Bangkok sub-districts and Pattaya zones exist
+        const existingIds = new Set(currentSettings.postalCodeRates.map(r => r.id || `${r.city || 'Bangkok'}-${r.subdistrict || r.district}-${r.code}`));
+        const missingZones = defaultDeliveryZones.filter(dz => !existingIds.has(dz.id || `${dz.city}-${dz.subdistrict}-${dz.code}`));
+        if (missingZones.length > 0) {
+          currentSettings.postalCodeRates = [...currentSettings.postalCodeRates, ...missingZones];
+          needsSettingsUpdate = true;
+        }
       }
 
       if (!currentSettings.deliveryConfig) {
