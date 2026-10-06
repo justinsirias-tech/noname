@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.vercel
+.gemini
+README.md
+scratch
+*.py
