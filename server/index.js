@@ -5,6 +5,7 @@ const cors = require('cors');
 const { query } = require('./db');
 const { hashPassword, verifyPassword, createSession, getSession, deleteSession, requireAdminAuth } = require('./auth');
 const { createTlsProxyRouter, callTlsApi, TLS_API_URL, TLS_BRAND } = require('./tlsProxy');
+const { sendBookingNotificationEmail } = require('./mailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -856,7 +857,14 @@ app.post('/api/orders', async (req, res) => {
       JSON.stringify(o.items || [])
     ]);
 
-    res.status(201).json(mapOrder(result.rows[0]));
+    const createdOrder = mapOrder(result.rows[0]);
+
+    // Asynchronously dispatch email notification to business inbox (non-blocking)
+    sendBookingNotificationEmail(createdOrder).catch(mailErr => {
+      console.error('[MAILER] Background notification error:', mailErr);
+    });
+
+    res.status(201).json(createdOrder);
   } catch (err) {
     console.error('Error inserting order:', err);
     res.status(500).json({ error: err.message });
