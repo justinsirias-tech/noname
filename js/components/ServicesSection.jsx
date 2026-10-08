@@ -1,7 +1,9 @@
 import React from 'react';
 import { Icon } from './Icons.jsx';
+import { useTranslation } from '../i18n.jsx';
 
 export function ServicesSection({ services, onSelectServiceForBooking }) {
+  const { t, language } = useTranslation();
   return (
     <section id="services" className="py-16 sm:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -10,13 +12,13 @@ export function ServicesSection({ services, onSelectServiceForBooking }) {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold uppercase tracking-wider mb-3">
             <Icon name="scale" className="w-3.5 h-3.5" />
-            <span>Strictly By Weight (KG)</span>
+            <span>{t('servicesTag')}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Transparent Laundry Pricing
+            {t('servicesTitle')}
           </h2>
           <p className="mt-3 text-base text-slate-600">
-            No complicated item counts. We bill purely by weight in Kilograms with minimum weight thresholds set for optimal machine batching and garment hygiene.
+            {t('servicesSubtitle')}
           </p>
         </div>
 

@@ -1,20 +1,31 @@
 import React, { useState } from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS } from '../store.js';
+import { useTranslation } from '../i18n.jsx';
 
-export function Navbar({ currentView, setView, onOpenContactModal, customer, currentCity = 'Bangkok', onSwitchCity }) {
+export function Navbar({ 
+  currentView, 
+  setView, 
+  onOpenContactModal, 
+  customer, 
+  currentCity = 'Bangkok', 
+  onSwitchCity,
+  language = 'en',
+  onSwitchLanguage
+}) {
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { id: 'home', label: 'Home' },
-    { id: 'services', label: 'Pricing & Services' },
-    { id: 'how-it-works', label: 'How It Works' },
-    { id: 'faq', label: 'FAQ' },
-    { id: 'track', label: 'Track Order' },
-    { id: 'terms', label: 'Terms & Conditions' },
+    { id: 'home', label: t('navHome') },
+    { id: 'services', label: t('navServices') },
+    { id: 'how-it-works', label: t('navHowItWorks') },
+    { id: 'faq', label: t('navFaq') },
+    { id: 'track', label: t('navTrack') },
+    { id: 'terms', label: t('navTerms') },
     ...(customer 
-      ? [{ id: 'portal', label: 'My Account' }] 
-      : [{ id: 'register', label: 'Register' }]
+      ? [{ id: 'portal', label: t('navAccount') }] 
+      : [{ id: 'register', label: t('navRegister') }]
     ),
   ];
 
@@ -156,6 +167,34 @@ export function Navbar({ currentView, setView, onOpenContactModal, customer, cur
 
           {/* Right Action Buttons */}
           <div className="hidden sm:flex items-center gap-2">
+            {/* Language Switcher Pill */}
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs font-bold mr-1">
+              <button
+                type="button"
+                onClick={() => onSwitchLanguage && onSwitchLanguage('en')}
+                className={`px-2.5 py-1 rounded-lg transition ${
+                  language === 'en'
+                    ? 'bg-white text-sky-800 shadow-2xs font-extrabold'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="Switch to English"
+              >
+                🇬🇧 EN
+              </button>
+              <button
+                type="button"
+                onClick={() => onSwitchLanguage && onSwitchLanguage('th')}
+                className={`px-2.5 py-1 rounded-lg transition ${
+                  language === 'th'
+                    ? 'bg-white text-sky-800 shadow-2xs font-extrabold'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="เปลี่ยนเป็นภาษาไทย"
+              >
+                🇹🇭 ไทย
+              </button>
+            </div>
+
             {customer ? (
               <button
                 onClick={() => setView('portal')}
@@ -184,7 +223,7 @@ export function Navbar({ currentView, setView, onOpenContactModal, customer, cur
                       : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-200'
                   }`}
                 >
-                  <span>🔑 เข้าสู่ระบบ</span>
+                  <span>{t('navLogin')}</span>
                 </button>
                 <button
                   onClick={() => setView('register')}
@@ -194,7 +233,7 @@ export function Navbar({ currentView, setView, onOpenContactModal, customer, cur
                       : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-200'
                   }`}
                 >
-                  <span>ลงทะเบียน</span>
+                  <span>{t('navRegister')}</span>
                 </button>
               </>
             )}
@@ -203,7 +242,7 @@ export function Navbar({ currentView, setView, onOpenContactModal, customer, cur
               onClick={() => setView('book')}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-bold text-sm px-4 sm:px-5 py-2.5 rounded-xl shadow-md shadow-sky-600/25 hover:shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              <span>Book Pickup</span>
+              <span>{t('navBookPickup')}</span>
               <Icon name="chevronRight" className="w-4 h-4" />
             </button>
           </div>
@@ -252,6 +291,36 @@ export function Navbar({ currentView, setView, onOpenContactModal, customer, cur
       {/* Mobile dropdown menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-2 pb-6 space-y-2 shadow-xl">
+          {/* Mobile Language Switcher */}
+          <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl mb-2">
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchLanguage && onSwitchLanguage('en');
+              }}
+              className={`flex-1 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
+                language === 'en'
+                  ? 'bg-white text-sky-800 shadow-xs'
+                  : 'text-slate-600'
+              }`}
+            >
+              <span>🇬🇧 English</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSwitchLanguage && onSwitchLanguage('th');
+              }}
+              className={`flex-1 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
+                language === 'th'
+                  ? 'bg-white text-sky-800 shadow-xs'
+                  : 'text-slate-600'
+              }`}
+            >
+              <span>🇹🇭 ภาษาไทย</span>
+            </button>
+          </div>
+
           {/* Mobile City Switcher */}
           <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl mb-3">
             <button
@@ -266,7 +335,7 @@ export function Navbar({ currentView, setView, onOpenContactModal, customer, cur
                   : 'text-slate-600'
               }`}
             >
-              <span>🏙️ Bangkok</span>
+              <span>🏙️ {t('switchBangkok')}</span>
             </button>
             <button
               type="button"
@@ -280,7 +349,7 @@ export function Navbar({ currentView, setView, onOpenContactModal, customer, cur
                   : 'text-slate-600'
               }`}
             >
-              <span>🏖️ Pattaya</span>
+              <span>🏖️ {t('switchPattaya')}</span>
             </button>
           </div>
 

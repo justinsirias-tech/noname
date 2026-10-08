@@ -1,8 +1,10 @@
 import React from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS } from '../store.js';
+import { useTranslation } from '../i18n.jsx';
 
 export function Footer({ setView }) {
+  const { t } = useTranslation();
   return (
     <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
@@ -21,13 +23,13 @@ export function Footer({ setView }) {
             </div>
 
             <p className="text-slate-400 text-xs leading-relaxed">
-              Bangkok's purely digital laundry service by KG. Professional wash, steam iron, and fold/hang delivered directly to your condominium or house.
+              {t('footerBrandDesc')}
             </p>
 
             <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 text-[11px] text-amber-300 flex items-start gap-2">
               <Icon name="phoneOff" className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <span>
-                <strong>Zero Phone Calls Policy:</strong> All support, updates, and claims are handled exclusively via WhatsApp, LINE, or Email.
+                {t('footerZeroPhone')}
               </span>
             </div>
           </div>

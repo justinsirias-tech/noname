@@ -17,6 +17,7 @@ import { CustomerLogin } from './components/CustomerLogin.jsx';
 import { CustomerPortal } from './components/CustomerPortal.jsx';
 import { Footer } from './components/Footer.jsx';
 import { Icon } from './components/Icons.jsx';
+import { LanguageContext, translations } from './i18n.jsx';
 
 const getInitialUrlParams = () => {
   if (typeof window === 'undefined') return { view: 'home', trackingId: '', openPayment: false, city: 'Bangkok' };
@@ -68,6 +69,26 @@ export function App() {
   const initialParams = getInitialUrlParams();
   const [currentView, setCurrentView] = useState(initialParams.view);
   const [currentCity, setCurrentCity] = useState(initialParams.city || 'Bangkok');
+  const [language, setLanguageState] = useState(() => {
+    try {
+      return (typeof localStorage !== 'undefined' && localStorage.getItem('noname_language')) || 'en';
+    } catch (e) {
+      return 'en';
+    }
+  });
+
+  const setLanguage = (lang) => {
+    setLanguageState(lang);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('noname_language', lang);
+      }
+    } catch (e) {}
+  };
+
+  const t = (key) => {
+    return translations[language]?.[key] || translations['en']?.[key] || key;
+  };
   const [storeState, setStoreState] = useState(() => ({
     services: [...laundryStore.services],
     orders: [...laundryStore.orders],
@@ -357,29 +378,32 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-['Plus_Jakarta_Sans',sans-serif] w-full max-w-full overflow-x-hidden">
-      
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 animate-bounce">
-          <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-bold flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>{toastMessage.text}</span>
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-['Plus_Jakarta_Sans',sans-serif] w-full max-w-full overflow-x-hidden">
+        
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed top-5 right-5 z-50 animate-bounce">
+            <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-bold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>{toastMessage.text}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Navigation Bar (Hidden when in Admin Back-Office) */}
-      {currentView !== 'admin' && (
-        <Navbar
-          currentView={currentView}
-          setView={navigateTo}
-          onOpenContactModal={() => setIsContactModalOpen(true)}
-          customer={currentCustomer}
-          currentCity={currentCity}
-          onSwitchCity={handleSwitchCity}
-        />
-      )}
+        {/* Main Navigation Bar (Hidden when in Admin Back-Office) */}
+        {currentView !== 'admin' && (
+          <Navbar
+            currentView={currentView}
+            setView={navigateTo}
+            onOpenContactModal={() => setIsContactModalOpen(true)}
+            customer={currentCustomer}
+            currentCity={currentCity}
+            onSwitchCity={handleSwitchCity}
+            language={language}
+            onSwitchLanguage={setLanguage}
+          />
+        )}
 
       {/* Main Content Router */}
       <main className="flex-1 w-full max-w-full overflow-x-hidden">
@@ -580,6 +604,7 @@ export function App() {
         <Footer setView={navigateTo} />
       )}
       
-    </div>
+      </div>
+    </LanguageContext.Provider>
   );
 }

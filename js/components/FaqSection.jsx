@@ -2,8 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS, laundryStore } from '../store.js';
 import { FAQ_CATEGORIES } from '../data/faqData.js';
+import { useTranslation } from '../i18n.jsx';
 
 export function FaqSection({ setView }) {
+  const { t } = useTranslation();
   const [faqs, setFaqs] = useState(() => laundryStore.getPublishedFaqs());
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,13 +51,13 @@ export function FaqSection({ setView }) {
       {/* Section Header */}
       <div className="text-center max-w-2xl mx-auto mb-10">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold mb-3 border border-sky-200 shadow-sm">
-          <span>❓ Got Questions? We Have Answers</span>
+          <span>{t('faqTag')}</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Frequently Asked Questions
+          {t('faqTitle')}
         </h2>
         <p className="text-sm text-slate-600 mt-3 leading-relaxed">
-          Everything you need to know about Bangkok's purely digital door-to-door laundry service — from certified digital scale weigh-ins to condo juristic drop-offs.
+          {t('faqSubtitle')}
         </p>
       </div>
 

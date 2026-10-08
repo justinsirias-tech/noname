@@ -1,35 +1,37 @@
 import React from 'react';
 import { Icon } from './Icons.jsx';
+import { useTranslation } from '../i18n.jsx';
 
 export function HowItWorks({ setView }) {
+  const { t } = useTranslation();
   const steps = [
     {
       step: '01',
-      title: 'Book Digital Pickup',
-      desc: 'Select your service, estimated KG, and choose your Bangkok condo/district. Select whether to receive updates via LINE, WhatsApp, or Email.',
+      title: t('hiwStep1Title'),
+      desc: t('hiwStep1Desc'),
       icon: 'receipt',
-      badge: 'Zero Phone Calls'
+      badge: t('hiwStep1Badge')
     },
     {
       step: '02',
-      title: 'Bag Tagging & Collection',
-      desc: 'Leave your laundry bag with your condo juristic office or hand directly to our courier. A unique physical barcode tag is attached on-site.',
+      title: t('hiwStep2Title'),
+      desc: t('hiwStep2Desc'),
       icon: 'package',
-      badge: 'Lobby Drop-Off OK'
+      badge: t('hiwStep2Badge')
     },
     {
       step: '03',
-      title: 'Facility Digital Scale Weigh-In',
-      desc: 'Upon arrival at our Bangkok laundry hub, your bag is weighed on precision digital scales. We log the actual KG and update your online invoice.',
+      title: t('hiwStep3Title'),
+      desc: t('hiwStep3Desc'),
       icon: 'scale',
-      badge: 'Transparent Weight'
+      badge: t('hiwStep3Badge')
     },
     {
       step: '04',
-      title: 'Fresh Doorstep Return',
-      desc: 'Garments are returned clean, folded or hung in sealed protective dust covers within 24–48 hours. Real-time delivery notification sent online.',
+      title: t('hiwStep4Title'),
+      desc: t('hiwStep4Desc'),
       icon: 'truck',
-      badge: 'Prompt Delivery'
+      badge: t('hiwStep4Badge')
     }
   ];
 
@@ -39,13 +41,13 @@ export function HowItWorks({ setView }) {
         
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-100 px-3 py-1 rounded-full">
-            Effortless Workflow
+            {t('hiwTag')}
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-3">
-            How NoName Cloud Laundry Works
+            {t('hiwTitle')}
           </h2>
           <p className="mt-3 text-base text-slate-600">
-            Engineered for busy Bangkok residents, expat professionals, and modern condo living.
+            {t('hiwSubtitle')}
           </p>
         </div>
 

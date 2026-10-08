@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS, laundryStore } from '../store.js';
+import { useTranslation } from '../i18n.jsx';
 
 export function Hero({ services, setView, onSelectServiceForBooking, city = 'Bangkok', onSwitchCity }) {
+  const { t, language } = useTranslation();
   const categories = laundryStore.getCategories ? laundryStore.getCategories() : [];
   const [calcCategory, setCalcCategory] = useState('all');
 
@@ -121,41 +123,33 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>
               {city === 'Pattaya' 
-                ? '🏖️ Pattaya Cloud Laundry • Purely Digital Door-to-Door' 
-                : '🏙️ Bangkok Cloud Laundry • Purely Digital Door-to-Door'}
+                ? t('heroBadgePattaya')
+                : t('heroBadgeBangkok')}
             </span>
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
             <Icon name="phoneOff" className="w-3.5 h-3.5 text-amber-600" />
-            <span>Online Support Only (WhatsApp / LINE / Email)</span>
+            <span>{t('heroBadgeOnlineOnly')}</span>
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
             <Icon name="receipt" className="w-3.5 h-3.5 text-emerald-600" />
-            <span>100% Cashless System (PromptPay / Card)</span>
+            <span>{t('heroBadgeCashless')}</span>
           </div>
         </div>
 
         {/* Main Hero Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
-            Fresh Laundry By The KG {city === 'Pattaya' ? 'In Pattaya.' : 'In Bangkok.'}{' '}
+            {t('heroTitlePrefix')} {city === 'Pattaya' ? t('heroTitleCityPattaya') : t('heroTitleCityBangkok')}{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-sky-500 to-teal-500">
-              Zero Storefront.
+              {t('heroTitleSuffix')}
             </span>
           </h1>
 
           <p className="mt-5 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-            {city === 'Pattaya' ? (
-              <>
-                <strong>NoName Laundry</strong> brings high-standard garment care directly to your Pattaya condominium, private pool villa, or hotel (Central Pattaya, Wongamat, Pratumnak, Jomtien, Na Jomtien &amp; East Pattaya). Transparent by-the-KG pricing, digital scale audit, and smooth communication exclusively via <strong>WhatsApp, LINE, and Email</strong>.
-              </>
-            ) : (
-              <>
-                <strong>NoName Laundry</strong> brings high-standard garment care directly to your Bangkok condominium or home across all 50 districts and 180 sub-districts. Transparent by-the-KG pricing, digital scale audit, and smooth communication exclusively via <strong>WhatsApp, LINE, and Email</strong>.
-              </>
-            )}
+            {city === 'Pattaya' ? t('heroDescPattaya') : t('heroDescBangkok')}
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
@@ -164,7 +158,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-base px-8 py-3.5 rounded-xl shadow-lg shadow-sky-600/30 hover:shadow-sky-600/40 transition transform hover:-translate-y-0.5 active:translate-y-0"
             >
               <Icon name="truck" className="w-5 h-5" />
-              <span>{city === 'Pattaya' ? 'Schedule Pattaya Pickup' : 'Schedule Bangkok Pickup'}</span>
+              <span>{t('heroCtaBook')}</span>
             </button>
 
             <button
@@ -172,21 +166,21 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-base px-6 py-3.5 rounded-xl border border-slate-200 shadow-sm transition"
             >
               <Icon name="search" className="w-5 h-5 text-slate-500" />
-              <span>Track Active Order</span>
+              <span>{t('heroCtaTrack')}</span>
             </button>
           </div>
 
           <div className="mt-4 flex items-center justify-center gap-4 text-xs text-slate-500 flex-wrap">
             <span className="flex items-center gap-1">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" /> 48h Standard (24h &amp; Same Day Available)
+              <Icon name="check" className="w-4 h-4 text-emerald-600" /> {t('heroTrustScales')}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" /> {city === 'Pattaya' ? 'Condo & Villa Drop-Off' : 'Condo Juristic Drop-Off'}
+              <Icon name="check" className="w-4 h-4 text-emerald-600" /> {t('heroTrustJuristic')}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" /> Transparent Scale Weight
+              <Icon name="check" className="w-4 h-4 text-emerald-600" /> {t('heroTrustCashless')}
             </span>
           </div>
         </div>

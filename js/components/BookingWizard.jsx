@@ -11,8 +11,10 @@ import { TermsModal } from './TermsModal.jsx';
 import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundryStore } from '../store.js';
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 import GoogleMapsCondoAutocomplete from './GoogleMapsCondoAutocomplete.jsx';
+import { useTranslation } from '../i18n.jsx';
 
 export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, initialCustomer, initialCity, onBookingSuccess, onViewFullTerms }) {
+  const { t, language } = useTranslation();
   // Support multi-service selection map: { [serviceId]: { weightKg, quantity } }
   const [selectedServicesMap, setSelectedServicesMap] = useState(() => {
     if (Array.isArray(initialSelectedItems) && initialSelectedItems.length > 0) {
@@ -495,13 +497,13 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
       {/* Header Banner */}
       <div className="mb-8">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold mb-2">
-          <span>Bangkok Purely Digital Laundry Service</span>
+          <span>{serviceCity === 'Pattaya' ? '🏖️ Pattaya Digital Laundry' : '🏙️ Bangkok Digital Laundry'}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Schedule Your Laundry Pickup
+          {t('bwTitle')}
         </h1>
         <p className="text-sm text-slate-600 mt-2">
-          No storefront visit needed. Door-to-door collection across Bangkok condos and residences. Support exclusively via WhatsApp, LINE, and Email.
+          {t('bwSubtitle')}
         </p>
       </div>
 

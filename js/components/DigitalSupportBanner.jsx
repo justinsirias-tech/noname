@@ -1,8 +1,10 @@
 import React from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS } from '../store.js';
+import { useTranslation } from '../i18n.jsx';
 
 export function DigitalSupportBanner({ onOpenContactModal }) {
+  const { t } = useTranslation();
   return (
     <section className="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8 border-y border-sky-900/50">
       <div className="max-w-7xl mx-auto">
@@ -21,25 +23,25 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Purely Digital Support & Incident Resolution
+                {t('dsbTitle')}
               </h2>
 
               <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
-                To guarantee full accountability, digital photographic audit, and lightning-fast response times, <strong>NoName Laundry operates entirely without telephone call centers</strong>. All inquiries, pickup instructions, status requests, and incident reports are handled strictly through our official online chat and email channels.
+                {t('dsbDesc')}
               </p>
 
               <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1.5">
                   <Icon name="check" className="w-4 h-4 text-sky-400" />
-                  Written record of all instructions
+                  {t('dsbReason1Title')}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Icon name="check" className="w-4 h-4 text-sky-400" />
-                  Direct photo sharing for garment inspection
+                  {t('dsbReason2Title')}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Icon name="check" className="w-4 h-4 text-sky-400" />
-                  Fast average response in &lt; 5 minutes
+                  {t('dsbReason3Title')}
                 </span>
               </div>
             </div>
