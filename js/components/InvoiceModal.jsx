@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { generatePromptPayQrUrl, laundryStore } from '../store.js';
+import { generatePromptPayQrUrl, getLineOaAddFriendUrl, laundryStore } from '../store.js';
 
 export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
   const [copiedLink, setCopiedLink] = useState(false);
@@ -127,7 +127,7 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
     }
 
     // Open LINE OA or app
-    const lineUrl = `https://line.me/R/ti/p/${encodeURIComponent(lineId)}`;
+    const lineUrl = getLineOaAddFriendUrl(lineId);
     window.open(lineUrl, '_blank');
     recordDispatch('LINE');
   };

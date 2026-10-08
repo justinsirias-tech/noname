@@ -91,6 +91,7 @@ export function App() {
   };
   const [storeState, setStoreState] = useState(() => ({
     services: [...laundryStore.services],
+    categories: [...(laundryStore.categories || [])],
     orders: [...laundryStore.orders],
     incidents: [...laundryStore.incidents],
     settings: { ...laundryStore.settings }
@@ -214,6 +215,7 @@ export function App() {
     const unsubscribe = laundryStore.subscribe(() => {
       setStoreState({
         services: [...laundryStore.services],
+        categories: [...(laundryStore.categories || [])],
         orders: [...laundryStore.orders],
         incidents: [...laundryStore.incidents],
         settings: { ...laundryStore.settings }
@@ -238,9 +240,11 @@ export function App() {
   };
 
   // Booking successful handler
-  const handleBookingSuccess = (bookingInput) => {
-    const newOrder = laundryStore.createOrder(bookingInput);
-    triggerToast(`Booking #${newOrder.id} confirmed! Our customer service team will contact you via WhatsApp / LINE.`);
+  const handleBookingSuccess = (orderOrInput) => {
+    const orderId = orderOrInput?.id || (orderOrInput ? laundryStore.createOrder(orderOrInput).id : '');
+    if (orderId) {
+      triggerToast(`Booking #${orderId} confirmed! Pick-up requested.`);
+    }
     setCurrentView('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -421,6 +425,7 @@ export function App() {
             />
             <ServicesSection
               services={storeState.services}
+              categories={storeState.categories}
               onSelectServiceForBooking={handleSelectServiceForBooking}
             />
             <HowItWorks
@@ -436,6 +441,7 @@ export function App() {
           <div className="py-8">
             <ServicesSection
               services={storeState.services}
+              categories={storeState.categories}
               onSelectServiceForBooking={handleSelectServiceForBooking}
             />
             <DigitalSupportBanner

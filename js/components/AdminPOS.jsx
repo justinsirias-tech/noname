@@ -17,6 +17,11 @@ import {
   BANGKOK_DISTRICTS_TO_SUBDISTRICTS,
   PATTAYA_SUBDISTRICTS_LIST 
 } from '../data/postalCodesData.js';
+import {
+  canUserAccessFeature,
+  getUserAllowedFeatures,
+  BACKOFFICE_FEATURES
+} from '../data/adminFeatures.js';
 
 export function AdminPOS({
   adminUser,
@@ -240,6 +245,107 @@ export function AdminPOS({
   const [manualSpeed, setManualSpeed] = useState('standard_48h');
   const [manualSuccessMsg, setManualSuccessMsg] = useState('');
 
+  const applyManualLocationUpdate = (loc) => {
+    if (!loc) return;
+    let targetCity = loc.city;
+    if (!targetCity) {
+      if ((loc.postalCode && loc.postalCode.startsWith('20')) || (loc.zipcode && loc.zipcode.startsWith('20'))) {
+        targetCity = 'Pattaya';
+      } else {
+        targetCity = 'Bangkok';
+      }
+    }
+    setManualCity(targetCity);
+
+    if (targetCity === 'Pattaya') {
+      let ptySub = null;
+      if (loc.subdistrict) {
+        const cleanSub = loc.subdistrict.toLowerCase();
+        ptySub = PATTAYA_SUBDISTRICTS_LIST.find(s => 
+          s.name.toLowerCase() === cleanSub ||
+          (s.nameTh && s.nameTh.toLowerCase() === cleanSub) ||
+          cleanSub.includes(s.name.toLowerCase()) ||
+          s.name.toLowerCase().includes(cleanSub)
+        );
+      }
+      if (!ptySub && (loc.postalCode || loc.zipcode)) {
+        const pCode = loc.postalCode || loc.zipcode;
+        ptySub = PATTAYA_SUBDISTRICTS_LIST.find(s => s.code === pCode);
+      }
+      if (!ptySub) {
+        ptySub = PATTAYA_SUBDISTRICTS_LIST[0];
+      }
+      if (ptySub) {
+        setManualDistrict(ptySub.district);
+        setManualSubdistrict(ptySub.name);
+        setManualPostalCode(ptySub.code);
+      }
+    } else {
+      let matchedDist = loc.district ? loc.district.split(' (')[0].trim() : '';
+      if (!matchedDist && (loc.postalCode || loc.zipcode)) {
+        const pCode = loc.postalCode || loc.zipcode;
+        for (const [dName, subs] of Object.entries(BANGKOK_DISTRICTS_TO_SUBDISTRICTS)) {
+          if (subs.some(s => s.code === pCode)) {
+            matchedDist = dName;
+            break;
+          }
+        }
+      }
+      if (!matchedDist) {
+        matchedDist = manualDistrict || 'Watthana';
+      }
+      if (!BANGKOK_DISTRICTS.includes(matchedDist)) {
+        const found = BANGKOK_DISTRICTS.find(d => 
+          d.toLowerCase() === matchedDist.toLowerCase() ||
+          matchedDist.toLowerCase().includes(d.toLowerCase()) ||
+          d.toLowerCase().includes(matchedDist.toLowerCase())
+        );
+        if (found) matchedDist = found;
+        else matchedDist = 'Watthana';
+      }
+
+      let subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[matchedDist] || [];
+      let matchedSub = null;
+      if (loc.subdistrict) {
+        const cleanSub = loc.subdistrict.toLowerCase().replace(/^(khwaeng|tambon|subdistrict)\s+/i, '').trim();
+        matchedSub = subList.find(s => {
+          const sName = s.name.toLowerCase();
+          const sNameTh = (s.nameTh || '').toLowerCase();
+          return sName === cleanSub || sNameTh === cleanSub ||
+                 cleanSub.includes(sName) || sName.includes(cleanSub);
+        });
+        if (!matchedSub) {
+          for (const [dName, subs] of Object.entries(BANGKOK_DISTRICTS_TO_SUBDISTRICTS)) {
+            const foundSub = subs.find(s => {
+              const sName = s.name.toLowerCase();
+              const sNameTh = (s.nameTh || '').toLowerCase();
+              return sName === cleanSub || sNameTh === cleanSub ||
+                     cleanSub.includes(sName) || sName.includes(cleanSub);
+            });
+            if (foundSub) {
+              matchedDist = dName;
+              subList = subs;
+              matchedSub = foundSub;
+              break;
+            }
+          }
+        }
+      }
+
+      setManualDistrict(matchedDist);
+
+      if (matchedSub) {
+        setManualSubdistrict(matchedSub.name);
+        setManualPostalCode(loc.postalCode || loc.zipcode || matchedSub.code);
+      } else if (subList.length > 0) {
+        setManualSubdistrict(subList[0].name);
+        setManualPostalCode(loc.postalCode || loc.zipcode || subList[0].code || DISTRICT_TO_POSTAL_CODE[matchedDist] || '10110');
+      } else {
+        setManualPostalCode(loc.postalCode || loc.zipcode || DISTRICT_TO_POSTAL_CODE[matchedDist] || '10110');
+      }
+    }
+  };
+
   // Manual Order Live Calculation
   const selManualSrv = services.find(s => s.id === manualServiceId) || services[0];
   const isManualPiece = selManualSrv?.pricingType === 'piece' || selManualSrv?.unit === 'piece';
@@ -267,6 +373,31 @@ export function AdminPOS({
   const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
   const pendingIncidentsCount = incidents.filter(i => i.status === 'pending').length;
   const unreconciledPaidCount = orders.filter(o => o.paymentStatus === 'PAID' && o.reconciliationStatus !== 'RECONCILED').length;
+
+  // Back-Office Feature Navigation Definition & Permission Resolution
+  const allNavTabs = [
+    { id: 'orders', label: 'Order Processing & Tracking', icon: 'package', count: orders.length },
+    { id: 'sales-reconciliation', label: 'Sales & Reconciliation', icon: 'calculator', count: unreconciledPaidCount },
+    { id: 'users', label: 'User Management', icon: 'shield' },
+    { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
+    { id: 'faq', label: 'FAQ Manager', icon: 'helpCircle', count: laundryStore.faqs ? laundryStore.faqs.length : 0 },
+    { id: 'services-pricing', label: 'Services & Menu Catalog', icon: 'layers', count: services.length },
+    { id: 'postal-rates', label: 'Delivery Zones & Rates', icon: 'truck', count: laundryStore.getPostalCodeRates ? laundryStore.getPostalCodeRates().length : 0 },
+    { id: 'gateway', label: 'Cashless Payment Gateway', icon: 'receipt' },
+    { id: 'line-oa', label: 'LINE OA & Contact Channels', icon: 'line' },
+    { id: 'incidents', label: 'Online Support & Tickets', icon: 'messageSquare', count: pendingIncidentsCount },
+    { id: 'new-pos', label: 'Manual POS Order', icon: 'send' }
+  ];
+
+  const accessibleTabs = allNavTabs.filter(tab => canUserAccessFeature(adminUser, tab.id));
+  const isCurrentTabAllowed = canUserAccessFeature(adminUser, activeTab);
+
+  // Auto-redirect to first accessible module if user lands on an unauthorized tab
+  useEffect(() => {
+    if (accessibleTabs.length > 0 && !canUserAccessFeature(adminUser, activeTab)) {
+      setActiveTab(accessibleTabs[0].id);
+    }
+  }, [adminUser, activeTab, accessibleTabs]);
 
   const handleOpenOrderModal = (order) => {
     setInspectingOrderId(order.id);
@@ -605,12 +736,17 @@ export function AdminPOS({
   };
 
   const filteredOrders = orders.filter(order => {
-    const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
-    const matchesSearch = !searchFilter.trim() ||
-      order.id.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      order.condoName.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      order.tagNumber.toLowerCase().includes(searchFilter.toLowerCase());
+    if (!order) return false;
+    const orderStatusNorm = (order.status || '').toUpperCase().trim();
+    const filterStatusNorm = (statusFilter || '').toUpperCase().trim();
+    const matchesStatus = filterStatusNorm === 'ALL' || orderStatusNorm === filterStatusNorm;
+    const search = searchFilter.trim().toLowerCase();
+    const matchesSearch = !search ||
+      (order.id && order.id.toLowerCase().includes(search)) ||
+      (order.customerName && order.customerName.toLowerCase().includes(search)) ||
+      (order.condoName && order.condoName.toLowerCase().includes(search)) ||
+      (order.district && order.district.toLowerCase().includes(search)) ||
+      (order.tagNumber && order.tagNumber.toLowerCase().includes(search));
     return matchesStatus && matchesSearch;
   });
 
@@ -669,9 +805,20 @@ export function AdminPOS({
 
         <div className="flex items-center gap-2">
           {adminUser && (
-            <div className="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>Logged in: <strong>{adminUser.username}</strong></span>
+            <div className="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span><strong>{adminUser.fullName || adminUser.username}</strong></span>
+              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                adminUser.role === 'super_admin' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                adminUser.role === 'manager' ? 'bg-indigo-100 text-indigo-800 border border-indigo-300' :
+                adminUser.role === 'rider' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                'bg-sky-100 text-sky-800 border border-sky-300'
+              }`}>
+                {adminUser.role === 'super_admin' ? '👑 Super Admin' : adminUser.role === 'manager' ? '🏬 Store Manager' : adminUser.role === 'rider' ? '🛵 Rider' : (adminUser.roleName || '👔 ' + adminUser.role)}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono hidden sm:inline" title="Accessible back-office modules">
+                ({accessibleTabs.length}/11)
+              </span>
             </div>
           )}
 
@@ -738,19 +885,7 @@ export function AdminPOS({
 
       {/* Nav Tabs */}
       <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 pb-3 mb-6 print:hidden">
-        {[
-          { id: 'orders', label: 'Order Processing & Tracking', icon: 'package', count: orders.length },
-          { id: 'sales-reconciliation', label: 'Sales & Reconciliation', icon: 'calculator', count: unreconciledPaidCount },
-          { id: 'users', label: 'User Management', icon: 'shield' },
-          { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
-          { id: 'faq', label: 'FAQ Manager', icon: 'helpCircle', count: laundryStore.faqs ? laundryStore.faqs.length : 0 },
-          { id: 'services-pricing', label: 'Services & Menu Catalog', icon: 'layers', count: services.length },
-          { id: 'postal-rates', label: 'Delivery Zones & Rates', icon: 'truck', count: laundryStore.getPostalCodeRates ? laundryStore.getPostalCodeRates().length : 0 },
-          { id: 'gateway', label: 'Cashless Payment Gateway', icon: 'receipt' },
-          { id: 'line-oa', label: 'LINE OA & Contact Channels', icon: 'line' },
-          { id: 'incidents', label: 'Online Support & Tickets', icon: 'messageSquare', count: pendingIncidentsCount },
-          { id: 'new-pos', label: 'Manual POS Order', icon: 'send' }
-        ].map((tab) => (
+        {accessibleTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -772,6 +907,38 @@ export function AdminPOS({
           </button>
         ))}
       </div>
+
+      {/* ACCESS RESTRICTED SCREEN */}
+      {!isCurrentTabAllowed && (
+        <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-slate-200 shadow-sm space-y-4 max-w-xl mx-auto my-8">
+          <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto text-3xl shadow-sm">
+            🔒
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-black text-slate-900">
+              Access Restricted
+            </h3>
+            <p className="text-xs font-bold text-amber-600">
+              จำกัดสิทธิ์การเข้าถึงโมดูลนี้
+            </p>
+          </div>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Your current role (<strong>{adminUser?.roleName || adminUser?.role || 'Staff'}</strong>) or user account has not been granted access to the <strong className="text-slate-800">"{activeTab}"</strong> module. Please contact a Super Administrator if you require access.
+          </p>
+          {accessibleTabs.length > 0 && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab(accessibleTabs[0].id)}
+                className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition flex items-center gap-2 mx-auto"
+              >
+                <Icon name={accessibleTabs[0].icon} className="w-4 h-4" />
+                <span>Go to Allowed Module: {accessibleTabs[0].label}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* TAB 1: ORDER PROCESSING */}
       {activeTab === 'orders' && (
@@ -2309,38 +2476,24 @@ export function AdminPOS({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block font-bold text-slate-700">
-                    {manualCity === 'Pattaya' ? 'Hotel / Condominium / Villa Address *' : 'Condominium / Building / Address *'}
+                    {manualCity === 'Pattaya' ? 'Hotel / Condominium / Villa / House Address *' : 'Building / Condominium / House / Address *'}
                   </label>
                   <span className="text-[10px] font-semibold text-sky-600">Google Maps Autocomplete</span>
                 </div>
                 <GoogleMapsCondoAutocomplete
                   value={manualCondo}
-                  onChange={(val, place) => {
+                  city={manualCity}
+                  onChange={(val, autoMatch) => {
                     setManualCondo(val);
-                    if (place?.zipcode) {
-                      setManualPostalCode(place.zipcode);
-                      if (place.zipcode.startsWith('20')) {
-                        setManualCity('Pattaya');
-                      } else if (place.zipcode.startsWith('10')) {
-                        setManualCity('Bangkok');
-                      }
+                    if (autoMatch) {
+                      applyManualLocationUpdate(autoMatch);
                     }
                   }}
-                  district={manualDistrict}
-                  onDistrictChange={(newDist) => {
-                    setManualDistrict(newDist);
-                    if (manualCity === 'Bangkok') {
-                      const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[newDist] || [];
-                      if (subList.length > 0) {
-                        setManualSubdistrict(subList[0].name);
-                        setManualPostalCode(subList[0].code);
-                      } else if (DISTRICT_TO_POSTAL_CODE[newDist]) {
-                        setManualPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
-                      }
-                    }
+                  onSelectPlace={(place) => {
+                    applyManualLocationUpdate(place);
                   }}
                   apiKey={googleMapsApiKey}
-                  placeholder={manualCity === 'Pattaya' ? 'Search hotel, condo, villa, resort...' : 'Search Bangkok condo or building...'}
+                  placeholder={manualCity === 'Pattaya' ? 'Search hotel, condo, villa, house or address...' : 'Search building, condo, house, villa, hotel or address...'}
                   required
                 />
               </div>

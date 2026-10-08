@@ -1,0 +1,104 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@nonamelaundry.com",
+    "fullName": "Master Administrator",
+    "phone": "+66 81 234 5678",
+    "role": "super_admin",
+    "status": "active",
+    "permissions": [
+      "orders",
+      "sales-reconciliation",
+      "users",
+      "crm",
+      "faq",
+      "services-pricing",
+      "postal-rates",
+      "gateway",
+      "line-oa",
+      "incidents",
+      "new-pos"
+    ],
+    "password_hash": "90b56fc66d91dc354c9743086fc82f4c799f6f083a33916bfe343fd0ba55b80d9de08bc4cdb5d899036e32585e051ab83daa5932bab604102a55fd82c7ecbee8",
+    "salt": "35d9719104f65c886d0c06b9eaaa9810",
+    "createdAt": "2026-10-08T06:51:37.042Z",
+    "updatedAt": "2026-10-08T06:51:37.043Z"
+  },
+  {
+    "id": 2,
+    "username": "sukhumvit_mgr",
+    "email": "manager.sukhumvit@nonamelaundry.com",
+    "fullName": "Somchai Prasert (Sukhumvit Branch Manager)",
+    "phone": "+66 89 876 5432",
+    "role": "manager",
+    "status": "active",
+    "permissions": [
+      "orders",
+      "sales-reconciliation",
+      "crm",
+      "faq",
+      "services-pricing",
+      "postal-rates",
+      "incidents",
+      "new-pos"
+    ],
+    "password_hash": "90b56fc66d91dc354c9743086fc82f4c799f6f083a33916bfe343fd0ba55b80d9de08bc4cdb5d899036e32585e051ab83daa5932bab604102a55fd82c7ecbee8",
+    "salt": "35d9719104f65c886d0c06b9eaaa9810",
+    "createdAt": "2026-10-01T06:51:37.043Z",
+    "updatedAt": "2026-10-01T06:51:37.043Z"
+  },
+  {
+    "id": 3,
+    "username": "pos_operator1",
+    "email": "staff.asoke@nonamelaundry.com",
+    "fullName": "Anong Srisawat (POS Cashier & Intake)",
+    "phone": "+66 82 345 6789",
+    "role": "staff",
+    "status": "active",
+    "permissions": [
+      "orders",
+      "crm",
+      "new-pos",
+      "incidents"
+    ],
+    "password_hash": "90b56fc66d91dc354c9743086fc82f4c799f6f083a33916bfe343fd0ba55b80d9de08bc4cdb5d899036e32585e051ab83daa5932bab604102a55fd82c7ecbee8",
+    "salt": "35d9719104f65c886d0c06b9eaaa9810",
+    "createdAt": "2026-09-24T06:51:37.043Z",
+    "updatedAt": "2026-09-24T06:51:37.043Z"
+  },
+  {
+    "id": 4,
+    "username": "rider_sompong",
+    "email": "rider.bkk@nonamelaundry.com",
+    "fullName": "Sompong Jaidee (Bangkok Express Rider)",
+    "phone": "+66 91 123 4567",
+    "role": "rider",
+    "status": "active",
+    "permissions": [
+      "orders"
+    ],
+    "password_hash": "90b56fc66d91dc354c9743086fc82f4c799f6f083a33916bfe343fd0ba55b80d9de08bc4cdb5d899036e32585e051ab83daa5932bab604102a55fd82c7ecbee8",
+    "salt": "35d9719104f65c886d0c06b9eaaa9810",
+    "createdAt": "2026-09-18T06:51:37.043Z",
+    "updatedAt": "2026-09-18T06:51:37.043Z"
+  },
+  {
+    "id": 5,
+    "username": "finance_dan",
+    "email": "",
+    "fullName": "Dan Wattana",
+    "phone": "+66 89 111 2233",
+    "role": "accountant_finance",
+    "status": "active",
+    "permissions": [
+      "sales-reconciliation",
+      "crm",
+      "faq"
+    ],
+    "password_hash": "5737cc70463ec673ea8a02cce0acf656d7c7061f54b818da595553ea0af3cd904b015e5d9d5066de2f72e32a1c6fa6e40f249d215727d582e25e70ea86c30718",
+    "salt": "2503ead9bac4509ebed50e81d01cfad4",
+    "createdAt": "2026-10-08T07:09:42.195Z",
+    "updatedAt": "2026-10-08T07:09:42.228Z"
+  }
+]

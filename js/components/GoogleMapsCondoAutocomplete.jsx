@@ -2,18 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   searchBangkokCondos, 
   matchDistrictFromText, 
-  findNearestBangkokCondo 
+  findNearestBangkokCondo,
+  parseGooglePlaceComponents,
+  matchLocationDetails,
+  findBestLocationMatch
 } from '../data/bangkokCondosData.js';
 
 /**
  * GoogleMapsCondoAutocomplete
- * High-fidelity Bangkok condominium & residence autocomplete powered by Google Maps.
+ * High-fidelity Thailand place, residence, building & address autocomplete powered by Google Maps.
  * Supports:
- * 1. Google Cloud Places Autocomplete API (when apiKey is provided)
- * 2. High-precision curated Bangkok Condominiums database engine (instant zero-latency fallback)
- * 3. Automatic Bangkok District detection & synchronization
- * 4. Interactive Google Maps pin & live embed preview
- * 5. Device GPS location detection ("Locate Me")
+ * 1. Google Cloud Places Autocomplete API with unrestricted place types (buildings, houses, condos, addresses)
+ * 2. Automatic address_components parsing (sub-district, district, postal code, city)
+ * 3. High-precision curated Residences & Condominiums database engine (instant zero-latency fallback)
+ * 4. Automatic Sub-district & District detection & synchronization
+ * 5. Interactive Google Maps pin & live embed preview
+ * 6. Device GPS location detection ("Locate Me")
  */
 export default function GoogleMapsCondoAutocomplete({
   value = '',
@@ -22,10 +26,11 @@ export default function GoogleMapsCondoAutocomplete({
   onDistrictChange,
   onSelectPlace,
   apiKey = '',
-  placeholder = 'e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn',
+  placeholder = 'Search building, condo, house, villa, hotel or address...',
   required = false,
   className = '',
-  id = 'google-condo-input'
+  id = 'google-condo-input',
+  city = 'Bangkok'
 }) {
   const [query, setQuery] = useState(value);
   const [suggestions, setSuggestions] = useState([]);
@@ -72,7 +77,7 @@ export default function GoogleMapsCondoAutocomplete({
       setGoogleApiLoaded(true);
     };
     script.onerror = () => {
-      console.warn('Google Maps script failed to load. Falling back to Bangkok local database.');
+      console.warn('Google Maps script failed to load. Falling back to local database.');
       setGoogleApiLoaded(false);
     };
     document.head.appendChild(script);
@@ -102,11 +107,85 @@ export default function GoogleMapsCondoAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Live client-side geocoding fallback for any address, house, street or landmark in Thailand
+  const fetchLiveGeocode = async (val, activeCity) => {
+    try {
+      const isPty = activeCity === 'Pattaya' || val.toLowerCase().includes('pattaya') || val.toLowerCase().includes('jomtien');
+      const biasLat = isPty ? 12.9236 : 13.7563;
+      const biasLng = isPty ? 100.8825 : 100.5018;
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&lat=${biasLat}&lon=${biasLng}&limit=6`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (data && data.features && data.features.length > 0) {
+        return data.features.map((f, idx) => {
+          const props = f.properties || {};
+          const coords = f.geometry?.coordinates || [];
+          const name = props.name || props.street || props.housenumber || val;
+          const sub = props.district || props.suburb || props.locality || '';
+          const dist = props.city || props.county || (isPty ? 'Bang Lamung' : 'Bangkok');
+          const postcode = props.postcode || '';
+          const parts = [props.housenumber, props.street, props.suburb, props.city, props.state].filter(Boolean);
+          const formattedAddress = parts.length > 0 ? parts.join(', ') : `${name}, ${dist}`;
+          
+          return {
+            id: `geo-${props.osm_id || idx}`,
+            name: name,
+            subdistrict: sub,
+            district: dist,
+            postalCode: postcode,
+            zipcode: postcode,
+            road: props.street || '',
+            formattedAddress: formattedAddress,
+            lat: coords[1] || biasLat,
+            lng: coords[0] || biasLng,
+            type: props.osm_value ? props.osm_value.replace(/_/g, ' ') : 'Live Address',
+            isLiveGeocode: true
+          };
+        });
+      }
+    } catch (e) {
+      // Silently catch network errors
+    }
+    return [];
+  };
+
+  // Select the raw entered text as the custom house / building / location
+  const handleSelectEntered = (textToSelect) => {
+    const rawName = (textToSelect || query || '').trim();
+    if (!rawName) return;
+
+    const autoMatch = findBestLocationMatch(rawName, city);
+    const matched = matchLocationDetails({
+      subdistrict: autoMatch?.subdistrict,
+      district: autoMatch?.district,
+      postalCode: autoMatch?.postalCode,
+      formattedAddress: rawName,
+      city: autoMatch?.city || city,
+      name: rawName
+    });
+
+    finalizeSelect({
+      name: rawName,
+      city: matched.city,
+      district: matched.district,
+      subdistrict: matched.subdistrict,
+      postalCode: matched.postalCode,
+      zipcode: matched.postalCode,
+      formattedAddress: rawName,
+      type: 'Entered Residence / Address'
+    });
+  };
+
   // Update suggestions whenever query changes or on focus
   const handleInputChange = (e) => {
     const val = e.target.value;
     setQuery(val);
-    if (onChange) onChange(val);
+
+    // Real-time location auto-detection: if typed text matches known building, house, or subdistrict
+    const autoMatch = findBestLocationMatch(val, city);
+    if (onChange) {
+      onChange(val, autoMatch);
+    }
 
     // If cleared, reset selected place
     if (!val.trim()) {
@@ -116,90 +195,202 @@ export default function GoogleMapsCondoAutocomplete({
       return;
     }
 
-    // Attempt Google Places predictions if loaded
+    // Query Google Places with NO type restrictions (any place, building, house, villa, hotel, address across Thailand)
     if (googleAutocompleteServiceRef.current && val.trim().length >= 2) {
+      const biasCenter = city === 'Pattaya'
+        ? { lat: 12.9236, lng: 100.8825 }
+        : { lat: 13.7563, lng: 100.5018 };
+
       googleAutocompleteServiceRef.current.getPlacePredictions(
         {
           input: val,
           componentRestrictions: { country: 'th' },
           locationBias: new window.google.maps.Circle({
-            center: { lat: 13.7563, lng: 100.5018 }, // Bangkok center
-            radius: 35000 // 35 km
+            center: biasCenter,
+            radius: city === 'Pattaya' ? 30000 : 50000
           })
+          // Intentionally omit types to allow all Google Maps results: buildings, houses, establishments, addresses, geocodes
         },
         (predictions, status) => {
           if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length > 0) {
-            const mapped = predictions.map(p => ({
-              id: p.place_id,
-              name: p.structured_formatting ? p.structured_formatting.main_text : p.description.split(',')[0],
-              subdistrict: p.structured_formatting ? p.structured_formatting.secondary_text : '',
-              district: matchDistrictFromText(p.description),
-              formattedAddress: p.description,
-              isGoogleApi: true,
-              placeId: p.place_id
-            }));
+            const mapped = predictions.map(p => {
+              const mainText = p.structured_formatting ? p.structured_formatting.main_text : p.description.split(',')[0];
+              const secText = p.structured_formatting ? p.structured_formatting.secondary_text : '';
+              const typeLabel = p.types?.includes('premise') || p.types?.includes('subpremise')
+                ? 'Building / House'
+                : p.types?.includes('establishment')
+                ? 'Place / Business'
+                : p.types?.includes('route') || p.types?.includes('street_address')
+                ? 'Street Address'
+                : 'Google Place';
+              return {
+                id: p.place_id,
+                name: mainText,
+                subdistrict: secText,
+                formattedAddress: p.description,
+                isGoogleApi: true,
+                placeId: p.place_id,
+                type: typeLabel,
+                types: p.types || []
+              };
+            });
             setSuggestions(mapped);
             setIsOpen(true);
           } else {
-            // Fall back to local Bangkok condo database
-            const fallback = searchBangkokCondos(val);
+            // Fall back to local residences & buildings database
+            const fallback = searchBangkokCondos(val, city);
             setSuggestions(fallback);
-            setIsOpen(fallback.length > 0);
+            setIsOpen(true);
           }
         }
       );
     } else {
-      // Local Bangkok Condos Search Engine
-      const results = searchBangkokCondos(val);
+      // Local Residences, Houses & Buildings Search Engine
+      const results = searchBangkokCondos(val, city);
       setSuggestions(results);
-      setIsOpen(results.length > 0);
+      setIsOpen(true);
+
+      // Fetch live geocodes across Thailand in parallel
+      if (val.trim().length >= 2) {
+        fetchLiveGeocode(val, city).then(livePlaces => {
+          if (livePlaces && livePlaces.length > 0) {
+            setSuggestions(prev => {
+              const seen = new Set(prev.map(p => p.name.toLowerCase()));
+              const novel = livePlaces.filter(lp => !seen.has(lp.name.toLowerCase()));
+              return [...prev, ...novel].slice(0, 10);
+            });
+          }
+        });
+      }
     }
   };
 
   const handleInputFocus = () => {
-    const results = searchBangkokCondos(query);
+    const results = searchBangkokCondos(query, city);
     setSuggestions(results);
-    setIsOpen(results.length > 0);
+    setIsOpen(true);
   };
 
-  // When a condo or place is selected
+  const handleInputBlur = () => {
+    // If user typed a building or house name but didn't click a dropdown item, auto-resolve location
+    if (query && (!selectedPlace || selectedPlace.name !== query)) {
+      handleSelectEntered(query);
+    }
+  };
+
+  // When a building, house, condo or place is selected
   const handleSelectPlace = (place) => {
-    const condoTitle = place.name;
-    setQuery(condoTitle);
-    if (onChange) onChange(condoTitle);
+    // If it's a Google Places API place and PlacesService is available, get details with full address_components
+    if (place.isGoogleApi && place.placeId && googlePlacesServiceRef.current) {
+      setLocationNotice('Resolving Google Maps address details...');
+      googlePlacesServiceRef.current.getDetails(
+        {
+          placeId: place.placeId,
+          fields: ['name', 'formatted_address', 'address_components', 'geometry', 'url']
+        },
+        (details, status) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && details) {
+            const parsed = parseGooglePlaceComponents(details.address_components);
+            const matched = matchLocationDetails({
+              subdistrict: parsed.subdistrict || place.subdistrict,
+              district: parsed.district || place.district,
+              postalCode: parsed.postalCode || place.zipcode,
+              formattedAddress: details.formatted_address || place.formattedAddress,
+              city: parsed.city || (parsed.postalCode?.startsWith('20') ? 'Pattaya' : (city || 'Bangkok')),
+              name: details.name || place.name
+            });
 
-    // Auto-detect and set Bangkok District
-    let matchedDistrict = place.district;
-    if (!matchedDistrict) {
-      matchedDistrict = matchDistrictFromText(place.formattedAddress || place.name || '');
+            const resolvedPlace = {
+              name: details.name || place.name,
+              address: details.formatted_address || place.formattedAddress,
+              formattedAddress: details.formatted_address || place.formattedAddress,
+              city: matched.city,
+              district: matched.district,
+              subdistrict: matched.subdistrict,
+              postalCode: matched.postalCode,
+              zipcode: matched.postalCode,
+              lat: details.geometry?.location?.lat ? details.geometry.location.lat() : 13.7563,
+              lng: details.geometry?.location?.lng ? details.geometry.location.lng() : 100.5018,
+              googleMapsUrl: details.url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(details.name || place.name)}`,
+              embedUrl: `https://www.google.com/maps?q=${encodeURIComponent(details.formatted_address || details.name)}&output=embed`,
+              isGoogleApi: true
+            };
+
+            setQuery(resolvedPlace.name);
+            setSelectedPlace(resolvedPlace);
+            if (onSelectPlace) {
+              onSelectPlace(resolvedPlace);
+            }
+            if (onChange) {
+              onChange(resolvedPlace.name, resolvedPlace);
+            }
+
+            setLocationNotice(`Auto-set location: ${resolvedPlace.subdistrict}, ${resolvedPlace.district} (📮 ${resolvedPlace.postalCode})`);
+            setTimeout(() => setLocationNotice(''), 6000);
+            setIsOpen(false);
+            setActiveHighlight(-1);
+            return;
+          }
+
+          // Fallback if getDetails failed
+          finalizeSelect(place);
+        }
+      );
+      return;
     }
 
-    if (matchedDistrict && onDistrictChange) {
-      onDistrictChange(matchedDistrict);
-      setLocationNotice(`Auto-set district to: ${matchedDistrict.split(' (')[0]}`);
-      setTimeout(() => setLocationNotice(''), 5000);
-    }
+    finalizeSelect(place);
+  };
+
+  const finalizeSelect = (place) => {
+    const matched = matchLocationDetails({
+      subdistrict: place.subdistrict,
+      district: place.district,
+      postalCode: place.zipcode || place.postalCode,
+      formattedAddress: place.formattedAddress,
+      city: place.city || (place.zipcode?.startsWith('20') ? 'Pattaya' : (city || 'Bangkok')),
+      name: place.name
+    });
 
     const fullPlace = {
+      ...place,
       name: place.name,
-      district: matchedDistrict || district,
-      address: place.formattedAddress || `${place.name}, Bangkok`,
+      city: matched.city,
+      district: matched.district,
+      subdistrict: matched.subdistrict,
+      postalCode: matched.postalCode,
+      zipcode: matched.postalCode,
+      address: place.formattedAddress || `${place.name}, ${matched.city}`,
       lat: place.lat || 13.7563,
       lng: place.lng || 100.5018,
-      googleMapsUrl: place.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + ' Bangkok')}`,
-      embedUrl: place.embedUrl || `https://www.google.com/maps?q=${encodeURIComponent(place.name + ' Bangkok')}&output=embed`
+      googleMapsUrl: place.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + ' ' + matched.city)}`,
+      embedUrl: place.embedUrl || `https://www.google.com/maps?q=${encodeURIComponent(place.name + ' ' + matched.city)}&output=embed`
     };
 
+    setQuery(fullPlace.name);
     setSelectedPlace(fullPlace);
-    if (onSelectPlace) onSelectPlace(fullPlace);
+    if (onSelectPlace) {
+      onSelectPlace(fullPlace);
+    }
+    if (onChange) {
+      onChange(fullPlace.name, fullPlace);
+    }
 
+    setLocationNotice(`Auto-set location: ${fullPlace.subdistrict}, ${fullPlace.district} (📮 ${fullPlace.postalCode})`);
+    setTimeout(() => setLocationNotice(''), 6000);
     setIsOpen(false);
     setActiveHighlight(-1);
   };
 
   // Keyboard navigation inside dropdown
   const handleKeyDown = (e) => {
-    if (!isOpen || suggestions.length === 0) return;
+    if (!isOpen) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSelectEntered(query);
+      }
+      return;
+    }
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -208,9 +399,11 @@ export default function GoogleMapsCondoAutocomplete({
       e.preventDefault();
       setActiveHighlight(prev => (prev > 0 ? prev - 1 : suggestions.length - 1));
     } else if (e.key === 'Enter') {
+      e.preventDefault();
       if (activeHighlight >= 0 && activeHighlight < suggestions.length) {
-        e.preventDefault();
         handleSelectPlace(suggestions[activeHighlight]);
+      } else {
+        handleSelectEntered(query);
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -277,6 +470,7 @@ export default function GoogleMapsCondoAutocomplete({
           value={query}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoComplete="off"
@@ -336,18 +530,56 @@ export default function GoogleMapsCondoAutocomplete({
       )}
 
       {/* Autocomplete Dropdown List */}
-      {isOpen && suggestions.length > 0 && (
+      {isOpen && (suggestions.length > 0 || query.trim().length >= 1) && (
         <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100 animate-fadeIn">
           {/* Header */}
           <div className="px-3.5 py-2 bg-gradient-to-r from-slate-50 to-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Bangkok Residences & Condos
+              {city === 'Pattaya' ? 'Pattaya Places, Houses & Addresses' : 'Google Maps Places, Houses & Addresses'}
             </span>
             <span className="text-[10px] text-slate-400 font-normal">
-              {googleApiLoaded ? 'Google Places Live API' : 'Google Maps Database'}
+              {googleApiLoaded ? 'Google Places Live API' : 'Unrestricted Thailand Search'}
             </span>
           </div>
+
+          {/* Primary Option: Exact Entered Location (House, Villa, Building, Address) */}
+          {query.trim().length >= 1 && (
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelectEntered(query);
+              }}
+              className="px-3.5 py-3 bg-gradient-to-r from-sky-50 via-blue-50/70 to-indigo-50/40 hover:from-sky-100 hover:to-blue-100 border-b border-sky-100 cursor-pointer flex items-center justify-between transition group"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  📍
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-xs text-slate-900 truncate flex items-center gap-1.5">
+                    <span>Use entered location:</span>
+                    <span className="text-sky-700 underline font-extrabold truncate">"{query}"</span>
+                  </div>
+                  <div className="text-[11px] text-slate-600 truncate mt-0.5 flex items-center gap-1.5">
+                    <span className="text-emerald-700 font-bold">
+                      {(() => {
+                        const m = findBestLocationMatch(query, city) || matchLocationDetails({ name: query, formattedAddress: query, city });
+                        return `${m.subdistrict || 'Huai Khwang'}, ${m.district || 'Huai Khwang'} (${m.postalCode || '10310'})`;
+                      })()}
+                    </span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-sky-700 font-semibold">
+                      Auto-sets District, Khwaeng & Fee
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <span className="ml-2 text-[10px] font-bold text-sky-700 bg-white px-2.5 py-1 rounded-full border border-sky-200 shadow-2xs group-hover:bg-sky-600 group-hover:text-white transition flex-shrink-0">
+                Select ↵
+              </span>
+            </div>
+          )}
 
           {/* Suggestions */}
           <div className="max-h-64 overflow-y-auto">
@@ -382,10 +614,14 @@ export default function GoogleMapsCondoAutocomplete({
                       )}
                     </div>
                     <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                      {item.road ? `${item.road}, ` : ''}{item.subdistrict ? `${item.subdistrict}, ` : ''}
-                      <span className="font-semibold text-slate-700">
-                        {item.district ? item.district.split(' (')[0] : 'Bangkok'}
-                      </span>
+                      {item.formattedAddress || (
+                        <>
+                          {item.road ? `${item.road}, ` : ''}{item.subdistrict ? `${item.subdistrict}, ` : ''}
+                          <span className="font-semibold text-slate-700">
+                            {item.district ? item.district.split(' (')[0] : 'Bangkok'}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

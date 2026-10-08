@@ -77,6 +77,115 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const [roomNumber, setRoomNumber] = useState(primaryAddr?.roomNumber || '');
   const [leaveWithJuristic, setLeaveWithJuristic] = useState(primaryAddr?.leaveWithJuristic !== false);
 
+  // Automatically update City, District, Sub-district, Postal Code, and Delivery Fee when a location/building/house is entered
+  const applyLocationUpdate = (loc) => {
+    if (!loc) return;
+
+    // 1. Detect and set City
+    let targetCity = loc.city;
+    if (!targetCity) {
+      if ((loc.postalCode && loc.postalCode.startsWith('20')) || (loc.zipcode && loc.zipcode.startsWith('20'))) {
+        targetCity = 'Pattaya';
+      } else {
+        targetCity = 'Bangkok';
+      }
+    }
+    setServiceCity(targetCity);
+
+    // 2. Set District, Sub-district, Postal Code based on City
+    if (targetCity === 'Pattaya') {
+      let ptySub = null;
+      if (loc.subdistrict) {
+        const cleanSub = loc.subdistrict.toLowerCase();
+        ptySub = PATTAYA_SUBDISTRICTS_LIST.find(s => 
+          s.name.toLowerCase() === cleanSub ||
+          (s.nameTh && s.nameTh.toLowerCase() === cleanSub) ||
+          cleanSub.includes(s.name.toLowerCase()) ||
+          s.name.toLowerCase().includes(cleanSub)
+        );
+      }
+      if (!ptySub && (loc.postalCode || loc.zipcode)) {
+        const pCode = loc.postalCode || loc.zipcode;
+        ptySub = PATTAYA_SUBDISTRICTS_LIST.find(s => s.code === pCode);
+      }
+      if (!ptySub) {
+        ptySub = PATTAYA_SUBDISTRICTS_LIST[0];
+      }
+      if (ptySub) {
+        setDistrict(ptySub.district);
+        setSubdistrict(ptySub.name);
+        setPostalCode(ptySub.code);
+      }
+    } else {
+      // Bangkok
+      let matchedDist = loc.district ? loc.district.split(' (')[0].trim() : '';
+      if (!matchedDist && (loc.postalCode || loc.zipcode)) {
+        const pCode = loc.postalCode || loc.zipcode;
+        for (const [dName, subs] of Object.entries(BANGKOK_DISTRICTS_TO_SUBDISTRICTS)) {
+          if (subs.some(s => s.code === pCode)) {
+            matchedDist = dName;
+            break;
+          }
+        }
+      }
+      if (!matchedDist) {
+        matchedDist = district || 'Watthana';
+      }
+      if (!BANGKOK_DISTRICTS.includes(matchedDist)) {
+        const found = BANGKOK_DISTRICTS.find(d => 
+          d.toLowerCase() === matchedDist.toLowerCase() ||
+          matchedDist.toLowerCase().includes(d.toLowerCase()) ||
+          d.toLowerCase().includes(matchedDist.toLowerCase())
+        );
+        if (found) matchedDist = found;
+        else matchedDist = 'Watthana';
+      }
+
+      let subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[matchedDist] || [];
+      let matchedSub = null;
+
+      if (loc.subdistrict) {
+        const cleanSub = loc.subdistrict.toLowerCase().replace(/^(khwaeng|tambon|subdistrict)\s+/i, '').trim();
+        matchedSub = subList.find(s => {
+          const sName = s.name.toLowerCase();
+          const sNameTh = (s.nameTh || '').toLowerCase();
+          return sName === cleanSub || sNameTh === cleanSub ||
+                 cleanSub.includes(sName) || sName.includes(cleanSub);
+        });
+
+        // Cross-district subdistrict fallback
+        if (!matchedSub) {
+          for (const [dName, subs] of Object.entries(BANGKOK_DISTRICTS_TO_SUBDISTRICTS)) {
+            const foundSub = subs.find(s => {
+              const sName = s.name.toLowerCase();
+              const sNameTh = (s.nameTh || '').toLowerCase();
+              return sName === cleanSub || sNameTh === cleanSub ||
+                     cleanSub.includes(sName) || sName.includes(cleanSub);
+            });
+            if (foundSub) {
+              matchedDist = dName;
+              subList = subs;
+              matchedSub = foundSub;
+              break;
+            }
+          }
+        }
+      }
+
+      setDistrict(matchedDist);
+
+      if (matchedSub) {
+        setSubdistrict(matchedSub.name);
+        setPostalCode(loc.postalCode || loc.zipcode || matchedSub.code);
+      } else if (subList.length > 0) {
+        setSubdistrict(subList[0].name);
+        setPostalCode(loc.postalCode || loc.zipcode || subList[0].code || DISTRICT_TO_POSTAL_CODE[matchedDist] || '10110');
+      } else {
+        setPostalCode(loc.postalCode || loc.zipcode || DISTRICT_TO_POSTAL_CODE[matchedDist] || '10110');
+      }
+    }
+  };
+
   // Schedule Info
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -362,9 +471,6 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
     setTimeout(() => {
       // Save order in store
       const order = laundryStore.createOrder(bookingPayload);
-      if (onBookingSuccess) {
-        onBookingSuccess(bookingPayload);
-      }
       setCompletedOrder(order);
       setIsSubmitting(false);
     }, 400);
@@ -374,7 +480,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
     ? `Hi NoName Laundry, I just booked order ${completedOrder.id} (${completedOrder.customerName}) for ${completedOrder.serviceName}. Please link my order for updates!`
     : `Hi NoName Laundry, I want to link my booking.`;
 
-  const lineDeepLink = getLineOaMessageUrl(lineMessageText, lineOaId);
+  const lineDeepLink = getLineOaAddFriendUrl(lineOaId);
   const lineAddFriendLink = getLineOaAddFriendUrl(lineOaId);
   const lineQrCodeUrl = getLineQrCodeUrl(lineOaId);
 
@@ -447,7 +553,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                 className="w-full py-3.5 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-green-600/30 transition flex items-center justify-center gap-2"
               >
                 <Icon name="line" className="w-5 h-5" />
-                <span>Open LINE App & Send Order #{completedOrder.id}</span>
+                <span>Open LINE App & Add Official Account (@nonamelaundry)</span>
               </a>
 
               {/* QR Code Toggle for Desktop Users */}
@@ -1196,45 +1302,41 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               {/* Primary Search: Condominium / Hotel / Building / House */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {serviceCity === 'Pattaya' ? 'Hotel / Condominium / Villa / Residence' : 'Condominium / Building / House Name'} <span className="text-red-500">*</span>
+                  {serviceCity === 'Pattaya' ? 'Hotel / Condominium / Villa / House / Address' : 'Building / Condominium / House / Address'} <span className="text-red-500">*</span>
                 </label>
                 <GoogleMapsCondoAutocomplete
                   value={condoName}
-                  onChange={(val) => setCondoName(val)}
-                  district={district}
-                  onDistrictChange={(newDist) => {
-                    setDistrict(newDist);
-                    if (serviceCity === 'Bangkok') {
-                      const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[newDist] || [];
-                      if (subList.length > 0) {
-                        setSubdistrict(subList[0].name);
-                        setPostalCode(subList[0].code);
-                      } else if (DISTRICT_TO_POSTAL_CODE[newDist]) {
-                        setPostalCode(DISTRICT_TO_POSTAL_CODE[newDist]);
-                      }
+                  city={serviceCity}
+                  onChange={(val, autoMatch) => {
+                    setCondoName(val);
+                    if (autoMatch) {
+                      applyLocationUpdate(autoMatch);
                     }
                   }}
                   onSelectPlace={(place) => {
-                    if (place.zipcode) {
-                      setPostalCode(place.zipcode);
-                      if (place.zipcode.startsWith('20')) {
-                        setServiceCity('Pattaya');
-                      } else if (place.zipcode.startsWith('10')) {
-                        setServiceCity('Bangkok');
-                      }
-                    }
-                    if (place.district) {
-                      setDistrict(place.district);
-                      const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[place.district] || [];
-                      if (subList.length > 0) {
-                        setSubdistrict(subList[0].name);
-                      }
-                    }
+                    applyLocationUpdate(place);
                   }}
                   apiKey={laundryStore.settings?.googleMapsApiKey || ''}
-                  placeholder={serviceCity === 'Pattaya' ? 'Search hotel, condo, villa, e.g. Riviera Wongamat / Unixx / Grande Centre Point...' : 'Search condo name, e.g. Ideo Q Sukhumvit 36 / Rhythm Sathorn...'}
+                  placeholder={serviceCity === 'Pattaya' ? 'Search hotel, condo, villa, house or address (e.g. Riviera / Unixx / Jomtien)...' : 'Search building, condo, house, villa, hotel or address (e.g. Centro Rama 9 / Ideo / Baan Sansiri)...'}
                   required
                 />
+
+                {/* Real-time Sub-district & Fee Auto-Change Confirmation Badge */}
+                {condoName && (
+                  <div className="mt-2 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/90 rounded-xl flex items-center justify-between text-xs text-emerald-900 animate-fadeIn shadow-2xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+                      <span className="truncate font-semibold text-[11px] sm:text-xs">
+                        {serviceCity === 'Pattaya' 
+                          ? `📍 Location: ${subdistrict}, ${district} (${postalCode})`
+                          : `📍 Location: Khwaeng ${subdistrict}, Khet ${district} (📮 ${postalCode})`}
+                      </span>
+                    </div>
+                    <span className="shrink-0 font-bold px-2 py-0.5 bg-white rounded-md text-[10px] sm:text-[11px] text-emerald-800 border border-emerald-300 shadow-2xs">
+                      Delivery: {deliveryInfo.isFree ? 'FREE (฿0)' : `฿${deliveryInfo.fee}`}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Responsive Location Grid for Bangkok vs Pattaya */}

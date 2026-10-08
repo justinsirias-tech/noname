@@ -135,8 +135,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
   // SUCCESS SCREEN
   if (registeredCustomer) {
-    const lineMessage = `Hi NoName Laundry, I just registered my account (${registeredCustomer.fullName}, ID: ${registeredCustomer.id}). Please link my profile!`;
-    const lineLink = getLineOaMessageUrl(lineMessage, lineOaId);
+    const lineLink = getLineOaAddFriendUrl(lineOaId);
 
     return (
       <div className="max-w-2xl mx-auto px-4 py-16">

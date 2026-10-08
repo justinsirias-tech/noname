@@ -334,6 +334,52 @@ export const INITIAL_SERVICES = [
       'Wrinkle-free steam finishing',
       'Protective hanging or folded delivery'
     ]
+  },
+  {
+    id: 'blazer_jacket',
+    categoryId: 'delicate_dryclean',
+    name: 'Suit Jacket / Blazer',
+    nameTh: 'สูทและเสื้อเบลเซอร์',
+    description: 'Expert fabric-safe gentle cleansing, collar shaping, and vertical steam pressing on contoured suit hangers.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 190,
+    standardPricePerKg: 190,
+    nextDayPricePerKg: 250,
+    sameDayPricePerKg: 330,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: false,
+    features: [
+      'Gentle fiber-safe fabric treatment',
+      'Shoulder and lapel steam shaping',
+      'Contoured suit hanger included',
+      'Full-length breathable garment bag'
+    ]
+  },
+  {
+    id: 'formal_dress',
+    categoryId: 'delicate_dryclean',
+    name: 'Evening Dress / Silk Gown',
+    nameTh: 'ชุดราตรีและผ้าไหมพิเศษ',
+    description: 'Specialty care for evening silk dresses, sequin gowns, pleated skirts, and delicate luxury fabrics.',
+    unit: 'piece',
+    pricingType: 'piece',
+    pricePerKg: 240,
+    standardPricePerKg: 240,
+    nextDayPricePerKg: 310,
+    sameDayPricePerKg: 400,
+    sameDayAvailable: true,
+    minWeightKg: 1.0,
+    turnaroundHours: 48,
+    popular: false,
+    features: [
+      'Delicate fabric pre-inspection',
+      'Silk & fine embellishment protection',
+      'Hand-finished steam pressing',
+      'Sealed protective hanging cover'
+    ]
   }
 ];
 

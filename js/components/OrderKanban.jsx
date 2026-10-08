@@ -84,7 +84,7 @@ export function OrderKanban({
 
   const getPhaseCount = (phase) => {
     if (!phase.stageIds) return orders.length;
-    return orders.filter(o => phase.stageIds.includes(o.status)).length;
+    return orders.filter(o => phase.stageIds.includes((o.status || '').toUpperCase().trim())).length;
   };
 
   const displayedStages = selectedPhase === 'all'
@@ -178,9 +178,10 @@ export function OrderKanban({
       {/* Kanban Board Container */}
       <div className={getContainerClassName()}>
         {displayedStages.map((stage) => {
-          const columnOrders = orders.filter(o => o.status === stage.id);
+          const columnOrders = orders.filter(o => (o.status || '').toUpperCase().trim() === stage.id);
           const isOver = dragOverColKey === stage.id;
           const stageMeta = ORDER_STATUSES[stage.id] || { label: stage.label, color: 'bg-slate-100 text-slate-800' };
+          const isBookingRequestedCol = stage.id === 'BOOKING_REQUESTED';
 
           return (
             <div
@@ -193,6 +194,8 @@ export function OrderKanban({
               } ${
                 isOver
                   ? 'bg-sky-50 border-2 border-dashed border-sky-400 shadow-lg ring-4 ring-sky-100'
+                  : isBookingRequestedCol && columnOrders.length > 0
+                  ? 'bg-amber-50/70 border-2 border-amber-300/80 shadow-xs hover:border-amber-400'
                   : 'bg-slate-100/90 border border-slate-200 shadow-2xs hover:border-slate-300'
               }`}
             >
@@ -200,16 +203,29 @@ export function OrderKanban({
               {/* Column Header */}
               <div className="flex items-center justify-between gap-2 px-1.5 py-1 mb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-white shadow-2xs flex items-center justify-center text-slate-700">
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-2xs ${
+                    isBookingRequestedCol && columnOrders.length > 0
+                      ? 'bg-amber-500 text-white animate-pulse'
+                      : 'bg-white text-slate-700'
+                  }`}>
                     <Icon name={stage.icon} className="w-3.5 h-3.5" />
                   </div>
                   <h4 className="font-bold text-slate-900 text-xs truncate max-w-[150px]" title={stage.label}>
                     {stage.label}
                   </h4>
+                  {isBookingRequestedCol && columnOrders.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-md bg-amber-500 text-white font-black text-[9px] uppercase tracking-wider shrink-0 animate-pulse hidden sm:inline">
+                      NEW
+                    </span>
+                  )}
                 </div>
 
                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-black shadow-2xs ${
-                  columnOrders.length > 0 ? 'bg-white text-slate-900 border border-slate-200' : 'bg-slate-200/70 text-slate-500'
+                  isBookingRequestedCol && columnOrders.length > 0
+                    ? 'bg-amber-500 text-white border border-amber-600'
+                    : columnOrders.length > 0
+                    ? 'bg-white text-slate-900 border border-slate-200'
+                    : 'bg-slate-200/70 text-slate-500'
                 }`}>
                   {columnOrders.length}
                 </span>
@@ -339,6 +355,36 @@ export function OrderKanban({
                             )}
                           </div>
                         </div>
+
+                        {/* If in BOOKING_REQUESTED, show quick-action button to schedule pickup */}
+                        {stage.id === 'BOOKING_REQUESTED' && (
+                          <div className="mt-2.5 pt-2 border-t border-amber-200/60 flex items-center justify-between gap-1.5 bg-amber-50/60 -mx-3.5 -mb-1 px-3.5 py-1.5 rounded-b-xl">
+                            <span className="text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                              Awaiting Intake
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onUpdateOrderStatus) {
+                                  onUpdateOrderStatus(
+                                    order.id,
+                                    'PICKUP_SCHEDULED',
+                                    'Pickup scheduled by back-office operator.',
+                                    order.actualWeightKg,
+                                    order.tagNumber
+                                  );
+                                }
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-extrabold shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                              title="Schedule pickup for this order"
+                            >
+                              <Icon name="truck" className="w-3 h-3 text-white" />
+                              <span>Schedule Pickup ➔</span>
+                            </button>
+                          </div>
+                        )}
 
                         {/* Hover hint */}
                         <div className="mt-2 pt-1 border-t border-dashed border-slate-100 flex items-center justify-between text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">

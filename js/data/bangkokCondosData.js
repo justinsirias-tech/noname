@@ -1,6 +1,8 @@
-// Bangkok Condominiums, Residences, and Landmarks Database with Google Maps Coordinates
-// Used by GoogleMapsCondoAutocomplete to power Bangkok location selection
+import { BANGKOK_DISTRICTS_TO_SUBDISTRICTS, PATTAYA_SUBDISTRICTS_LIST, DISTRICT_TO_POSTAL_CODE } from './postalCodesData.js';
+import { BANGKOK_DISTRICTS } from './servicesData.js';
 
+// Bangkok & Pattaya Residences, Condominiums, Houses, and Landmarks Database with Google Maps Coordinates
+// Used by GoogleMapsCondoAutocomplete to power address and residence location selection
 export const BANGKOK_CONDO_DATABASE = [
   // --- Watthana (Thonglor, Ekkamai, Phrom Phong) ---
   {
@@ -958,6 +960,341 @@ export const BANGKOK_CONDO_DATABASE = [
     lat: 13.7441,
     lng: 100.4934,
     type: 'Chao Phraya Historic Villas'
+  },
+  // --- Housing Estates, Moobans & Villas (Bangkok) ---
+  {
+    id: 'bkk-hse-001',
+    name: 'Baan Sansiri Sukhumvit 67',
+    thaiName: 'บ้าน แสนสิริ สุขุมวิท 67',
+    aliases: ['Baan Sansiri 67', 'Sansiri 67 Villa'],
+    district: 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+    subdistrict: 'Phra Khanong Nuea',
+    road: 'Sukhumvit Soi 67',
+    zipcode: '10110',
+    lat: 13.7198,
+    lng: 100.5912,
+    type: 'Luxury House / Villa Estate'
+  },
+  {
+    id: 'bkk-hse-002',
+    name: 'Setthasiri Krungthep Kreetha',
+    thaiName: 'เศรษฐสิริ กรุงเทพกรีฑา',
+    aliases: ['Setthasiri Kreetha', 'Setthasiri House'],
+    district: 'Bang Kapi',
+    subdistrict: 'Hua Mak',
+    road: 'Krungthep Kreetha Road',
+    zipcode: '10240',
+    lat: 13.7485,
+    lng: 100.6723,
+    type: 'Single Detached House Estate'
+  },
+  {
+    id: 'bkk-hse-003',
+    name: 'Narasiri Pattanakarn',
+    thaiName: 'นาราสิริ พัฒนาการ',
+    aliases: ['Narasiri House', 'Narasiri Residence'],
+    district: 'Suan Luang',
+    subdistrict: 'Suan Luang',
+    road: 'Pattanakarn Soi 78',
+    zipcode: '10250',
+    lat: 13.7265,
+    lng: 100.6482,
+    type: 'Super Luxury Housing Estate'
+  },
+  {
+    id: 'bkk-hse-004',
+    name: 'The City Sukhumvit 67',
+    thaiName: 'เดอะ ซิตี้ สุขุมวิท 67',
+    aliases: ['The City 67', 'The City Ekkamai'],
+    district: 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+    subdistrict: 'Phra Khanong Nuea',
+    road: 'Sukhumvit Soi 67',
+    zipcode: '10110',
+    lat: 13.7202,
+    lng: 100.5925,
+    type: 'Luxury Residence Villa'
+  },
+  {
+    id: 'bkk-hse-005',
+    name: 'Baan Siri Silom',
+    thaiName: 'บ้าน สิริ สีลม',
+    aliases: ['Baan Siri Condo', 'Siri Silom'],
+    district: 'Bang Rak (Silom, Surawong)',
+    subdistrict: 'Si Lom',
+    road: 'Silom Soi 3 (Soi Phiphat)',
+    zipcode: '10500',
+    lat: 13.7251,
+    lng: 100.5312,
+    type: 'Prime Residence'
+  },
+  {
+    id: 'bkk-hse-006',
+    name: 'Baan Siri Sathorn',
+    thaiName: 'บ้าน สิริ สาทร',
+    aliases: ['Baan Siri Sathorn Soi 1', 'Siri Sathorn'],
+    district: 'Sathon (Sathorn, Chong Nonsi)',
+    subdistrict: 'Thung Maha Mek',
+    road: 'Sathorn Soi 1 (Soi Attakarn Prasit)',
+    zipcode: '10120',
+    lat: 13.7218,
+    lng: 100.5421,
+    type: 'Boutique Residence'
+  },
+  {
+    id: 'bkk-hse-007',
+    name: 'Sindhorn Residence',
+    thaiName: 'สินธร เรสซิเดนซ์',
+    aliases: ['Sindhorn Village', 'Sindhorn Kempinski Area'],
+    district: 'Pathum Wan (Siam, Chidlom, Ploenchit)',
+    subdistrict: 'Lumphini',
+    road: 'Soi Tonson, Ploenchit Road',
+    zipcode: '10330',
+    lat: 13.7378,
+    lng: 100.5432,
+    type: 'Super Luxury Residence'
+  },
+  {
+    id: 'bkk-hse-008',
+    name: 'Grand Crystal Ekkamai-Ramintra',
+    thaiName: 'แกรนด์ คริสตัล เอกมัย-รามอินทรา',
+    aliases: ['Grand Crystal House', 'Crystal Park Residence'],
+    district: 'Lat Phrao',
+    subdistrict: 'Lat Phrao',
+    road: 'Pradit Manutham Road',
+    zipcode: '10230',
+    lat: 13.8055,
+    lng: 100.6288,
+    type: 'Ultra Luxury Mooban Estate'
+  },
+  // --- Pattaya Condominiums, Hotels & Residences ---
+  {
+    id: 'pty-res-001',
+    name: 'The Riviera Wongamat Beach',
+    thaiName: 'เดอะ ริเวียร่า วงศ์อมาตย์',
+    aliases: ['Riviera Wongamat', 'Riviera Pattaya'],
+    district: 'Bang Lamung',
+    subdistrict: 'Wongamat Beach',
+    road: 'Naklua Soi 16',
+    zipcode: '20150',
+    lat: 12.9642,
+    lng: 100.8845,
+    type: 'Luxury Beachfront Condominium',
+    city: 'Pattaya'
+  },
+  {
+    id: 'pty-res-002',
+    name: 'The Riviera Jomtien',
+    thaiName: 'เดอะ ริเวียร่า จอมเทียน',
+    aliases: ['Riviera Jomtien', 'Riviera Beach Jomtien'],
+    district: 'Bang Lamung',
+    subdistrict: 'Jomtien Beach',
+    road: 'Jomtien 2nd Road',
+    zipcode: '20150',
+    lat: 12.8872,
+    lng: 100.8812,
+    type: 'Luxury High-Rise Residence',
+    city: 'Pattaya'
+  },
+  {
+    id: 'pty-res-003',
+    name: 'Unixx South Pattaya',
+    thaiName: 'ยูนิกซ์ พัทยาใต้',
+    aliases: ['Unixx Condo', 'Unixx Pratumnak'],
+    district: 'Bang Lamung',
+    subdistrict: 'South Pattaya / Walking St',
+    road: 'Pratumnak Road (Khao Phra Tamnak)',
+    zipcode: '20150',
+    lat: 12.9218,
+    lng: 100.8695,
+    type: 'Modern High-Rise Condominium',
+    city: 'Pattaya'
+  },
+  {
+    id: 'pty-res-004',
+    name: 'Copacabana Beach Jomtien',
+    thaiName: 'โคปาคาบาน่า บีช จอมเทียน',
+    aliases: ['Copacabana Jomtien', 'Copacabana Condo'],
+    district: 'Bang Lamung',
+    subdistrict: 'Jomtien Beach',
+    road: 'Jomtien Beach Road',
+    zipcode: '20150',
+    lat: 12.8945,
+    lng: 100.8762,
+    type: 'Beachfront High-Rise Resort',
+    city: 'Pattaya'
+  },
+  {
+    id: 'pty-res-005',
+    name: 'Grande Centre Point Pattaya',
+    thaiName: 'แกรนด์ เซนเตอร์ พอยต์ พัทยา',
+    aliases: ['Grande Centre Point Terminal 21 Pattaya', 'Terminal 21 Hotel Pattaya'],
+    district: 'Bang Lamung',
+    subdistrict: 'Central Pattaya / Beach Rd',
+    road: 'North Pattaya Road (Terminal 21)',
+    zipcode: '20150',
+    lat: 12.9501,
+    lng: 100.8905,
+    type: 'Luxury Hotel & Landmark Residence',
+    city: 'Pattaya'
+  },
+  {
+    id: 'pty-res-006',
+    name: 'Centara Grand Mirage Beach Resort',
+    thaiName: 'เซ็นทารา แกรนด์ มิราจ บีช รีสอร์ท',
+    aliases: ['Centara Mirage Pattaya', 'Centara Grand Pattaya'],
+    district: 'Bang Lamung',
+    subdistrict: 'Wongamat Beach',
+    road: 'Naklua Soi 18',
+    zipcode: '20150',
+    lat: 12.9592,
+    lng: 100.8841,
+    type: '5-Star Beach Resort',
+    city: 'Pattaya'
+  },
+  {
+    id: 'pty-res-007',
+    name: 'Andromeda Condominium Pattaya',
+    thaiName: 'แอนโดรเมดา คอนโดมิเนียม พัทยา',
+    aliases: ['Andromeda Pratumnak', 'Andromeda Condo'],
+    district: 'Bang Lamung',
+    subdistrict: 'Pratumnak Hill',
+    road: 'Kasetsin Soi 9, Cozy Beach',
+    zipcode: '20150',
+    lat: 12.9195,
+    lng: 100.8612,
+    type: 'Super Luxury Condominium',
+    city: 'Pattaya'
+  },
+  // --- Popular Single Detached Houses, Moobans & Housing Estates ---
+  {
+    id: 'bkk-hse-009',
+    name: 'Centro Rama 9 - Motorway',
+    thaiName: 'เซนโทร พระราม 9 - มอเตอร์เวย์',
+    aliases: ['Centro Rama 9', 'Centro Motorway', 'Centro Rama IX', 'Centro พระราม 9'],
+    district: 'Lat Krabang',
+    subdistrict: 'Khlong Song Ton Nun',
+    road: 'Phatthana Chonnabot 4 Road',
+    zipcode: '10520',
+    lat: 13.7382,
+    lng: 100.7210,
+    type: 'Single Detached House Estate'
+  },
+  {
+    id: 'bkk-hse-010',
+    name: 'Centro Rama 9',
+    thaiName: 'เซนโทร พระราม 9',
+    aliases: ['Centro Rama 9 House', 'Centro Rama IX', 'Centro พระราม 9'],
+    district: 'Lat Krabang',
+    subdistrict: 'Khlong Song Ton Nun',
+    road: 'Phatthana Chonnabot 4 Road',
+    zipcode: '10520',
+    lat: 13.7382,
+    lng: 100.7210,
+    type: 'Single Detached House Estate'
+  },
+  {
+    id: 'bkk-hse-010-b',
+    name: 'Centro Rama 9 - Krungthep Kreetha',
+    thaiName: 'เซนโทร พระราม 9 - กรุงเทพกรีฑา',
+    aliases: ['Centro Krungthep Kreetha', 'Centro กรุงเทพกรีฑา'],
+    district: 'Saphan Sung',
+    subdistrict: 'Saphan Sung',
+    road: 'Krungthep Kreetha Road',
+    zipcode: '10240',
+    lat: 13.7450,
+    lng: 100.6850,
+    type: 'Single Detached House Estate'
+  },
+  {
+    id: 'bkk-hse-011',
+    name: 'The City Rama 9 - Ramkhamhaeng',
+    thaiName: 'เดอะ ซิตี้ พระราม 9 - รามคำแหง',
+    aliases: ['The City Rama 9', 'The City Ramkhamhaeng', 'The City พระราม 9'],
+    district: 'Bang Kapi',
+    subdistrict: 'Hua Mak',
+    road: 'Ramkhamhaeng - Rama 9 Road',
+    zipcode: '10240',
+    lat: 13.7550,
+    lng: 100.6210,
+    type: 'Luxury House Estate'
+  },
+  {
+    id: 'bkk-hse-012',
+    name: 'Centro Bangna',
+    thaiName: 'เซนโทร บางนา',
+    aliases: ['Centro Bangna-KM7'],
+    district: 'Bang Na',
+    subdistrict: 'Bang Na',
+    road: 'Bangna-Trat Road',
+    zipcode: '10260',
+    lat: 13.6520,
+    lng: 100.6720,
+    type: 'Single Detached House Estate'
+  },
+  {
+    id: 'bkk-hse-013',
+    name: 'Centro Ratchapruek',
+    thaiName: 'เซนโทร ราชพฤกษ์',
+    aliases: ['Centro Ratchaphruek'],
+    district: 'Taling Chan',
+    subdistrict: 'Taling Chan',
+    road: 'Ratchapruek Road',
+    zipcode: '10170',
+    lat: 13.7820,
+    lng: 100.4510,
+    type: 'Single Detached House Estate'
+  },
+  {
+    id: 'bkk-hse-014',
+    name: 'Bangkok Boulevard Rama 9',
+    thaiName: 'บางกอก บูเลอวาร์ด พระราม 9',
+    aliases: ['Bangkok Boulevard Rama IX', 'SC Asset Rama 9'],
+    district: 'Saphan Sung',
+    subdistrict: 'Saphan Sung',
+    road: 'Krungthep Kreetha Road',
+    zipcode: '10240',
+    lat: 13.7480,
+    lng: 100.6880,
+    type: 'Luxury Housing Estate'
+  },
+  {
+    id: 'bkk-hse-015',
+    name: 'Nantawan Rama 9',
+    thaiName: 'นันทวัน พระราม 9',
+    aliases: ['Nantawan Rama IX', 'LH Rama 9', 'Nantawan Krungthep Kreetha'],
+    district: 'Saphan Sung',
+    subdistrict: 'Saphan Sung',
+    road: 'Krungthep Kreetha Road',
+    zipcode: '10240',
+    lat: 13.7490,
+    lng: 100.6890,
+    type: 'Ultra Luxury Single House'
+  },
+  {
+    id: 'bkk-hse-016',
+    name: 'Setthasiri Rama 9',
+    thaiName: 'เศรษฐสิริ พระราม 9',
+    aliases: ['Setthasiri Rama IX', 'Setthasiri Srinakarin', 'Setthasiri Krungthep Kreetha'],
+    district: 'Saphan Sung',
+    subdistrict: 'Saphan Sung',
+    road: 'Krungthep Kreetha Road',
+    zipcode: '10240',
+    lat: 13.7475,
+    lng: 100.6865,
+    type: 'Luxury Single House Estate'
+  },
+  {
+    id: 'bkk-com-001',
+    name: 'CentralPlaza Grand Rama 9',
+    thaiName: 'เซ็นทรัลพลาซา แกรนด์ พระราม 9',
+    aliases: ['Central Rama 9', 'Central พระราม 9'],
+    district: 'Huai Khwang (Ratchada, Rama 9)',
+    subdistrict: 'Huai Khwang',
+    road: 'Ratchadaphisek / Rama 9 Road',
+    zipcode: '10310',
+    lat: 13.7583,
+    lng: 100.5664,
+    type: 'Shopping Complex & Landmark'
   }
 ];
 
@@ -966,53 +1303,123 @@ export function matchDistrictFromText(text) {
   if (!text || typeof text !== 'string') return null;
   const q = text.toLowerCase();
 
-  if (q.includes('watthana') || q.includes('vadhana') || q.includes('thonglor') || q.includes('thong lo') || 
-      q.includes('ekkamai') || q.includes('ekamai') || q.includes('phrom phong') || q.includes('promphong') ||
-      q.includes('sukhumvit 39') || q.includes('sukhumvit 55') || q.includes('sukhumvit 63')) {
-    return 'Watthana (Thonglor, Ekkamai, Phrom Phong)';
+  // Priority 1: Outer & Eastern districts that use "Rama 9" in estate marketing names
+  if (q.includes('lat krabang') || q.includes('ลาดกระบัง') || q.includes('motorway') || q.includes('มอเตอร์เวย์') || 
+      q.includes('chonnabot') || q.includes('พัฒนาชนบท') || q.includes('suvarnabhumi') || q.includes('สุวรรณภูมิ') ||
+      q.includes('centro rama 9') || q.includes('centro rama ix') || q.includes('klong song ton nun') ||
+      q.includes('khlong song ton nun') || q.includes('lam pla thio') || q.includes('thap yao') || q.includes('khum thong')) {
+    return 'Lat Krabang';
   }
-  if (q.includes('khlong toei') || q.includes('klong toey') || q.includes('klongtoey') || 
-      q.includes('phra khanong') || q.includes('prakhanong') || q.includes('asok') || q.includes('asoke') ||
+  if (q.includes('saphan sung') || q.includes('สะพานสูง') || q.includes('krungthep kreetha') || q.includes('กรุงเทพกรีฑา') ||
+      q.includes('bangkok boulevard rama 9') || q.includes('nantawan rama 9') || q.includes('setthasiri rama 9')) {
+    return 'Saphan Sung';
+  }
+  if (q.includes('bang kapi') || q.includes('bangkapi') || q.includes('บางกะปิ') || q.includes('ramkhamhaeng') || 
+      q.includes('รามคำแหง') || q.includes('hua mak') || q.includes('หัวหมาก') || q.includes('the city rama 9')) {
+    return 'Bang Kapi';
+  }
+  if (q.includes('suan luang') || q.includes('suanluang') || q.includes('สวนหลวง') || q.includes('pattanakarn') || 
+      q.includes('พัฒนาการ') || q.includes('on nut 17') || q.includes('on nut 39') || q.includes('rama 9 - srinakarin') || 
+      q.includes('srinakarin - rama 9')) {
+    return 'Suan Luang';
+  }
+  if (q.includes('prawet') || q.includes('ประเวศ') || q.includes('srinakarin') || q.includes('dokmai') || q.includes('nong bon')) {
+    return 'Prawet';
+  }
+
+  // Core Bangkok Districts
+  if (q.includes('watthana') || q.includes('vadhana') || q.includes('วัฒนา') || q.includes('thonglor') || q.includes('thong lo') || 
+      q.includes('ทองหล่อ') || q.includes('ekkamai') || q.includes('ekamai') || q.includes('เอกมัย') || 
+      q.includes('phrom phong') || q.includes('promphong') || q.includes('พร้อมพงษ์') ||
+      q.includes('sukhumvit 39') || q.includes('sukhumvit 55') || q.includes('sukhumvit 63')) {
+    return 'Watthana';
+  }
+  if (q.includes('khlong toei') || q.includes('klong toey') || q.includes('klongtoey') || q.includes('คลองเตย') ||
+      q.includes('phra khanong') || q.includes('prakhanong') || q.includes('asok') || q.includes('asoke') || q.includes('อโศก') ||
       q.includes('sukhumvit 20') || q.includes('sukhumvit 22') || q.includes('sukhumvit 24') || 
       q.includes('sukhumvit 42') || q.includes('sukhumvit 48')) {
-    return 'Khlong Toei (Phra Khanong, Asok)';
+    return 'Khlong Toei';
   }
-  if (q.includes('bang rak') || q.includes('bangrak') || q.includes('silom') || q.includes('surawong') || 
-      q.includes('samyan') || q.includes('sam yan') || q.includes('chula')) {
-    return 'Bang Rak (Silom, Surawong)';
+  if (q.includes('bang rak') || q.includes('bangrak') || q.includes('บางรัก') || q.includes('silom') || q.includes('สีลม') || 
+      q.includes('surawong') || q.includes('สุรวงศ์') || q.includes('samyan') || q.includes('sam yan') || q.includes('สามย่าน') || q.includes('chula')) {
+    return 'Bang Rak';
   }
-  if (q.includes('sathon') || q.includes('sathorn') || q.includes('chong nonsi') || q.includes('chongnonsi') || 
+  if (q.includes('sathon') || q.includes('sathorn') || q.includes('สาทร') || q.includes('chong nonsi') || q.includes('chongnonsi') || 
       q.includes('naradhiwas') || q.includes('suanphlu') || q.includes('suan plue') || q.includes('taksin')) {
-    return 'Sathon (Sathorn, Chong Nonsi)';
+    return 'Sathon';
   }
-  if (q.includes('pathum wan') || q.includes('pathumwan') || q.includes('siam') || q.includes('chidlom') || 
-      q.includes('chit lom') || q.includes('ploenchit') || q.includes('ploen chit') || q.includes('wireless') || 
-      q.includes('witthayu') || q.includes('langsuan') || q.includes('lang suan')) {
-    return 'Pathum Wan (Siam, Chidlom, Ploenchit)';
+  if (q.includes('pathum wan') || q.includes('pathumwan') || q.includes('ปทุมวัน') || q.includes('siam') || q.includes('สยาม') || 
+      q.includes('chidlom') || q.includes('chit lom') || q.includes('ชิดลม') || q.includes('ploenchit') || q.includes('ploen chit') || 
+      q.includes('wireless') || q.includes('witthayu') || q.includes('langsuan') || q.includes('lang suan') || q.includes('หลังสวน')) {
+    return 'Pathum Wan';
   }
-  if (q.includes('phaya thai') || q.includes('phayathai') || q.includes('ari') || q.includes('aree') || 
-      q.includes('sanam pao') || q.includes('sanampao') || q.includes('saphan khwai')) {
-    return 'Phaya Thai (Ari, Sanam Pao)';
+  if (q.includes('phaya thai') || q.includes('phayathai') || q.includes('พญาไท') || q.includes('ari') || q.includes('aree') || 
+      q.includes('อารีย์') || q.includes('sanam pao') || q.includes('sanampao') || q.includes('saphan khwai') || q.includes('สะพานควาย')) {
+    return 'Phaya Thai';
   }
-  if (q.includes('huai khwang') || q.includes('huaikhwang') || q.includes('ratchada') || 
-      q.includes('ratchadaphisek') || q.includes('rama 9') || q.includes('rama ix') || q.includes('phra ram 9')) {
-    return 'Huai Khwang (Ratchada, Rama 9)';
+  if (q.includes('huai khwang') || q.includes('huaikhwang') || q.includes('ห้วยขวาง') || q.includes('ratchada') || 
+      q.includes('ratchadaphisek') || q.includes('รัชดา') || q.includes('rama 9') || q.includes('rama ix') || q.includes('phra ram 9') ||
+      q.includes('pracha uthit') || q.includes('tian ruam mit') || q.includes('meng jai') || q.includes('fortune') || 
+      q.includes('central rama 9') || q.includes('mrt rama 9') || q.includes('belle grand rama 9')) {
+    return 'Huai Khwang';
   }
-  if (q.includes('chatuchak') || q.includes('jatujak') || q.includes('mo chit') || q.includes('mochit') || 
-      q.includes('lat phrao') || q.includes('ladprao') || q.includes('kaset')) {
-    return 'Chatuchak (Mo Chit, Lat Phrao)';
+  if (q.includes('chatuchak') || q.includes('jatujak') || q.includes('จตุจักร') || q.includes('mo chit') || q.includes('mochit') || 
+      q.includes('lat phrao') || q.includes('ladprao') || q.includes('kaset') || q.includes('vibhavadi')) {
+    return 'Chatuchak';
   }
-  if (q.includes('din daeng') || q.includes('dindaeng') || q.includes('rangnam') || q.includes('rang nam') || 
-      q.includes('victory monument')) {
+  if (q.includes('din daeng') || q.includes('dindaeng') || q.includes('ดินแดง') || q.includes('rangnam') || q.includes('rang nam') || 
+      q.includes('victory monument') || q.includes('prachasongkhro')) {
     return 'Din Daeng';
   }
-  if (q.includes('yan nawa') || q.includes('yannawa') || q.includes('rama 3') || q.includes('rama iii') || 
-      q.includes('bang khlo') || q.includes('bang phongphang')) {
-    return 'Yan Nawa (Rama 3)';
+  if (q.includes('yan nawa') || q.includes('yannawa') || q.includes('ยานนาวา') || q.includes('rama 3') || q.includes('rama iii') || 
+      q.includes('bang khlo') || q.includes('bang phongphang') || q.includes('sathu prantit')) {
+    return 'Yan Nawa';
   }
-  if (q.includes('phra nakhon') || q.includes('phranakhon') || q.includes('khao san') || 
+  if (q.includes('bang na') || q.includes('bangna') || q.includes('บางนา') || q.includes('bearing') || q.includes('lasalle') || q.includes('sanphawut')) {
+    return 'Bang Na';
+  }
+  if (q.includes('ratchathewi') || q.includes('ราชเทวี') || q.includes('pratunam') || q.includes('ประตูน้ำ') || q.includes('ratchaprarop')) {
+    return 'Ratchathewi';
+  }
+  if (q.includes('wang thonglang') || q.includes('วังทองหลาง') || q.includes('chalong krung')) {
+    return 'Wang Thonglang';
+  }
+  if (q.includes('khlong san') || q.includes('คลองสาน') || q.includes('iconsiam') || q.includes('charoen nakhon')) {
+    return 'Khlong San';
+  }
+  if (q.includes('thon buri') || q.includes('ธนบุรี') || q.includes('wongwian yai') || q.includes('talat phlu')) {
+    return 'Thon Buri';
+  }
+  if (q.includes('bang sue') || q.includes('bangsue') || q.includes('บางซื่อ') || q.includes('tao poon') || q.includes('wongsawang')) {
+    return 'Bang Sue';
+  }
+  if (q.includes('dusit') || q.includes('ดุสิต') || q.includes('samsen') || q.includes('sam sen')) {
+    return 'Dusit';
+  }
+  if (q.includes('phra nakhon') || q.includes('phranakhon') || q.includes('พระนคร') || q.includes('khao san') || 
       q.includes('rattanakosin') || q.includes('sanctuary')) {
     return 'Phra Nakhon';
+  }
+  if (q.includes('don mueang') || q.includes('donmuang') || q.includes('ดอนเมือง') || q.includes('song prapha')) {
+    return 'Don Mueang';
+  }
+  if (q.includes('lak si') || q.includes('หลักสี่') || q.includes('chaeng watthana') || q.includes('chaengwattana')) {
+    return 'Lak Si';
+  }
+  if (q.includes('bang khen') || q.includes('บางเขน') || q.includes('ramintra') || q.includes('anusaowari')) {
+    return 'Bang Khen';
+  }
+  if (q.includes('sai mai') || q.includes('สายไหม') || q.includes('sukhaphiban 5')) {
+    return 'Sai Mai';
+  }
+  if (q.includes('min buri') || q.includes('มีนบุรี') || q.includes('suwinthawong') || q.includes('nimit mai')) {
+    return 'Min Buri';
+  }
+  if (q.includes('khlong sam wa') || q.includes('คลองสามวา') || q.includes('sam wa')) {
+    return 'Khlong Sam Wa';
+  }
+  if (q.includes('nong chok') || q.includes('หนองจอก')) {
+    return 'Nong Chok';
   }
 
   return null;
@@ -1045,10 +1452,14 @@ export function findNearestBangkokCondo(lat, lng) {
   return nearest;
 }
 
-// Search Bangkok Condos & Buildings by query string
-export function searchBangkokCondos(query) {
+// Search Bangkok & Pattaya Condos, Houses & Buildings by query string
+export function searchBangkokCondos(query, currentCity = '') {
   if (!query || !query.trim()) {
-    // Return curated top popular Bangkok condos
+    // If in Pattaya, return top Pattaya properties, else Bangkok
+    if (currentCity === 'Pattaya') {
+      const ptyList = BANGKOK_CONDO_DATABASE.filter(c => c.city === 'Pattaya' || c.zipcode?.startsWith('20'));
+      if (ptyList.length > 0) return ptyList.slice(0, 8).map(c => formatCondoResult(c));
+    }
     return BANGKOK_CONDO_DATABASE.slice(0, 8).map(c => formatCondoResult(c));
   }
 
@@ -1061,7 +1472,13 @@ export function searchBangkokCondos(query) {
     const thaiLow = condo.thaiName ? condo.thaiName.toLowerCase() : '';
     const districtLow = condo.district.toLowerCase();
     const roadLow = condo.road.toLowerCase();
+    const subLow = (condo.subdistrict || '').toLowerCase();
     const aliasesLow = (condo.aliases || []).join(' ').toLowerCase();
+
+    // City preference bonus
+    if (currentCity && (condo.city === currentCity || (currentCity === 'Pattaya' && condo.zipcode?.startsWith('20')))) {
+      score += 15;
+    }
 
     // Exact name match
     if (nameLow === clean) score += 100;
@@ -1074,6 +1491,9 @@ export function searchBangkokCondos(query) {
     if (aliasesLow.includes(clean)) score += 35;
     if (thaiLow.includes(clean)) score += 40;
 
+    // Sub-district match
+    if (subLow.includes(clean)) score += 30;
+
     // Token matches across attributes
     let allTokensFound = true;
     for (const token of tokens) {
@@ -1081,11 +1501,13 @@ export function searchBangkokCondos(query) {
       const foundInAlias = aliasesLow.includes(token);
       const foundInRoad = roadLow.includes(token);
       const foundInDistrict = districtLow.includes(token);
+      const foundInSub = subLow.includes(token);
       const foundInThai = thaiLow.includes(token);
 
       if (foundInName) score += 20;
       else if (foundInAlias) score += 15;
       else if (foundInRoad) score += 10;
+      else if (foundInSub) score += 12;
       else if (foundInDistrict) score += 5;
       else if (foundInThai) score += 15;
       else allTokensFound = false;
@@ -1103,16 +1525,21 @@ export function searchBangkokCondos(query) {
 }
 
 function formatCondoResult(condo) {
-  const address = `${condo.road}, ${condo.subdistrict}, ${condo.district.split(' (')[0]}, Bangkok ${condo.zipcode}`;
-  const encodedQuery = encodeURIComponent(`${condo.name} Bangkok`);
+  const isPty = condo.city === 'Pattaya' || condo.zipcode?.startsWith('20');
+  const cityName = isPty ? 'Pattaya' : 'Bangkok';
+  const cleanDistrict = condo.district.split(' (')[0];
+  const address = `${condo.road}, ${condo.subdistrict}, ${cleanDistrict}, ${cityName} ${condo.zipcode}`;
+  const encodedQuery = encodeURIComponent(`${condo.name} ${cityName}`);
   return {
     id: condo.id,
     name: condo.name,
     thaiName: condo.thaiName,
-    district: condo.district,
+    city: cityName,
+    district: cleanDistrict,
     subdistrict: condo.subdistrict,
     road: condo.road,
     zipcode: condo.zipcode,
+    postalCode: condo.zipcode,
     lat: condo.lat,
     lng: condo.lng,
     type: condo.type,
@@ -1120,4 +1547,415 @@ function formatCondoResult(condo) {
     googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`,
     embedUrl: `https://www.google.com/maps?q=${encodedQuery}&output=embed`
   };
+}
+
+/**
+ * Parses Google Maps Places API address_components into clean fields
+ */
+export function parseGooglePlaceComponents(addressComponents) {
+  let postalCode = '';
+  let subdistrict = '';
+  let district = '';
+  let province = '';
+  let country = '';
+  let streetNumber = '';
+  let route = '';
+
+  if (Array.isArray(addressComponents)) {
+    // 1. Pass 1: Explicit level checks
+    for (const comp of addressComponents) {
+      const types = comp.types || [];
+      const val = comp.long_name || comp.short_name || '';
+
+      if (types.includes('postal_code')) {
+        postalCode = val;
+      }
+      // Sub-district (Khwaeng / Tambon) in Thailand
+      if (
+        types.includes('sublocality_level_2') || 
+        types.includes('sublocality_level_3') || 
+        types.includes('administrative_area_level_3')
+      ) {
+        if (!subdistrict) subdistrict = val;
+      }
+      // District (Khet / Amphoe) in Thailand
+      if (
+        types.includes('sublocality_level_1') || 
+        types.includes('administrative_area_level_2')
+      ) {
+        if (!district) district = val;
+      }
+      if (types.includes('administrative_area_level_1')) {
+        province = val;
+      }
+      if (types.includes('country')) {
+        country = comp.short_name || val;
+      }
+      if (types.includes('street_number')) {
+        streetNumber = val;
+      }
+      if (types.includes('route')) {
+        route = val;
+      }
+    }
+
+    // 2. Pass 2: Fallback for single sublocality or provincial locality
+    for (const comp of addressComponents) {
+      const types = comp.types || [];
+      const val = comp.long_name || comp.short_name || '';
+
+      if (types.includes('sublocality') && !types.includes('sublocality_level_2') && !types.includes('sublocality_level_1')) {
+        if (!district) district = val;
+        else if (!subdistrict) subdistrict = val;
+      }
+      if (types.includes('locality')) {
+        const low = val.toLowerCase();
+        if (!district && low !== 'bangkok' && !val.includes('กรุงเทพ')) {
+          district = val;
+        }
+      }
+    }
+  }
+
+  // Clean administrative prefixes ('Khet Lat Krabang' -> 'Lat Krabang', 'Khwaeng Khlong Song Ton Nun' -> 'Khlong Song Ton Nun')
+  const cleanPrefix = (str) => (str || '')
+    .replace(/^(khet|khwaeng|amphoe|tambon|district|subdistrict|เขต|แขวง|อำเภอ|ตำบล)\s+/i, '')
+    .trim();
+
+  return { 
+    postalCode: (postalCode || '').trim(), 
+    subdistrict: cleanPrefix(subdistrict), 
+    district: cleanPrefix(district), 
+    province, 
+    country, 
+    streetNumber, 
+    route 
+  };
+}
+
+/**
+ * Parses free-form Google Maps address text, street address or establishment name into clean Thai location components
+ */
+export function parseAddressText(addressText) {
+  if (!addressText || typeof addressText !== 'string') return {};
+  const cleanText = addressText.toLowerCase();
+
+  // 1. Postal code (5 digits: 10xxx Bangkok or 20xxx Pattaya/Chonburi)
+  const zipMatch = addressText.match(/\b(10\d{3}|20\d{3})\b/);
+  const postalCode = zipMatch ? zipMatch[1] : '';
+
+  // 2. City detection
+  const isPty = postalCode.startsWith('20') || 
+                cleanText.includes('pattaya') || 
+                cleanText.includes('chon buri') || 
+                cleanText.includes('chonburi') || 
+                cleanText.includes('jomtien') || 
+                cleanText.includes('bang lamung') || 
+                cleanText.includes('naklua') || 
+                cleanText.includes('wongamat');
+  const city = isPty ? 'Pattaya' : 'Bangkok';
+
+  // 3. Pattaya Sub-district / District
+  if (isPty) {
+    for (const sub of PATTAYA_SUBDISTRICTS_LIST) {
+      if (cleanText.includes(sub.name.toLowerCase()) || (sub.nameTh && cleanText.includes(sub.nameTh.toLowerCase()))) {
+        return {
+          city: 'Pattaya',
+          district: sub.district || 'Bang Lamung',
+          subdistrict: sub.name,
+          postalCode: sub.code || postalCode || '20150'
+        };
+      }
+    }
+    return {
+      city: 'Pattaya',
+      district: 'Bang Lamung',
+      subdistrict: PATTAYA_SUBDISTRICTS_LIST[0].name,
+      postalCode: postalCode || '20150'
+    };
+  }
+
+  // 4. Bangkok District - Check specific landmarks/roads first
+  let matchedDist = null;
+  if (cleanText.includes('lat krabang') || cleanText.includes('ลาดกระบัง') || cleanText.includes('motorway') || cleanText.includes('chonnabot') || cleanText.includes('suvarnabhumi')) {
+    matchedDist = 'Lat Krabang';
+  } else if (cleanText.includes('saphan sung') || cleanText.includes('สะพานสูง') || cleanText.includes('krungthep kreetha')) {
+    matchedDist = 'Saphan Sung';
+  } else if (cleanText.includes('bang kapi') || cleanText.includes('บางกะปิ') || cleanText.includes('ramkhamhaeng') || cleanText.includes('hua mak')) {
+    matchedDist = 'Bang Kapi';
+  } else if (cleanText.includes('huai khwang') || cleanText.includes('ห้วยขวาง') || cleanText.includes('ratchada') || cleanText.includes('asoke-rama 9') || cleanText.includes('central rama 9')) {
+    matchedDist = 'Huai Khwang';
+  } else {
+    for (const d of BANGKOK_DISTRICTS) {
+      if (cleanText.includes(d.toLowerCase())) {
+        matchedDist = d;
+        break;
+      }
+    }
+  }
+
+  // 5. Bangkok Sub-district
+  let matchedSub = null;
+  if (matchedDist) {
+    const subs = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[matchedDist] || [];
+    // Priority: subdistricts whose name differs from the district name
+    for (const s of subs) {
+      if (s.name.toLowerCase() !== matchedDist.toLowerCase()) {
+        if (cleanText.includes(s.name.toLowerCase()) || (s.nameTh && cleanText.includes(s.nameTh.toLowerCase()))) {
+          matchedSub = s.name;
+          break;
+        }
+      }
+    }
+    if (!matchedSub) {
+      for (const s of subs) {
+        if (cleanText.includes(s.name.toLowerCase()) || (s.nameTh && cleanText.includes(s.nameTh.toLowerCase()))) {
+          matchedSub = s.name;
+          break;
+        }
+      }
+    }
+  }
+
+  // Cross-district subdistrict fallback
+  if (!matchedSub) {
+    for (const [dName, subs] of Object.entries(BANGKOK_DISTRICTS_TO_SUBDISTRICTS)) {
+      for (const s of subs) {
+        if (s.name.toLowerCase() !== dName.toLowerCase()) {
+          if (cleanText.includes(s.name.toLowerCase()) || (s.nameTh && cleanText.includes(s.nameTh.toLowerCase()))) {
+            matchedDist = dName;
+            matchedSub = s.name;
+            break;
+          }
+        }
+      }
+      if (matchedSub) break;
+    }
+  }
+
+  return {
+    city: 'Bangkok',
+    district: matchedDist || '',
+    subdistrict: matchedSub || '',
+    postalCode: postalCode || ''
+  };
+}
+
+/**
+ * Matches location fields against Bangkok (50 districts, 180 Khwaeng) and Pattaya zones
+ */
+export function matchLocationDetails(input = {}) {
+  const {
+    subdistrict = '',
+    district = '',
+    postalCode = '',
+    formattedAddress = '',
+    city = '',
+    name = ''
+  } = input;
+
+  const clean = (s) => (s || '').toLowerCase()
+    .replace(/^(khwaeng|tambon|subdistrict|khet|amphoe|district|province|changwat|city)\s+/i, '')
+    .trim();
+
+  // Cross-parse formattedAddress and name text
+  const addrParsed = parseAddressText(`${name} ${formattedAddress}`);
+
+  const rawSub = subdistrict || addrParsed.subdistrict || '';
+  const rawDist = district || addrParsed.district || '';
+  const rawZip = postalCode || addrParsed.postalCode || '';
+
+  const cSub = clean(rawSub);
+  const cDist = clean(rawDist);
+  const combinedText = `${name} ${formattedAddress} ${rawDist} ${rawSub}`.toLowerCase();
+
+  // 1. Resolve City (Bangkok vs Pattaya)
+  let resolvedCity = city || addrParsed.city;
+  const isPtySignal = rawZip.startsWith('20') || 
+                      combinedText.includes('chon buri') || 
+                      combinedText.includes('chonburi') || 
+                      combinedText.includes('pattaya') || 
+                      combinedText.includes('jomtien') || 
+                      combinedText.includes('naklua') || 
+                      combinedText.includes('wongamat') || 
+                      combinedText.includes('bang lamung') || 
+                      combinedText.includes('sattahip');
+
+  const isBkkSignal = rawZip.startsWith('10') || 
+                      combinedText.includes('bangkok') || 
+                      combinedText.includes('sukhumvit') || 
+                      combinedText.includes('lat krabang') ||
+                      combinedText.includes('saphan sung') ||
+                      combinedText.includes('huai khwang') || 
+                      combinedText.includes('ratchada') || 
+                      combinedText.includes('sathorn') || 
+                      combinedText.includes('silom') || 
+                      combinedText.includes('thonglor') || 
+                      combinedText.includes('ekkamai');
+
+  if (isPtySignal && !isBkkSignal) {
+    resolvedCity = 'Pattaya';
+  } else if (isBkkSignal && !isPtySignal) {
+    resolvedCity = 'Bangkok';
+  } else if (!resolvedCity) {
+    resolvedCity = isPtySignal ? 'Pattaya' : 'Bangkok';
+  }
+
+  // 2. Handle Pattaya
+  if (resolvedCity === 'Pattaya') {
+    let ptySub = PATTAYA_SUBDISTRICTS_LIST.find(s => {
+      const sName = clean(s.name);
+      const sNameTh = clean(s.nameTh);
+      return (cSub && (sName === cSub || sName.includes(cSub) || cSub.includes(sName) || sNameTh.includes(cSub))) ||
+             (combinedText && (combinedText.includes(sName.split('/')[0].trim()) || (sNameTh && combinedText.includes(sNameTh))));
+    });
+
+    if (!ptySub && rawZip) {
+      ptySub = PATTAYA_SUBDISTRICTS_LIST.find(s => s.code === rawZip);
+    }
+    if (!ptySub) {
+      ptySub = PATTAYA_SUBDISTRICTS_LIST[0];
+    }
+
+    return {
+      city: 'Pattaya',
+      district: ptySub.district || 'Bang Lamung',
+      subdistrict: ptySub.name,
+      postalCode: ptySub.code || '20150'
+    };
+  }
+
+  // 3. Handle Bangkok
+  let matchedDist = null;
+  if (cDist) {
+    matchedDist = BANGKOK_DISTRICTS.find(d => clean(d) === cDist || clean(d).includes(cDist) || cDist.includes(clean(d)));
+  }
+
+  // Match district from postal code if not matched
+  if (!matchedDist && rawZip) {
+    for (const [dName, subs] of Object.entries(BANGKOK_DISTRICTS_TO_SUBDISTRICTS)) {
+      if (subs.some(s => s.code === rawZip)) {
+        matchedDist = dName;
+        break;
+      }
+    }
+  }
+
+  if (!matchedDist && combinedText) {
+    const detected = matchDistrictFromText(combinedText);
+    if (detected) {
+      matchedDist = detected.split(' (')[0];
+    }
+    if (!matchedDist) {
+      matchedDist = BANGKOK_DISTRICTS.find(d => combinedText.includes(clean(d)));
+    }
+  }
+  if (!matchedDist) {
+    matchedDist = 'Watthana';
+  }
+
+  const districtSubs = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[matchedDist] || [];
+  let matchedSub = districtSubs.find(s => {
+    const sName = clean(s.name);
+    const sNameTh = clean(s.nameTh);
+    return cSub && (sName === cSub || sName.includes(cSub) || cSub.includes(sName) || sNameTh.includes(cSub));
+  });
+
+  if (!matchedSub && combinedText) {
+    matchedSub = districtSubs.find(s => {
+      const sName = clean(s.name);
+      return combinedText.includes(sName);
+    });
+  }
+
+  // Cross-district subdistrict search if not found in matched district
+  if (!matchedSub) {
+    for (const [dName, subs] of Object.entries(BANGKOK_DISTRICTS_TO_SUBDISTRICTS)) {
+      const found = subs.find(s => {
+        const sName = clean(s.name);
+        const sNameTh = clean(s.nameTh);
+        return (cSub && (sName === cSub || sName.includes(cSub) || cSub.includes(sName) || sNameTh.includes(cSub))) ||
+               (combinedText && (combinedText.includes(sName) || (sNameTh && combinedText.includes(sNameTh))));
+      });
+      if (found) {
+        matchedDist = dName;
+        matchedSub = found;
+        break;
+      }
+    }
+  }
+
+  const finalSub = matchedSub ? matchedSub.name : (districtSubs[0]?.name || 'Khlong Toei Nuea');
+  const finalCode = rawZip || matchedSub?.code || districtSubs[0]?.code || DISTRICT_TO_POSTAL_CODE[matchedDist] || '10110';
+
+  return {
+    city: 'Bangkok',
+    district: matchedDist,
+    subdistrict: finalSub,
+    postalCode: finalCode
+  };
+}
+
+/**
+ * Analyzes typed text / house / building name and resolves the best matching location
+ */
+export function findBestLocationMatch(query, currentCity = '') {
+  if (!query || typeof query !== 'string' || query.trim().length < 2) return null;
+  const cleanQ = query.trim().toLowerCase();
+
+  // 1. Direct search in database
+  const suggestions = searchBangkokCondos(query, currentCity);
+  if (suggestions && suggestions.length > 0) {
+    const top = suggestions[0];
+    const topNameLow = top.name.toLowerCase();
+    const thaiLow = (top.thaiName || '').toLowerCase();
+    const aliases = (top.aliases || []).map(a => a.toLowerCase());
+
+    const isMatch = topNameLow.startsWith(cleanQ) || 
+                    cleanQ.startsWith(topNameLow) || 
+                    topNameLow.includes(cleanQ) || 
+                    cleanQ.includes(topNameLow) ||
+                    aliases.some(a => a.includes(cleanQ) || cleanQ.includes(a)) ||
+                    (thaiLow && (thaiLow.includes(cleanQ) || cleanQ.includes(thaiLow)));
+
+    if (isMatch) {
+      return {
+        name: top.name,
+        city: top.city || (top.zipcode?.startsWith('20') ? 'Pattaya' : 'Bangkok'),
+        district: top.district,
+        subdistrict: top.subdistrict,
+        postalCode: top.zipcode || top.postalCode,
+        road: top.road,
+        type: top.type,
+        lat: top.lat,
+        lng: top.lng,
+        isDatabaseMatch: true
+      };
+    }
+  }
+
+  // 2. Keyword & Area analysis
+  const matched = matchLocationDetails({
+    formattedAddress: query,
+    name: query,
+    city: currentCity
+  });
+
+  const hasAreaClue = matchDistrictFromText(query) || 
+    cleanQ.includes('jomtien') || cleanQ.includes('pattaya') || cleanQ.includes('naklua') || 
+    cleanQ.includes('wongamat') || cleanQ.includes('bang lamung') ||
+    /\b(10\d{3}|20\d{3})\b/.test(cleanQ);
+
+  if (hasAreaClue && matched) {
+    return {
+      name: query,
+      city: matched.city,
+      district: matched.district,
+      subdistrict: matched.subdistrict,
+      postalCode: matched.postalCode,
+      isKeywordMatch: true
+    };
+  }
+
+  return null;
 }

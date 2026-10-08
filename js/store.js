@@ -34,8 +34,8 @@ export const CONTACT_CHANNELS = {
   line: {
     name: 'LINE Official',
     handle: '@nonamelaundry',
-    url: 'https://line.me/R/ti/p/@nonamelaundry',
-    oaMessageUrl: 'https://line.me/R/oaMessage/@nonamelaundry/?',
+    url: 'https://lin.ee/yXi0blq',
+    oaMessageUrl: 'https://lin.ee/yXi0blq',
     color: 'green',
     badge: 'Bangkok Favorite',
     icon: 'Smartphone'
@@ -51,11 +51,23 @@ export const CONTACT_CHANNELS = {
 };
 
 export function getLineOaAddFriendUrl(lineId = '@nonamelaundry') {
+  if (lineId && (lineId.startsWith('http://') || lineId.startsWith('https://'))) {
+    return lineId;
+  }
+  if (!lineId || lineId === '@nonamelaundry' || lineId === 'nonamelaundry') {
+    return 'https://lin.ee/yXi0blq';
+  }
   const cleanId = lineId.startsWith('@') ? lineId : ('@' + lineId);
   return 'https://line.me/R/ti/p/' + encodeURIComponent(cleanId);
 }
 
 export function getLineOaMessageUrl(message = '', lineId = '@nonamelaundry') {
+  if (!lineId || lineId === '@nonamelaundry' || lineId === 'nonamelaundry') {
+    return 'https://lin.ee/yXi0blq';
+  }
+  if (lineId.startsWith('http://') || lineId.startsWith('https://')) {
+    return lineId;
+  }
   const cleanId = lineId.startsWith('@') ? lineId : ('@' + lineId);
   return 'https://line.me/R/oaMessage/' + encodeURIComponent(cleanId) + '/?' + encodeURIComponent(message);
 }
@@ -81,6 +93,81 @@ export class LaundryStore {
       null;
     this.loadState();
     this.fetchRemoteState();
+    this.initCrossTabSync();
+    this.startOrderPolling();
+  }
+
+  initCrossTabSync() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEYS.ORDERS && e.newValue) {
+          try {
+            const remoteOrders = JSON.parse(e.newValue);
+            if (Array.isArray(remoteOrders)) {
+              this.orders = remoteOrders;
+              this.notify();
+            }
+          } catch (err) {
+            console.warn('Cross-tab sync error:', err);
+          }
+        }
+      });
+    }
+  }
+
+  startOrderPolling() {
+    if (typeof window === 'undefined') return;
+    if (this._pollingInterval) clearInterval(this._pollingInterval);
+    this._pollingInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/orders');
+        if (res.ok) {
+          const remoteOrders = await res.json();
+          if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+            this.mergeOrders(remoteOrders);
+          }
+        }
+      } catch (e) {
+        // silent polling
+      }
+    }, 4000);
+  }
+
+  mergeOrders(remoteOrders) {
+    if (!Array.isArray(remoteOrders)) return;
+    let changed = false;
+    const currentMap = new Map((this.orders || []).map(o => [o.id, o]));
+
+    for (const ro of remoteOrders) {
+      if (!ro || !ro.id) continue;
+      const existing = currentMap.get(ro.id);
+      if (!existing) {
+        currentMap.set(ro.id, ro);
+        changed = true;
+      } else {
+        if (
+          existing.status !== ro.status ||
+          existing.paymentStatus !== ro.paymentStatus ||
+          existing.totalPrice !== ro.totalPrice ||
+          existing.actualWeightKg !== ro.actualWeightKg ||
+          existing.tagNumber !== ro.tagNumber ||
+          JSON.stringify(existing.timeline) !== JSON.stringify(ro.timeline)
+        ) {
+          currentMap.set(ro.id, { ...existing, ...ro });
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      this.orders = Array.from(currentMap.values()).sort((a, b) => {
+        const da = new Date(a.createdAt || 0).getTime();
+        const db = new Date(b.createdAt || 0).getTime();
+        return db - da;
+      });
+      this.persist(STORAGE_KEYS.ORDERS, this.orders);
+      this.notify();
+    }
   }
 
   setAdminToken(token) {
@@ -307,9 +394,8 @@ export class LaundryStore {
         this.services = missingDefaults.length > 0 ? [...data.services, ...missingDefaults] : data.services;
         this.persist(STORAGE_KEYS.SERVICES, this.services);
       }
-      if (Array.isArray(data.orders)) {
-        this.orders = data.orders;
-        this.persist(STORAGE_KEYS.ORDERS, this.orders);
+      if (Array.isArray(data.orders) && data.orders.length > 0) {
+        this.mergeOrders(data.orders);
       }
       if (Array.isArray(data.incidents)) {
         this.incidents = data.incidents;

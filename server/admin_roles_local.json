@@ -1,0 +1,85 @@
+[
+  {
+    "id": "super_admin",
+    "name": "Super Administrator",
+    "nameTh": "ผู้ดูแลระบบสูงสุด",
+    "description": "Unrestricted full access to all back-office features, system settings, financial data, and security controls.",
+    "descriptionTh": "เข้าถึงฟังก์ชันและตั้งค่าระบบทั้งหมดโดยไม่มีข้อจำกัด รวมถึงการเงินและความปลอดภัย",
+    "isSystem": true,
+    "color": "purple",
+    "permissions": [
+      "orders",
+      "sales-reconciliation",
+      "users",
+      "crm",
+      "faq",
+      "services-pricing",
+      "postal-rates",
+      "gateway",
+      "line-oa",
+      "incidents",
+      "new-pos"
+    ]
+  },
+  {
+    "id": "manager",
+    "name": "Store / Branch Manager",
+    "nameTh": "ผู้จัดการสาขา",
+    "description": "Supervises branch operations, pricing catalog, sales reconciliation, customer CRM, and online support.",
+    "descriptionTh": "ดูแลภาพรวมสาขา บริหารออเดอร์ ปรับปรุงราคา ยอดขาย ระบบลูกค้าสัมพันธ์ และบริการลูกค้า",
+    "isSystem": false,
+    "color": "sky",
+    "permissions": [
+      "orders",
+      "sales-reconciliation",
+      "crm",
+      "faq",
+      "services-pricing",
+      "postal-rates",
+      "incidents",
+      "new-pos"
+    ]
+  },
+  {
+    "id": "staff",
+    "name": "Operations / Cashier",
+    "nameTh": "พนักงานหน้าร้าน / แคชเชียร์",
+    "description": "Front-desk walk-in order intake, laundry weighing, order tracking, and basic customer lookup.",
+    "descriptionTh": "รับผ้าหน้าร้าน ชั่งน้ำหนักผ้า ติดตามสถานะออเดอร์ และค้นหาข้อมูลลูกค้า",
+    "isSystem": false,
+    "color": "teal",
+    "permissions": [
+      "orders",
+      "crm",
+      "new-pos",
+      "incidents"
+    ]
+  },
+  {
+    "id": "rider",
+    "name": "Express Delivery Rider",
+    "nameTh": "พนักงานจัดส่ง / ไรเดอร์",
+    "description": "Pickup and drop-off delivery logistics, route monitoring, and order delivery status updates.",
+    "descriptionTh": "ดูรายการรับ-ส่งผ้า ติดตามสถานะการจัดส่ง และยืนยันการส่งผ้าสำเร็จ",
+    "isSystem": false,
+    "color": "amber",
+    "permissions": [
+      "orders"
+    ]
+  },
+  {
+    "id": "accountant_finance",
+    "name": "Accountant & Finance",
+    "nameTh": "ฝ่ายการเงินและบัญชี",
+    "description": "Access only to sales reconciliation and customer CRM",
+    "descriptionTh": "Access only to sales reconciliation and customer CRM",
+    "isSystem": false,
+    "color": "#0284c7",
+    "permissions": [
+      "sales-reconciliation",
+      "crm"
+    ],
+    "createdAt": "2026-10-08T07:09:42.165Z",
+    "updatedAt": "2026-10-08T07:09:42.165Z"
+  }
+]

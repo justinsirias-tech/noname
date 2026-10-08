@@ -21,6 +21,7 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
 
     try {
       let data = null;
+      let networkFailed = false;
       try {
         const res = await fetch('/api/admin/login', {
           method: 'POST',
@@ -30,20 +31,23 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
             password
           })
         });
-        if (res.ok) {
-          data = await res.json();
+        data = await res.json().catch(() => null);
+        if (res.ok && data?.success) {
+          onLoginSuccess(data);
+          return;
+        }
+        if (data?.error) {
+          throw new Error(data.error);
         }
       } catch (netErr) {
-        // Backend API offline or static server mode
+        if (netErr.message && !netErr.message.includes('fetch') && !netErr.message.includes('Failed to fetch') && !netErr.message.includes('NetworkError')) {
+          throw netErr;
+        }
+        networkFailed = true;
       }
 
-      if (data && data.success) {
-        onLoginSuccess(data);
-        return;
-      }
-
-      // Local fallback for admin demo credentials
-      if ((username.trim().toLowerCase() === 'admin' || username.trim().toLowerCase() === 'admin@nonamelaundry.com') && password === 'admin1234') {
+      // Local fallback for admin demo credentials if server completely offline
+      if (networkFailed && (username.trim().toLowerCase() === 'admin' || username.trim().toLowerCase() === 'admin@nonamelaundry.com') && password === 'admin1234') {
         const localAuth = {
           success: true,
           token: 'local_admin_session_' + Date.now(),
@@ -58,7 +62,7 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
         return;
       }
 
-      throw new Error(data?.error || 'Invalid username or password. Please use admin / admin1234.');
+      throw new Error(data?.error || 'Invalid username or password.');
     } catch (err) {
       setErrorMessage(err.message || 'Login failed. Please verify your credentials.');
     } finally {

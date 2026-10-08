@@ -1,0 +1,230 @@
+[
+  {
+    "id": "NNL-6123-BK",
+    "customerName": "Justin Chan",
+    "contactChannel": "line",
+    "contactValue": "0946916668",
+    "email": "justin.sirias@gmail.com",
+    "serviceId": "wash_fold",
+    "serviceName": "Wash / Fold",
+    "district": "Watthana (Thonglor, Ekkamai, Phrom Phong)",
+    "condoName": "Ideo Q Sukhumvit 36",
+    "roomNumber": "123",
+    "leaveWithJuristic": true,
+    "estimatedWeightKg": 4,
+    "actualWeightKg": null,
+    "minWeightAppliedKg": 4,
+    "pricePerKg": 65,
+    "totalPrice": 310,
+    "turnaroundSpeed": "standard_48h",
+    "status": "BOOKING_REQUESTED",
+    "paymentStatus": "PENDING",
+    "paymentMethod": null,
+    "paymentRef": null,
+    "tagNumber": "TAG-PENDING",
+    "pickupDate": "2026-10-09",
+    "pickupTime": "09:00 - 11:00 (Morning)",
+    "deliveryDate": "Scheduled in 48 Hours (~2 Days)",
+    "deliveryTime": "16:00 - 18:00 (Early Evening)",
+    "specialInstructions": "",
+    "agreedTerms": true,
+    "cashlessPolicyAcknowledged": true,
+    "timeline": [
+      {
+        "status": "BOOKING_REQUESTED",
+        "timestamp": "2026-10-08 10:06",
+        "note": "Booking created online via LINE. Pick-up requested at Ideo Q Sukhumvit 36."
+      }
+    ],
+    "createdAt": "2026-10-08T10:06:15.116Z",
+    "postalCode": "10110",
+    "deliveryFee": 50,
+    "quantity": 0,
+    "unit": "bundle",
+    "categoryId": "laundry_by_weight",
+    "items": [
+      {
+        "serviceId": "wash_fold",
+        "serviceName": "Wash / Fold",
+        "pricingType": "weight",
+        "unit": "KG",
+        "pricePerKg": 65,
+        "quantity": 1,
+        "estimatedWeightKg": 4,
+        "billableAmount": 4,
+        "subtotal": 260
+      }
+    ]
+  },
+  {
+    "id": "NNL-7124-BK",
+    "customerName": "Krit Panich",
+    "contactChannel": "line",
+    "contactValue": "@krit_panich",
+    "email": "krit.panich@gmail.com",
+    "serviceId": "wash_fold",
+    "serviceName": "Wash / Fold",
+    "district": "Watthana",
+    "condoName": "Noble Ploenchit",
+    "roomNumber": "Tower B, 1402",
+    "leaveWithJuristic": true,
+    "estimatedWeightKg": 4.5,
+    "actualWeightKg": null,
+    "minWeightAppliedKg": 4,
+    "pricePerKg": 65,
+    "totalPrice": 293,
+    "turnaroundSpeed": "standard_48h",
+    "status": "PICKUP_SCHEDULED",
+    "paymentStatus": "PENDING",
+    "paymentMethod": null,
+    "paymentRef": null,
+    "tagNumber": "TAG-PENDING",
+    "pickupDate": "2026-10-08",
+    "pickupTime": "09:00 - 11:00 (Morning)",
+    "deliveryDate": "Scheduled in 48 Hours (~2 Days)",
+    "deliveryTime": "16:00 - 18:00 (Early Evening)",
+    "specialInstructions": "Please collect from juristic lobby. Leave tag photo via LINE.",
+    "agreedTerms": true,
+    "cashlessPolicyAcknowledged": true,
+    "createdAt": "2026-10-08T10:04:35.706Z",
+    "timeline": [
+      {
+        "status": "BOOKING_REQUESTED",
+        "timestamp": "2026-10-08 10:04",
+        "note": "Customer placed booking online via LINE. Pick-up requested at Noble Ploenchit."
+      },
+      {
+        "status": "PICKUP_SCHEDULED",
+        "timestamp": "2026-10-08 10:07",
+        "note": "Moved to Pickup Scheduled via Kanban drag & drop."
+      }
+    ],
+    "quantity": 1,
+    "unit": "KG",
+    "categoryId": "laundry_by_weight",
+    "updatedAt": "2026-10-08T10:07:01.664Z"
+  },
+  {
+    "id": "NNL-8491-BK",
+    "customerName": "Alex Thorne",
+    "contactChannel": "whatsapp",
+    "contactValue": "+66 82 455 9182",
+    "email": "alex.thorne@gmail.com",
+    "serviceId": "wash_iron_fold",
+    "serviceName": "Wash / Iron / Fold",
+    "district": "Watthana (Thonglor, Ekkamai, Phrom Phong)",
+    "condoName": "The Estelle Phrom Phong",
+    "roomNumber": "Tower A, 1804",
+    "leaveWithJuristic": true,
+    "estimatedWeightKg": 4.5,
+    "actualWeightKg": 4.8,
+    "minWeightAppliedKg": 3,
+    "pricePerKg": 95,
+    "totalPrice": 456,
+    "turnaroundSpeed": "standard_48h",
+    "status": "IN_WASH",
+    "tagNumber": "TAG-BKK-092",
+    "pickupDate": "2026-09-16",
+    "pickupTime": "09:00 - 11:00 (Morning)",
+    "deliveryDate": "2026-09-17",
+    "deliveryTime": "16:00 - 18:00 (Early Evening)",
+    "specialInstructions": "Please leave at Juristic Office counter with K. Somchai. Extra care for white collared shirts.",
+    "createdAt": "2026-09-16T08:15:00Z",
+    "timeline": [
+      {
+        "status": "BOOKING_REQUESTED",
+        "timestamp": "2026-09-16 08:15",
+        "note": "Customer placed booking online."
+      },
+      {
+        "status": "PICKUP_SCHEDULED",
+        "timestamp": "2026-09-16 08:40",
+        "note": "Driver Somkit assigned for pickup."
+      },
+      {
+        "status": "PICKED_UP",
+        "timestamp": "2026-09-16 09:45",
+        "note": "Collected from The Estelle Juristic Office. Bag Tag #TAG-BKK-092 attached."
+      },
+      {
+        "status": "WEIGHED_INSPECTED",
+        "timestamp": "2026-09-16 10:30",
+        "note": "Weighed on certified digital scale: 4.80 KG. All items passed intake inspection."
+      },
+      {
+        "status": "IN_WASH",
+        "timestamp": "2026-09-16 11:10",
+        "note": "Machine wash & drying cycle started with gentle hypoallergenic conditioner."
+      }
+    ]
+  },
+  {
+    "id": "NNL-3920-BK",
+    "customerName": "Siriporn Tanaka",
+    "contactChannel": "line",
+    "contactValue": "@siriporn_bkk",
+    "email": "siriporn.t@yahoo.co.th",
+    "serviceId": "wash_fold",
+    "serviceName": "Wash / Fold",
+    "district": "Bang Rak (Silom, Surawong)",
+    "condoName": "Ashton Silom",
+    "roomNumber": "Floor 22, Room 2209",
+    "leaveWithJuristic": false,
+    "estimatedWeightKg": 3,
+    "actualWeightKg": 3.2,
+    "minWeightAppliedKg": 3,
+    "pricePerKg": 65,
+    "totalPrice": 208,
+    "turnaroundSpeed": "standard_48h",
+    "status": "OUT_FOR_DELIVERY",
+    "tagNumber": "TAG-BKK-084",
+    "pickupDate": "2026-09-15",
+    "pickupTime": "14:00 - 16:00 (Afternoon)",
+    "deliveryDate": "2026-09-16",
+    "deliveryTime": "18:00 - 20:30 (Evening Rush)",
+    "specialInstructions": "Call via LINE before arriving. Ring room doorbell.",
+    "createdAt": "2026-09-15T11:20:00Z",
+    "timeline": [
+      {
+        "status": "BOOKING_REQUESTED",
+        "timestamp": "2026-09-15 11:20",
+        "note": "Booking confirmed."
+      },
+      {
+        "status": "PICKUP_SCHEDULED",
+        "timestamp": "2026-09-15 12:00",
+        "note": "Driver Narong dispatched."
+      },
+      {
+        "status": "PICKED_UP",
+        "timestamp": "2026-09-15 14:30",
+        "note": "Bag collected directly from customer."
+      },
+      {
+        "status": "WEIGHED_INSPECTED",
+        "timestamp": "2026-09-15 15:45",
+        "note": "Scale weight logged: 3.20 KG."
+      },
+      {
+        "status": "IN_WASH",
+        "timestamp": "2026-09-15 16:30",
+        "note": "Wash & dry cycle completed."
+      },
+      {
+        "status": "IRON_FOLD",
+        "timestamp": "2026-09-16 09:00",
+        "note": "Folded & packed in sealed eco-bags."
+      },
+      {
+        "status": "READY_FOR_DELIVERY",
+        "timestamp": "2026-09-16 14:00",
+        "note": "Checked by QC supervisor."
+      },
+      {
+        "status": "OUT_FOR_DELIVERY",
+        "timestamp": "2026-09-16 17:30",
+        "note": "Driver Narong is out for delivery. ETA ~18:15."
+      }
+    ]
+  }
+]

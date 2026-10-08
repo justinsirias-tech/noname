@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { laundryStore } from '../store.js';
 import { useTranslation } from '../i18n.jsx';
+import { BACKOFFICE_FEATURES, ALL_FEATURE_IDS, DEFAULT_SYSTEM_ROLES } from '../data/adminFeatures.js';
+import { RolesManagement } from './RolesManagement.jsx';
 
 export function UserManagement({
   adminUser,
@@ -12,8 +14,12 @@ export function UserManagement({
   const { language } = useTranslation();
   const isTh = language === 'th';
 
-  // Sub-tabs: 'staff' (Admin & Back-Office Users) vs 'customers' (Client Accounts)
+  // Sub-tabs: 'staff' (Admin & Back-Office Users), 'roles' (Custom Roles & Permissions), 'customers' (Client Accounts)
   const [activeSubTab, setActiveSubTab] = useState('staff');
+
+  // Roles state
+  const [roles, setRoles] = useState(DEFAULT_SYSTEM_ROLES);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   // Staff state
   const [staffUsers, setStaffUsers] = useState([]);
@@ -39,6 +45,8 @@ export function UserManagement({
   const [newStatus, setNewStatus] = useState('active');
   const [newPassword, setNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [newPermissions, setNewPermissions] = useState(['orders', 'crm', 'new-pos', 'incidents']);
+  const [newCustomizedPerms, setNewCustomizedPerms] = useState(false);
   const [addStaffSubmitting, setAddStaffSubmitting] = useState(false);
   const [addStaffError, setAddStaffError] = useState('');
 
@@ -48,6 +56,8 @@ export function UserManagement({
   const [editPhone, setEditPhone] = useState('');
   const [editRole, setEditRole] = useState('staff');
   const [editStatus, setEditStatus] = useState('active');
+  const [editPermissions, setEditPermissions] = useState([]);
+  const [editCustomizedPerms, setEditCustomizedPerms] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -68,6 +78,24 @@ export function UserManagement({
   const [customers, setCustomers] = useState(() => laundryStore.getEnrichedCustomers ? laundryStore.getEnrichedCustomers() : (laundryStore.customers || []));
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerTierFilter, setCustomerTierFilter] = useState('ALL');
+  // Fetch Roles from API
+  const fetchRoles = async () => {
+    setRolesLoading(true);
+    try {
+      const headers = laundryStore.getAdminAuthHeaders();
+      const res = await fetch('/api/admin/roles', { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.roles) {
+          setRoles(data.roles);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch roles from server:', err);
+    } finally {
+      setRolesLoading(false);
+    }
+  };
 
   // Load Staff users from API
   const fetchStaffUsers = async () => {
@@ -95,6 +123,7 @@ export function UserManagement({
           phone: '+66 81 234 5678',
           role: 'super_admin',
           status: 'active',
+          permissions: [...ALL_FEATURE_IDS],
           createdAt: new Date().toISOString()
         },
         {
@@ -105,6 +134,7 @@ export function UserManagement({
           phone: '+66 89 876 5432',
           role: 'manager',
           status: 'active',
+          permissions: ['orders', 'sales-reconciliation', 'crm', 'faq', 'services-pricing', 'postal-rates', 'incidents', 'new-pos'],
           createdAt: new Date(Date.now() - 86400000 * 7).toISOString()
         },
         {
@@ -115,6 +145,7 @@ export function UserManagement({
           phone: '+66 82 345 6789',
           role: 'staff',
           status: 'active',
+          permissions: ['orders', 'crm', 'new-pos', 'incidents'],
           createdAt: new Date(Date.now() - 86400000 * 14).toISOString()
         },
         {
@@ -125,6 +156,7 @@ export function UserManagement({
           phone: '+66 91 123 4567',
           role: 'rider',
           status: 'active',
+          permissions: ['orders'],
           createdAt: new Date(Date.now() - 86400000 * 20).toISOString()
         }
       ]);
@@ -135,6 +167,7 @@ export function UserManagement({
 
   useEffect(() => {
     fetchStaffUsers();
+    fetchRoles();
   }, []);
 
   // Sync customer state with store
@@ -145,6 +178,40 @@ export function UserManagement({
     const unsubscribe = laundryStore.subscribe ? laundryStore.subscribe(updateCusts) : () => {};
     return () => unsubscribe();
   }, []);
+
+  // Handle changing role in Add Staff Form
+  const handleNewRoleChange = (roleId) => {
+    setNewRole(roleId);
+    const r = roles.find(item => item.id === roleId);
+    if (r && Array.isArray(r.permissions)) {
+      setNewPermissions([...r.permissions]);
+      setNewCustomizedPerms(false);
+    }
+  };
+
+  // Toggle permission in Add Staff Form
+  const handleToggleNewPermission = (featId) => {
+    setNewCustomizedPerms(true);
+    setNewPermissions(prev => {
+      if (prev.includes(featId)) {
+        return prev.filter(p => p !== featId);
+      } else {
+        return [...prev, featId];
+      }
+    });
+  };
+
+  // Toggle permission in Edit Staff Form
+  const handleToggleEditPermission = (featId) => {
+    setEditCustomizedPerms(true);
+    setEditPermissions(prev => {
+      if (prev.includes(featId)) {
+        return prev.filter(p => p !== featId);
+      } else {
+        return [...prev, featId];
+      }
+    });
+  };
 
   // Handle Add Staff
   const handleAddStaffSubmit = async (e) => {
@@ -172,7 +239,8 @@ export function UserManagement({
           phone: newPhone.trim(),
           role: newRole,
           status: newStatus,
-          password: newPassword
+          password: newPassword,
+          permissions: newCustomizedPerms ? newPermissions : (roles.find(r => r.id === newRole)?.permissions || newPermissions)
         })
       });
 
@@ -191,6 +259,8 @@ export function UserManagement({
       setNewRole('staff');
       setNewStatus('active');
       setNewPassword('');
+      setNewPermissions(['orders', 'crm', 'new-pos', 'incidents']);
+      setNewCustomizedPerms(false);
     } catch (err) {
       setAddStaffError(err.message || 'Error creating user');
     } finally {
@@ -206,6 +276,13 @@ export function UserManagement({
     setEditPhone(user.phone || '');
     setEditRole(user.role || 'staff');
     setEditStatus(user.status || 'active');
+
+    const matchedRole = roles.find(r => r.id === user.role);
+    const userPerms = Array.isArray(user.permissions) && user.permissions.length > 0
+      ? [...user.permissions]
+      : (matchedRole && Array.isArray(matchedRole.permissions) ? [...matchedRole.permissions] : ['orders']);
+    setEditPermissions(userPerms);
+    setEditCustomizedPerms(!!user.hasCustomPermissions);
     setEditError('');
     setShowEditStaffModal(true);
   };
@@ -227,7 +304,8 @@ export function UserManagement({
           email: editEmail.trim(),
           phone: editPhone.trim(),
           role: editRole,
-          status: editStatus
+          status: editStatus,
+          permissions: editCustomizedPerms ? editPermissions : null
         })
       });
 
@@ -385,8 +463,27 @@ export function UserManagement({
   };
 
   // Role helper badge
-  const getRoleBadge = (role) => {
-    switch (role) {
+  const getRoleBadge = (roleKey) => {
+    const matchedRole = roles.find(r => r.id === roleKey);
+    if (matchedRole) {
+      const colorMeta = {
+        purple: { color: 'bg-purple-100 text-purple-800 border-purple-200', icon: 'shield' },
+        sky: { color: 'bg-sky-100 text-sky-800 border-sky-200', icon: 'layers' },
+        teal: { color: 'bg-teal-100 text-teal-800 border-teal-200', icon: 'receipt' },
+        amber: { color: 'bg-amber-100 text-amber-800 border-amber-200', icon: 'truck' },
+        emerald: { color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: 'calculator' },
+        indigo: { color: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: 'key' },
+        rose: { color: 'bg-rose-100 text-rose-800 border-rose-200', icon: 'shieldAlert' }
+      }[matchedRole.color || 'indigo'] || { color: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: 'key' };
+
+      return {
+        label: isTh && matchedRole.nameTh ? matchedRole.nameTh : matchedRole.name,
+        color: colorMeta.color,
+        icon: colorMeta.icon
+      };
+    }
+
+    switch (roleKey) {
       case 'super_admin':
       case 'admin':
         return {
@@ -416,7 +513,7 @@ export function UserManagement({
         };
       default:
         return {
-          label: role,
+          label: roleKey,
           color: 'bg-slate-100 text-slate-800 border-slate-200',
           icon: 'user'
         };
@@ -483,7 +580,7 @@ export function UserManagement({
 
         {/* Action Button */}
         <div className="flex items-center gap-2">
-          {activeSubTab === 'staff' ? (
+          {activeSubTab === 'staff' && (
             <button
               onClick={() => {
                 setAddStaffError('');
@@ -494,7 +591,9 @@ export function UserManagement({
               <Icon name="userPlus" className="w-4 h-4" />
               <span>{isTh ? '+ เพิ่มเจ้าหน้าที่ใหม่' : '+ Add New Staff User'}</span>
             </button>
-          ) : (
+          )}
+
+          {activeSubTab === 'customers' && (
             <button
               onClick={() => {
                 if (onNavigateToTab) onNavigateToTab('crm');
@@ -509,7 +608,7 @@ export function UserManagement({
       </div>
 
       {/* Sub-Tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveSubTab('staff')}
           className={`px-4 py-2.5 text-xs font-bold rounded-xl transition flex items-center gap-2 ${
@@ -524,6 +623,23 @@ export function UserManagement({
             activeSubTab === 'staff' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
           }`}>
             {staffUsers.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('roles')}
+          className={`px-4 py-2.5 text-xs font-bold rounded-xl transition flex items-center gap-2 ${
+            activeSubTab === 'roles'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Icon name="key" className="w-4 h-4" />
+          <span>{isTh ? 'บทบาทและสิทธิ์เข้าถึง (Custom Roles & Permissions)' : 'Custom Roles & Feature Access'}</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+            activeSubTab === 'roles' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
+          }`}>
+            {roles.length}
           </span>
         </button>
 
@@ -620,11 +736,12 @@ export function UserManagement({
                 onChange={(e) => setStaffRoleFilter(e.target.value)}
                 className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white text-slate-700"
               >
-                <option value="ALL">{isTh ? 'ทุกลำดับขั้น (All Roles)' : 'All Roles'}</option>
-                <option value="super_admin">{isTh ? '👑 ผู้ดูแลระบบสูงสุด (Super Admin)' : '👑 Super Admin'}</option>
-                <option value="manager">{isTh ? '🏬 ผู้จัดการสาขา (Store Manager)' : '🏬 Store Manager'}</option>
-                <option value="staff">{isTh ? '👔 พนักงานหน้าร้าน (Operations)' : '👔 Operations Staff'}</option>
-                <option value="rider">{isTh ? '🛵 ไรเดอร์ส่งผ้า (Express Rider)' : '🛵 Express Rider'}</option>
+                <option value="ALL">{isTh ? 'ทุกบทบาท (All Roles)' : 'All Roles'}</option>
+                {roles.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {isTh && r.nameTh ? r.nameTh : r.name}
+                  </option>
+                ))}
               </select>
 
               <select
@@ -646,7 +763,8 @@ export function UserManagement({
                 <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
                   <tr>
                     <th className="py-3.5 px-4">{isTh ? 'ผู้ใช้งาน / เจ้าหน้าที่' : 'User / Staff Member'}</th>
-                    <th className="py-3.5 px-4">{isTh ? 'บทบาท / สิทธิ์' : 'Role & Permissions'}</th>
+                    <th className="py-3.5 px-4">{isTh ? 'บทบาท' : 'Role'}</th>
+                    <th className="py-3.5 px-4">{isTh ? 'สิทธิ์การเข้าถึงฟังก์ชัน' : 'Feature Access'}</th>
                     <th className="py-3.5 px-4">{isTh ? 'ข้อมูลติดต่อ' : 'Contact Channels'}</th>
                     <th className="py-3.5 px-4">{isTh ? 'สถานะบัญชี' : 'Account Status'}</th>
                     <th className="py-3.5 px-4 text-right">{isTh ? 'การจัดการ' : 'Actions'}</th>
@@ -655,14 +773,14 @@ export function UserManagement({
                 <tbody className="divide-y divide-slate-100 font-medium">
                   {staffLoading ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-slate-400">
+                      <td colSpan="6" className="text-center py-8 text-slate-400">
                         <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-sky-600 mb-2"></div>
                         <div>{isTh ? 'กำลังโหลดข้อมูลผู้ใช้งาน...' : 'Loading staff accounts...'}</div>
                       </td>
                     </tr>
                   ) : filteredStaff.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-slate-400">
+                      <td colSpan="6" className="text-center py-8 text-slate-400">
                         {isTh ? 'ไม่พบข้อมูลผู้ใช้งานที่ตรงกับเงื่อนไข' : 'No staff members found matching your search.'}
                       </td>
                     </tr>
@@ -670,6 +788,7 @@ export function UserManagement({
                     filteredStaff.map((user) => {
                       const badge = getRoleBadge(user.role);
                       const isCurrentAdmin = adminUser && (adminUser.username === user.username || adminUser.id === user.id);
+                      const userPerms = Array.isArray(user.permissions) ? user.permissions : [];
 
                       return (
                         <tr key={user.id} className="hover:bg-slate-50/70 transition">
@@ -701,6 +820,46 @@ export function UserManagement({
                               <Icon name={badge.icon} className="w-3.5 h-3.5" />
                               <span>{badge.label}</span>
                             </span>
+                          </td>
+
+                          {/* Feature Access Permissions */}
+                          <td className="py-3.5 px-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                  user.role === 'super_admin'
+                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                                }`}>
+                                  <Icon name="check" className="w-3 h-3 text-emerald-600" />
+                                  <span>
+                                    {user.role === 'super_admin'
+                                      ? (isTh ? 'ทั้งหมด (11)' : 'All Features (11)')
+                                      : `${userPerms.length} ${isTh ? 'ฟังก์ชัน' : 'Features'}`}
+                                  </span>
+                                </span>
+
+                                {user.hasCustomPermissions && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Individual permission overrides enabled">
+                                    {isTh ? 'สิทธิ์เฉพาะ' : 'Custom'}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1 text-slate-400">
+                                {userPerms.slice(0, 5).map(fId => {
+                                  const feat = BACKOFFICE_FEATURES.find(f => f.id === fId);
+                                  return feat ? (
+                                    <span key={fId} className="p-0.5 rounded bg-slate-50 border border-slate-200" title={isTh ? feat.labelTh : feat.label}>
+                                      <Icon name={feat.icon} className="w-3 h-3 text-slate-500" />
+                                    </span>
+                                  ) : null;
+                                })}
+                                {userPerms.length > 5 && (
+                                  <span className="text-[10px] text-slate-400 font-mono font-bold">+{userPerms.length - 5}</span>
+                                )}
+                              </div>
+                            </div>
                           </td>
 
                           {/* Contact Info */}
@@ -866,6 +1025,15 @@ export function UserManagement({
             </form>
           </div>
         </div>
+      )}
+
+      {/* ==================== SUB-TAB: CUSTOM ROLES & PERMISSIONS ==================== */}
+      {activeSubTab === 'roles' && (
+        <RolesManagement
+          adminUser={adminUser}
+          staffUsers={staffUsers}
+          onRolesUpdated={(updatedRoles) => setRoles(updatedRoles)}
+        />
       )}
 
       {/* ==================== SUB-TAB 2: CUSTOMER ACCOUNTS ==================== */}
@@ -1110,16 +1278,17 @@ export function UserManagement({
       )}
 
       {/* ==================== MODAL: ADD NEW STAFF USER ==================== */}
+      {/* ==================== MODAL: ADD NEW STAFF USER ==================== */}
       {showAddStaffModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   {isTh ? 'เพิ่มเจ้าหน้าที่ใหม่' : 'Add New Staff User'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {isTh ? 'กำหนดข้อมูลการเข้าสู่ระบบและสิทธิ์การใช้งาน' : 'Configure back-office credentials and permissions'}
+                  {isTh ? 'กำหนดข้อมูลการเข้าสู่ระบบ บทบาท และปรับแต่งสิทธิ์การเข้าถึงฟังก์ชัน' : 'Configure back-office credentials, role, and custom feature permissions'}
                 </p>
               </div>
               <button
@@ -1132,12 +1301,12 @@ export function UserManagement({
             </div>
 
             {addStaffError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold shrink-0">
                 ⚠️ {addStaffError}
               </div>
             )}
 
-            <form onSubmit={handleAddStaffSubmit} className="space-y-3.5 text-xs">
+            <form onSubmit={handleAddStaffSubmit} className="space-y-3.5 text-xs overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
@@ -1199,17 +1368,19 @@ export function UserManagement({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    {isTh ? 'บทบาท / สิทธิ์ *' : 'Role & Permissions *'}
+                    {isTh ? 'บทบาทหลัก *' : 'Primary Role *'}
                   </label>
                   <select
                     value={newRole}
-                    onChange={(e) => setNewRole(e.target.value)}
+                    onChange={(e) => handleNewRoleChange(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold text-slate-800"
                   >
-                    <option value="super_admin">👑 Super Admin (Full Control)</option>
-                    <option value="manager">🏬 Store Manager</option>
-                    <option value="staff">👔 Operations / Cashier</option>
-                    <option value="rider">🛵 Express Delivery Rider</option>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.id === 'super_admin' ? '👑 ' : r.id === 'manager' ? '🏬 ' : r.id === 'staff' ? '👔 ' : r.id === 'rider' ? '🛵 ' : '🔑 '}
+                        {isTh && r.nameTh ? r.nameTh : r.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -1228,6 +1399,7 @@ export function UserManagement({
                 </div>
               </div>
 
+              {/* Password Section */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block font-bold text-slate-700">
@@ -1264,7 +1436,81 @@ export function UserManagement({
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              {/* Feature Permissions matrix for this user */}
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block font-bold text-slate-800">
+                      {isTh ? 'สิทธิ์การเข้าถึงฟังก์ชันของผู้ใช้นี้ (Feature Access)' : 'Feature Access Permissions for this User'}
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      {newCustomizedPerms
+                        ? (isTh ? 'กำหนดสิทธิ์เฉพาะตัว (Customized)' : 'Customized specifically for this user')
+                        : (isTh ? 'ใช้สิทธิ์ตามบทบาทที่เลือก (Role Default)' : 'Using role default features')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const r = roles.find(item => item.id === newRole);
+                        if (r && Array.isArray(r.permissions)) {
+                          setNewPermissions([...r.permissions]);
+                          setNewCustomizedPerms(false);
+                        }
+                      }}
+                      className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold"
+                    >
+                      {isTh ? 'คืนค่าตามบทบาท' : 'Role Defaults'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewPermissions([...ALL_FEATURE_IDS]);
+                        setNewCustomizedPerms(true);
+                      }}
+                      className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold"
+                    >
+                      {isTh ? 'เลือกทั้งหมด' : 'All'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-48 overflow-y-auto pr-1">
+                  {BACKOFFICE_FEATURES.map(feat => {
+                    const isChecked = newPermissions.includes(feat.id);
+                    return (
+                      <div
+                        key={feat.id}
+                        onClick={() => handleToggleNewPermission(feat.id)}
+                        className={`p-2.5 rounded-xl border transition cursor-pointer flex items-start gap-2.5 ${
+                          isChecked
+                            ? 'bg-sky-50/70 border-sky-300 ring-1 ring-sky-200'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="mt-0.5 rounded text-sky-600 focus:ring-sky-500 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1 font-bold text-slate-900 text-[11px]">
+                            <Icon name={feat.icon} className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span className="truncate">{isTh ? feat.labelTh : feat.label}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 leading-snug line-clamp-1">
+                            {isTh ? feat.descriptionTh : feat.description}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAddStaffModal(false)}
@@ -1275,9 +1521,10 @@ export function UserManagement({
                 <button
                   type="submit"
                   disabled={addStaffSubmitting}
-                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold shadow-md shadow-sky-600/20 transition"
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold shadow-md shadow-sky-600/20 transition flex items-center gap-2"
                 >
-                  {addStaffSubmitting ? (isTh ? 'กำลังบันทึก...' : 'Creating...') : (isTh ? 'สร้างบัญชี' : 'Create User')}
+                  {addStaffSubmitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                  <span>{addStaffSubmitting ? (isTh ? 'กำลังบันทึก...' : 'Creating...') : (isTh ? 'สร้างบัญชี' : 'Create User')}</span>
                 </button>
               </div>
             </form>
@@ -1288,8 +1535,8 @@ export function UserManagement({
       {/* ==================== MODAL: EDIT STAFF USER ==================== */}
       {showEditStaffModal && selectedStaffUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   {isTh ? 'แก้ไขข้อมูลเจ้าหน้าที่' : 'Edit Staff Profile'}
@@ -1308,12 +1555,12 @@ export function UserManagement({
             </div>
 
             {editError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold shrink-0">
                 ⚠️ {editError}
               </div>
             )}
 
-            <form onSubmit={handleEditStaffSubmit} className="space-y-3.5 text-xs">
+            <form onSubmit={handleEditStaffSubmit} className="space-y-3.5 text-xs overflow-y-auto pr-1">
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
                   {isTh ? 'ชื่อ-นามสกุล *' : 'Full Name *'}
@@ -1356,17 +1603,27 @@ export function UserManagement({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    {isTh ? 'บทบาท / สิทธิ์ *' : 'Role & Permissions *'}
+                    {isTh ? 'บทบาทหลัก *' : 'Primary Role *'}
                   </label>
                   <select
                     value={editRole}
-                    onChange={(e) => setEditRole(e.target.value)}
+                    onChange={(e) => {
+                      const newRoleId = e.target.value;
+                      setEditRole(newRoleId);
+                      const r = roles.find(item => item.id === newRoleId);
+                      if (r && Array.isArray(r.permissions)) {
+                        setEditPermissions([...r.permissions]);
+                        setEditCustomizedPerms(false);
+                      }
+                    }}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold text-slate-800"
                   >
-                    <option value="super_admin">👑 Super Admin</option>
-                    <option value="manager">🏬 Store Manager</option>
-                    <option value="staff">👔 Operations / Cashier</option>
-                    <option value="rider">🛵 Express Delivery Rider</option>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.id === 'super_admin' ? '👑 ' : r.id === 'manager' ? '🏬 ' : r.id === 'staff' ? '👔 ' : r.id === 'rider' ? '🛵 ' : '🔑 '}
+                        {isTh && r.nameTh ? r.nameTh : r.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -1385,7 +1642,81 @@ export function UserManagement({
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              {/* Feature Permissions matrix for this user */}
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block font-bold text-slate-800">
+                      {isTh ? 'สิทธิ์การเข้าถึงฟังก์ชันของผู้ใช้นี้ (Feature Access)' : 'Feature Access Permissions for this User'}
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      {editCustomizedPerms
+                        ? (isTh ? 'กำหนดสิทธิ์เฉพาะตัว (Customized)' : 'Customized specifically for this user')
+                        : (isTh ? 'ใช้สิทธิ์ตามบทบาทที่เลือก (Role Default)' : 'Using role default features')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const r = roles.find(item => item.id === editRole);
+                        if (r && Array.isArray(r.permissions)) {
+                          setEditPermissions([...r.permissions]);
+                          setEditCustomizedPerms(false);
+                        }
+                      }}
+                      className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold"
+                    >
+                      {isTh ? 'คืนค่าตามบทบาท' : 'Role Defaults'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditPermissions([...ALL_FEATURE_IDS]);
+                        setEditCustomizedPerms(true);
+                      }}
+                      className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold"
+                    >
+                      {isTh ? 'เลือกทั้งหมด' : 'All'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-48 overflow-y-auto pr-1">
+                  {BACKOFFICE_FEATURES.map(feat => {
+                    const isChecked = editPermissions.includes(feat.id);
+                    return (
+                      <div
+                        key={feat.id}
+                        onClick={() => handleToggleEditPermission(feat.id)}
+                        className={`p-2.5 rounded-xl border transition cursor-pointer flex items-start gap-2.5 ${
+                          isChecked
+                            ? 'bg-sky-50/70 border-sky-300 ring-1 ring-sky-200'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="mt-0.5 rounded text-sky-600 focus:ring-sky-500 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1 font-bold text-slate-900 text-[11px]">
+                            <Icon name={feat.icon} className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span className="truncate">{isTh ? feat.labelTh : feat.label}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 leading-snug line-clamp-1">
+                            {isTh ? feat.descriptionTh : feat.description}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowEditStaffModal(false)}
@@ -1396,9 +1727,10 @@ export function UserManagement({
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold shadow-md shadow-sky-600/20 transition"
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold shadow-md shadow-sky-600/20 transition flex items-center gap-2"
                 >
-                  {editSubmitting ? (isTh ? 'กำลังบันทึก...' : 'Saving...') : (isTh ? 'บันทึกการแก้ไข' : 'Save Changes')}
+                  {editSubmitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                  <span>{editSubmitting ? (isTh ? 'กำลังบันทึก...' : 'Saving...') : (isTh ? 'บันทึกการแก้ไข' : 'Save Changes')}</span>
                 </button>
               </div>
             </form>
