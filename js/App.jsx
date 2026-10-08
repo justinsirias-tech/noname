@@ -240,9 +240,8 @@ export function App() {
   // Booking successful handler
   const handleBookingSuccess = (bookingInput) => {
     const newOrder = laundryStore.createOrder(bookingInput);
-    setActiveTrackingId(newOrder.id);
-    triggerToast(`Booking confirmed! Your Tracking ID is ${newOrder.id}`);
-    setCurrentView('track');
+    triggerToast(`Booking #${newOrder.id} confirmed! Our customer service team will contact you via WhatsApp / LINE.`);
+    setCurrentView('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -415,6 +414,7 @@ export function App() {
               onSelectServiceForBooking={handleSelectServiceForBooking}
               city={currentCity}
               onSwitchCity={handleSwitchCity}
+              onOpenContactModal={() => setIsContactModalOpen(true)}
             />
             <DigitalSupportBanner
               onOpenContactModal={() => setIsContactModalOpen(true)}
@@ -471,12 +471,45 @@ export function App() {
         )}
 
         {currentView === 'track' && (
-          <OrderTracker
-            orders={storeState.orders}
-            initialTrackingId={activeTrackingId}
-            initialOpenPayment={initialOpenPayment}
-            onReportIncident={handleReportIncident}
-          />
+          <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-6">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-sky-100 text-sky-600 flex items-center justify-center text-3xl shadow-sm">
+              💬
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+              Customer Support &amp; Order Updates
+            </h1>
+            <p className="text-slate-600 text-sm leading-relaxed max-w-lg mx-auto">
+              To check on your order status, verify pickup or delivery times, or ask questions, please contact our Customer Service team directly. All communications are documented in writing with digital scale verification photos.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <a
+                href={`${CONTACT_CHANNELS.whatsapp.url}Hi%20NoName%20Laundry,%20I%20would%20like%20an%20update%20on%20my%20order`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition"
+              >
+                <Icon name="whatsapp" className="w-4 h-4 text-white" />
+                <span>Chat on WhatsApp</span>
+              </a>
+              <a
+                href={CONTACT_CHANNELS.line.url}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition"
+              >
+                <Icon name="line" className="w-4 h-4 text-white" />
+                <span>Chat on LINE: @nonamelaundry</span>
+              </a>
+            </div>
+            <div className="pt-4">
+              <button
+                onClick={() => navigateTo('home')}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-800 underline"
+              >
+                ← Return to Home
+              </button>
+            </div>
+          </div>
         )}
 
         {currentView === 'terms' && (

@@ -351,6 +351,9 @@ async function initDatabase() {
       ALTER TABLE services ADD COLUMN IF NOT EXISTS same_day_price_per_kg NUMERIC;
       ALTER TABLE services ADD COLUMN IF NOT EXISTS same_day_available BOOLEAN DEFAULT TRUE;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS turnaround_speed VARCHAR(32) DEFAULT 'standard_48h';
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS phone VARCHAR(64);
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'active';
       UPDATE services SET standard_price_per_kg = price_per_kg WHERE standard_price_per_kg IS NULL;
       UPDATE services SET next_day_price_per_kg = ROUND(price_per_kg * 1.3) WHERE next_day_price_per_kg IS NULL OR next_day_price_per_kg = price_per_kg;
       UPDATE services SET same_day_price_per_kg = ROUND(price_per_kg * 1.75) WHERE same_day_price_per_kg IS NULL;

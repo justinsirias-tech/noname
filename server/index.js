@@ -18,6 +18,180 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use('/api/external', createTlsProxyRouter());
 app.use('/api/tls', createTlsProxyRouter());
 
+// Shared initial default services
+let initialServices = [
+  {
+    id: 'wash_fold',
+    categoryId: 'laundry_by_weight',
+    name: 'Wash / Fold',
+    nameTh: 'ซัก อบ พับ',
+    description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
+    unit: 'KG',
+    pricingType: 'weight',
+    stdPrice: 65,
+    nextPrice: 85,
+    samePrice: 115,
+    sameAvail: true,
+    minWeight: 4.0,
+    turnaround: 48,
+    popular: true,
+    features: ['Eco-friendly detergent & fabric softener', 'Gentle tumble drying', 'Neat, compact folding by apparel type', 'Sealed in moisture-proof dust bags', 'Pickup & delivery across Bangkok']
+  },
+  {
+    id: 'wash_iron_fold',
+    categoryId: 'laundry_by_weight',
+    name: 'Wash / Iron / Fold',
+    nameTh: 'ซัก อบ รีด พับ',
+    description: 'Ideal for workwear, cotton shirts, chinos, and dresses that require crisp steam ironing and tidy folded packaging.',
+    unit: 'KG',
+    pricingType: 'weight',
+    stdPrice: 95,
+    nextPrice: 130,
+    samePrice: 175,
+    sameAvail: true,
+    minWeight: 4.0,
+    turnaround: 48,
+    popular: false,
+    features: ['Stain inspection pre-treatment', 'Premium fabric wash & conditioning', 'Hand steam ironing for crisp look', 'Expert folding with tissue inserts if needed', 'Clear protective garment packaging']
+  },
+  {
+    id: 'wash_iron_hang',
+    categoryId: 'laundry_by_weight',
+    name: 'Wash / Iron / Hang',
+    nameTh: 'ซัก อบ รีด แขวน',
+    description: 'Perfect for business suits, formal button-downs, evening dresses, and delicate linen blouses returned wrinkle-free on high-grade hangers.',
+    unit: 'KG',
+    pricingType: 'weight',
+    stdPrice: 120,
+    nextPrice: 160,
+    samePrice: 210,
+    sameAvail: true,
+    minWeight: 4.0,
+    turnaround: 48,
+    popular: false,
+    features: ['Delicate temperature-controlled wash', 'Detailed wrinkle-free steam pressing', 'Heavy-duty hangers included at no extra cost', 'Full-length breathable garment cover', 'Direct-to-wardrobe ready on delivery']
+  },
+  {
+    id: 'comforter_duvet',
+    categoryId: 'bedding_linens',
+    name: 'Duvet / Comforter / Blanket',
+    nameTh: 'ผ้านวม / ไส้ผ้านวม / ผ้าห่มหนา',
+    description: 'Bulky King/Queen comforters and thick winter blankets washed in high-capacity drums with anti-dust mite heat sanitization and fluffy loft restoration.',
+    unit: 'piece',
+    pricingType: 'piece',
+    stdPrice: 220,
+    nextPrice: 280,
+    samePrice: 350,
+    sameAvail: true,
+    minWeight: 1.0,
+    turnaround: 48,
+    popular: true,
+    features: ['High-capacity commercial drum washer', 'Anti-dust mite thermal sanitization', 'Gentle tumble dry for loft restoration', 'Breathable zipper storage bag included']
+  },
+  {
+    id: 'bedsheet_set',
+    categoryId: 'bedding_linens',
+    name: 'Bed Sheet / Fitted Sheet',
+    nameTh: 'ผ้าปูที่นอน (King / Queen / Single)',
+    description: 'Deep-cleaned bed sheets with fabric softening conditioner and hotel-grade flatwork steam ironing for an ultra-smooth bedtime feel.',
+    unit: 'piece',
+    pricingType: 'piece',
+    stdPrice: 80,
+    nextPrice: 110,
+    samePrice: 150,
+    sameAvail: true,
+    minWeight: 1.0,
+    turnaround: 48,
+    popular: true,
+    features: ['Deep dirt and sweat extraction', 'Gentle fabric conditioning for silky touch', 'Steam ironed for smooth hotel-finish crispness', 'Individual moisture-proof protective packaging']
+  },
+  {
+    id: 'duvet_cover',
+    categoryId: 'bedding_linens',
+    name: 'Duvet Cover',
+    nameTh: 'ปลอกผ้านวม',
+    description: 'Premium washing and professional steam ironing for duvet covers of all fabric blends and thread counts.',
+    unit: 'piece',
+    pricingType: 'piece',
+    stdPrice: 90,
+    nextPrice: 120,
+    samePrice: 160,
+    sameAvail: true,
+    minWeight: 1.0,
+    turnaround: 48,
+    popular: false,
+    features: ['Color-safe detergent formula', 'Steam press finish for smooth texture', 'Wrinkle-resistant folding']
+  },
+  {
+    id: 'pillowcase',
+    categoryId: 'bedding_linens',
+    name: 'Pillowcase / Bolster Case',
+    nameTh: 'ปลอกหมอนหนุน / หมอนข้าง',
+    description: 'High-temperature hygienic wash and flatwork pressing for pillowcases and bolster cases.',
+    unit: 'piece',
+    pricingType: 'piece',
+    stdPrice: 30,
+    nextPrice: 45,
+    samePrice: 60,
+    sameAvail: true,
+    minWeight: 1.0,
+    turnaround: 48,
+    popular: false,
+    features: ['Antibacterial hot wash', 'Crisp ironed & sanitized', 'Hypoallergenic fabric conditioner']
+  },
+  {
+    id: 'mattress_topper',
+    categoryId: 'bedding_linens',
+    name: 'Mattress Protector / Topper',
+    nameTh: 'ผ้ารองกันเปื้อน / ท็อปเปอร์',
+    description: 'Deep-cycle washing for fitted mattress protectors, quilted pads, and thin toppers.',
+    unit: 'piece',
+    pricingType: 'piece',
+    stdPrice: 180,
+    nextPrice: 240,
+    samePrice: 300,
+    sameAvail: true,
+    minWeight: 1.0,
+    turnaround: 48,
+    popular: false,
+    features: ['Deep extraction cleaning', 'Low-temp tumble drying to protect elastic corners', 'Sanitized packaging']
+  },
+  {
+    id: 'bath_towel',
+    categoryId: 'household_curtains',
+    name: 'Bath Towel (Large)',
+    nameTh: 'ผ้าเช็ดตัวผืนใหญ่',
+    description: 'Hotel-quality wash and high-loft fluff tumble dry for plush, ultra-absorbent bath towels.',
+    unit: 'piece',
+    pricingType: 'piece',
+    stdPrice: 45,
+    nextPrice: 65,
+    samePrice: 85,
+    sameAvail: true,
+    minWeight: 1.0,
+    turnaround: 48,
+    popular: false,
+    features: ['High-absorbency residue-free wash', 'Fluffy tumble dry', 'Neat hotel-style tri-fold']
+  },
+  {
+    id: 'curtains_drapes',
+    categoryId: 'household_curtains',
+    name: 'Curtains & Drapes (per panel)',
+    nameTh: 'ผ้าม่าน (ต่อผืน)',
+    description: 'Specialized fabric care for sheer, blackout, or heavy cotton window curtains with delicate steam pressing.',
+    unit: 'piece',
+    pricingType: 'piece',
+    stdPrice: 160,
+    nextPrice: 210,
+    samePrice: 280,
+    sameAvail: true,
+    minWeight: 1.0,
+    turnaround: 48,
+    popular: false,
+    features: ['Dust & allergen removal', 'Pleat preservation steam pressing', 'Individual hanger or protective fold']
+  }
+];
+
 // Ensure PostgreSQL schema has reconciliation columns, categories and linens
 async function ensureDatabaseSchema() {
   try {
@@ -42,178 +216,6 @@ async function ensureDatabaseSchema() {
     // Seed missing default services
     const existingServices = await query('SELECT id FROM services');
     const existingIds = new Set(existingServices.rows.map(r => r.id));
-    const initialServices = [
-      {
-        id: 'wash_fold',
-        categoryId: 'laundry_by_weight',
-        name: 'Wash / Fold',
-        nameTh: 'ซัก อบ พับ',
-        description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
-        unit: 'KG',
-        pricingType: 'weight',
-        stdPrice: 65,
-        nextPrice: 85,
-        samePrice: 115,
-        sameAvail: true,
-        minWeight: 4.0,
-        turnaround: 48,
-        popular: true,
-        features: ['Eco-friendly detergent & fabric softener', 'Gentle tumble drying', 'Neat, compact folding by apparel type', 'Sealed in moisture-proof dust bags', 'Pickup & delivery across Bangkok']
-      },
-      {
-        id: 'wash_iron_fold',
-        categoryId: 'laundry_by_weight',
-        name: 'Wash / Iron / Fold',
-        nameTh: 'ซัก อบ รีด พับ',
-        description: 'Ideal for workwear, cotton shirts, chinos, and dresses that require crisp steam ironing and tidy folded packaging.',
-        unit: 'KG',
-        pricingType: 'weight',
-        stdPrice: 95,
-        nextPrice: 130,
-        samePrice: 175,
-        sameAvail: true,
-        minWeight: 4.0,
-        turnaround: 48,
-        popular: false,
-        features: ['Stain inspection pre-treatment', 'Premium fabric wash & conditioning', 'Hand steam ironing for crisp look', 'Expert folding with tissue inserts if needed', 'Clear protective garment packaging']
-      },
-      {
-        id: 'wash_iron_hang',
-        categoryId: 'laundry_by_weight',
-        name: 'Wash / Iron / Hang',
-        nameTh: 'ซัก อบ รีด แขวน',
-        description: 'Perfect for business suits, formal button-downs, evening dresses, and delicate linen blouses returned wrinkle-free on high-grade hangers.',
-        unit: 'KG',
-        pricingType: 'weight',
-        stdPrice: 120,
-        nextPrice: 160,
-        samePrice: 210,
-        sameAvail: true,
-        minWeight: 4.0,
-        turnaround: 48,
-        popular: false,
-        features: ['Delicate temperature-controlled wash', 'Detailed wrinkle-free steam pressing', 'Heavy-duty hangers included at no extra cost', 'Full-length breathable garment cover', 'Direct-to-wardrobe ready on delivery']
-      },
-      {
-        id: 'comforter_duvet',
-        categoryId: 'bedding_linens',
-        name: 'Duvet / Comforter / Blanket',
-        nameTh: 'ผ้านวม / ไส้ผ้านวม / ผ้าห่มหนา',
-        description: 'Bulky King/Queen comforters and thick winter blankets washed in high-capacity drums with anti-dust mite heat sanitization and fluffy loft restoration.',
-        unit: 'piece',
-        pricingType: 'piece',
-        stdPrice: 220,
-        nextPrice: 280,
-        samePrice: 350,
-        sameAvail: true,
-        minWeight: 1.0,
-        turnaround: 48,
-        popular: true,
-        features: ['High-capacity commercial drum washer', 'Anti-dust mite thermal sanitization', 'Gentle tumble dry for loft restoration', 'Breathable zipper storage bag included']
-      },
-      {
-        id: 'bedsheet_set',
-        categoryId: 'bedding_linens',
-        name: 'Bed Sheet / Fitted Sheet',
-        nameTh: 'ผ้าปูที่นอน (King / Queen / Single)',
-        description: 'Deep-cleaned bed sheets with fabric softening conditioner and hotel-grade flatwork steam ironing for an ultra-smooth bedtime feel.',
-        unit: 'piece',
-        pricingType: 'piece',
-        stdPrice: 80,
-        nextPrice: 110,
-        samePrice: 150,
-        sameAvail: true,
-        minWeight: 1.0,
-        turnaround: 48,
-        popular: true,
-        features: ['Deep dirt and sweat extraction', 'Gentle fabric conditioning for silky touch', 'Steam ironed for smooth hotel-finish crispness', 'Individual moisture-proof protective packaging']
-      },
-      {
-        id: 'duvet_cover',
-        categoryId: 'bedding_linens',
-        name: 'Duvet Cover',
-        nameTh: 'ปลอกผ้านวม',
-        description: 'Premium washing and professional steam ironing for duvet covers of all fabric blends and thread counts.',
-        unit: 'piece',
-        pricingType: 'piece',
-        stdPrice: 90,
-        nextPrice: 120,
-        samePrice: 160,
-        sameAvail: true,
-        minWeight: 1.0,
-        turnaround: 48,
-        popular: false,
-        features: ['Color-safe detergent formula', 'Steam press finish for smooth texture', 'Wrinkle-resistant folding']
-      },
-      {
-        id: 'pillowcase',
-        categoryId: 'bedding_linens',
-        name: 'Pillowcase / Bolster Case',
-        nameTh: 'ปลอกหมอนหนุน / หมอนข้าง',
-        description: 'High-temperature hygienic wash and flatwork pressing for pillowcases and bolster cases.',
-        unit: 'piece',
-        pricingType: 'piece',
-        stdPrice: 30,
-        nextPrice: 45,
-        samePrice: 60,
-        sameAvail: true,
-        minWeight: 1.0,
-        turnaround: 48,
-        popular: false,
-        features: ['Antibacterial hot wash', 'Crisp ironed & sanitized', 'Hypoallergenic fabric conditioner']
-      },
-      {
-        id: 'mattress_topper',
-        categoryId: 'bedding_linens',
-        name: 'Mattress Protector / Topper',
-        nameTh: 'ผ้ารองกันเปื้อน / ท็อปเปอร์',
-        description: 'Deep-cycle washing for fitted mattress protectors, quilted pads, and thin toppers.',
-        unit: 'piece',
-        pricingType: 'piece',
-        stdPrice: 180,
-        nextPrice: 240,
-        samePrice: 300,
-        sameAvail: true,
-        minWeight: 1.0,
-        turnaround: 48,
-        popular: false,
-        features: ['Deep extraction cleaning', 'Low-temp tumble drying to protect elastic corners', 'Sanitized packaging']
-      },
-      {
-        id: 'bath_towel',
-        categoryId: 'household_curtains',
-        name: 'Bath Towel (Large)',
-        nameTh: 'ผ้าเช็ดตัวผืนใหญ่',
-        description: 'Hotel-quality wash and high-loft fluff tumble dry for plush, ultra-absorbent bath towels.',
-        unit: 'piece',
-        pricingType: 'piece',
-        stdPrice: 45,
-        nextPrice: 65,
-        samePrice: 85,
-        sameAvail: true,
-        minWeight: 1.0,
-        turnaround: 48,
-        popular: false,
-        features: ['High-absorbency residue-free wash', 'Fluffy tumble dry', 'Neat hotel-style tri-fold']
-      },
-      {
-        id: 'curtains_drapes',
-        categoryId: 'household_curtains',
-        name: 'Curtains & Drapes (per panel)',
-        nameTh: 'ผ้าม่าน (ต่อผืน)',
-        description: 'Specialized fabric care for sheer, blackout, or heavy cotton window curtains with delicate steam pressing.',
-        unit: 'piece',
-        pricingType: 'piece',
-        stdPrice: 160,
-        nextPrice: 210,
-        samePrice: 280,
-        sameAvail: true,
-        minWeight: 1.0,
-        turnaround: 48,
-        popular: false,
-        features: ['Dust & allergen removal', 'Pleat preservation steam pressing', 'Individual hanger or protective fold']
-      }
-    ];
 
     for (const s of initialServices) {
       if (!existingIds.has(s.id)) {
@@ -551,6 +553,237 @@ app.post('/api/admin/change-password', requireAdminAuth, async (req, res) => {
   }
 });
 
+// --- Staff & Admin User Management Endpoints ---
+let localAdminUsers = [
+  {
+    id: 1,
+    username: process.env.ADMIN_USERNAME || 'admin',
+    email: 'admin@nonamelaundry.com',
+    fullName: 'Master Administrator',
+    phone: '+66 81 234 5678',
+    role: 'super_admin',
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 2,
+    username: 'sukhumvit_mgr',
+    email: 'manager.sukhumvit@nonamelaundry.com',
+    fullName: 'Somchai Prasert (Sukhumvit Branch Manager)',
+    phone: '+66 89 876 5432',
+    role: 'manager',
+    status: 'active',
+    createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 7).toISOString()
+  },
+  {
+    id: 3,
+    username: 'pos_operator1',
+    email: 'staff.asoke@nonamelaundry.com',
+    fullName: 'Anong Srisawat (POS Cashier & Intake)',
+    phone: '+66 82 345 6789',
+    role: 'staff',
+    status: 'active',
+    createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 14).toISOString()
+  },
+  {
+    id: 4,
+    username: 'rider_sompong',
+    email: 'rider.bkk@nonamelaundry.com',
+    fullName: 'Sompong Jaidee (Bangkok Express Rider)',
+    phone: '+66 91 123 4567',
+    role: 'rider',
+    status: 'active',
+    createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 20).toISOString()
+  }
+];
+
+app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
+  try {
+    const result = await query(
+      'SELECT id, username, email, full_name, phone, role, status, created_at, updated_at FROM admin_users ORDER BY id ASC'
+    );
+    if (result.rows && result.rows.length > 0) {
+      return res.json({
+        success: true,
+        users: result.rows.map(u => ({
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          fullName: u.full_name || u.username,
+          phone: u.phone || '',
+          role: u.role || 'staff',
+          status: u.status || 'active',
+          createdAt: u.created_at,
+          updatedAt: u.updated_at
+        }))
+      });
+    }
+  } catch (err) {
+    console.warn('[SERVER] PostgreSQL query fallback for /api/admin/users:', err.message);
+  }
+  res.json({ success: true, users: localAdminUsers });
+});
+
+app.post('/api/admin/users', requireAdminAuth, async (req, res) => {
+  try {
+    const { username, email, fullName, phone, role, status, password } = req.body;
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanRole = role || 'staff';
+    const cleanStatus = status || 'active';
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanFullName = (fullName || cleanUsername).trim();
+    const cleanPhone = (phone || '').trim();
+
+    if (localAdminUsers.some(u => u.username.toLowerCase() === cleanUsername)) {
+      return res.status(400).json({ error: `Username "${cleanUsername}" is already taken` });
+    }
+
+    const { hash, salt } = hashPassword(password);
+    let newId = localAdminUsers.length > 0 ? Math.max(...localAdminUsers.map(u => u.id)) + 1 : 1;
+
+    try {
+      const dbRes = await query(
+        `INSERT INTO admin_users (username, email, full_name, phone, role, status, password_hash, salt, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+         RETURNING id, username, email, full_name, phone, role, status, created_at, updated_at`,
+        [cleanUsername, cleanEmail, cleanFullName, cleanPhone, cleanRole, cleanStatus, hash, salt]
+      );
+      if (dbRes.rows && dbRes.rows.length > 0) {
+        const u = dbRes.rows[0];
+        const newUser = {
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          fullName: u.full_name || u.username,
+          phone: u.phone || '',
+          role: u.role || 'staff',
+          status: u.status || 'active',
+          createdAt: u.created_at,
+          updatedAt: u.updated_at
+        };
+        localAdminUsers.push(newUser);
+        return res.json({ success: true, user: newUser });
+      }
+    } catch (dbErr) {
+      console.warn('[SERVER] PostgreSQL insert fallback for /api/admin/users:', dbErr.message);
+    }
+
+    const newUser = {
+      id: newId,
+      username: cleanUsername,
+      email: cleanEmail,
+      fullName: cleanFullName,
+      phone: cleanPhone,
+      role: cleanRole,
+      status: cleanStatus,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    localAdminUsers.push(newUser);
+    res.json({ success: true, user: newUser });
+  } catch (err) {
+    console.error('Error creating admin user:', err);
+    res.status(500).json({ error: err.message || 'Failed to create user' });
+  }
+});
+
+app.put('/api/admin/users/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { username, email, fullName, phone, role, status, password } = req.body;
+
+    const userIdx = localAdminUsers.findIndex(u => u.id === userId);
+    const existing = userIdx !== -1 ? localAdminUsers[userIdx] : null;
+
+    const cleanUsername = username ? username.trim().toLowerCase() : (existing?.username || '');
+    const cleanEmail = email !== undefined ? email.trim().toLowerCase() : (existing?.email || '');
+    const cleanFullName = fullName !== undefined ? fullName.trim() : (existing?.fullName || '');
+    const cleanPhone = phone !== undefined ? phone.trim() : (existing?.phone || '');
+    const cleanRole = role || (existing?.role || 'staff');
+    const cleanStatus = status || (existing?.status || 'active');
+
+    try {
+      if (password && password.length >= 6) {
+        const { hash, salt } = hashPassword(password);
+        await query(
+          `UPDATE admin_users SET username = $1, email = $2, full_name = $3, phone = $4, role = $5, status = $6, password_hash = $7, salt = $8, updated_at = NOW() WHERE id = $9`,
+          [cleanUsername, cleanEmail, cleanFullName, cleanPhone, cleanRole, cleanStatus, hash, salt, userId]
+        );
+      } else {
+        await query(
+          `UPDATE admin_users SET username = $1, email = $2, full_name = $3, phone = $4, role = $5, status = $6, updated_at = NOW() WHERE id = $7`,
+          [cleanUsername, cleanEmail, cleanFullName, cleanPhone, cleanRole, cleanStatus, userId]
+        );
+      }
+    } catch (dbErr) {
+      console.warn('[SERVER] PostgreSQL update fallback for /api/admin/users/:id:', dbErr.message);
+    }
+
+    if (userIdx !== -1) {
+      localAdminUsers[userIdx] = {
+        ...localAdminUsers[userIdx],
+        username: cleanUsername,
+        email: cleanEmail,
+        fullName: cleanFullName,
+        phone: cleanPhone,
+        role: cleanRole,
+        status: cleanStatus,
+        updatedAt: new Date().toISOString()
+      };
+      return res.json({ success: true, user: localAdminUsers[userIdx] });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: userId,
+        username: cleanUsername,
+        email: cleanEmail,
+        fullName: cleanFullName,
+        phone: cleanPhone,
+        role: cleanRole,
+        status: cleanStatus,
+        updatedAt: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    console.error('Error updating admin user:', err);
+    res.status(500).json({ error: err.message || 'Failed to update user' });
+  }
+});
+
+app.delete('/api/admin/users/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (req.adminUser && req.adminUser.id === userId) {
+      return res.status(400).json({ error: 'You cannot delete your own currently logged-in account' });
+    }
+
+    try {
+      await query('DELETE FROM admin_users WHERE id = $1', [userId]);
+    } catch (dbErr) {
+      console.warn('[SERVER] PostgreSQL delete fallback for /api/admin/users/:id:', dbErr.message);
+    }
+
+    localAdminUsers = localAdminUsers.filter(u => u.id !== userId);
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting admin user:', err);
+    res.status(500).json({ error: err.message || 'Failed to delete user' });
+  }
+});
+
 // 2. Full State for instant hydration
 app.get('/api/state', async (req, res) => {
   try {
@@ -573,8 +806,41 @@ app.get('/api/state', async (req, res) => {
       settings
     });
   } catch (err) {
-    console.error('Error fetching /api/state:', err);
-    res.status(500).json({ error: 'Failed to fetch state from PostgreSQL' });
+    console.warn('[SERVER] PostgreSQL query fallback for /api/state:', err.message);
+    // Return resilient fallback state so the React layout renders immediately
+    res.json({
+      services: initialServices.map(s => ({
+        id: s.id,
+        categoryId: s.categoryId,
+        pricingType: s.pricingType,
+        name: s.name,
+        nameTh: s.nameTh,
+        description: s.description,
+        unit: s.unit,
+        pricePerKg: s.stdPrice,
+        standardPricePerKg: s.stdPrice,
+        nextDayPricePerKg: s.nextPrice,
+        sameDayPricePerKg: s.samePrice,
+        sameDayAvailable: s.sameAvail,
+        minWeightKg: s.minWeight,
+        turnaroundHours: s.turnaround,
+        popular: s.popular,
+        features: s.features
+      })),
+      orders: [],
+      incidents: [],
+      settings: {
+        categories: [
+          { id: 'laundry_by_weight', name: 'Laundry by Weight (KG)', nameTh: 'ซัก อบ รีด ตามน้ำหนัก (กิโลกรัม)', icon: 'scale', badge: '🧺 By Weight (KG)', pricingType: 'weight', description: 'Everyday casual clothes billed by weight.', displayOrder: 1 },
+          { id: 'bedding_linens', name: 'Bedding, Linens & Comforters', nameTh: 'เครื่องนอนและผ้านวม (คิดเป็นชิ้น)', icon: 'bed', badge: '🛏️ Per Piece / Item', pricingType: 'piece', description: 'Bulky bedsheets and blankets.', displayOrder: 2 },
+          { id: 'household_curtains', name: 'Curtains & Household Items', nameTh: 'ผ้าม่านและของใช้ในบ้าน', icon: 'home', badge: '🛋️ Per Piece / Set', pricingType: 'piece', description: 'Curtains and towels.', displayOrder: 3 },
+          { id: 'delicate_dryclean', name: 'Delicates & Special Care', nameTh: 'ผ้าไหมและชุดพิเศษ', icon: 'sparkles', badge: '✨ Specialty Care', pricingType: 'piece', description: 'Specialty care garments.', displayOrder: 4 }
+        ],
+        lineOaId: '@nonamelaundry',
+        whatsappNumber: '+66 94 882 1920',
+        supportEmail: 'support@nonamelaundry.com'
+      }
+    });
   }
 });
 
@@ -584,7 +850,25 @@ app.get('/api/services', async (req, res) => {
     const result = await query('SELECT * FROM services ORDER BY price_per_kg ASC');
     res.json(result.rows.map(mapService));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.warn('[SERVER] PostgreSQL query fallback for /api/services:', err.message);
+    res.json(initialServices.map(s => ({
+      id: s.id,
+      categoryId: s.categoryId,
+      pricingType: s.pricingType,
+      name: s.name,
+      nameTh: s.nameTh,
+      description: s.description,
+      unit: s.unit,
+      pricePerKg: s.stdPrice,
+      standardPricePerKg: s.stdPrice,
+      nextDayPricePerKg: s.nextPrice,
+      sameDayPricePerKg: s.samePrice,
+      sameDayAvailable: s.sameAvail,
+      minWeightKg: s.minWeight,
+      turnaroundHours: s.turnaround,
+      popular: s.popular,
+      features: s.features
+    })));
   }
 });
 

@@ -3,7 +3,7 @@ import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS, laundryStore } from '../store.js';
 import { useTranslation } from '../i18n.jsx';
 
-export function Hero({ services, setView, onSelectServiceForBooking, city = 'Bangkok', onSwitchCity }) {
+export function Hero({ services, setView, onSelectServiceForBooking, city = 'Bangkok', onSwitchCity, onOpenContactModal }) {
   const { t, language } = useTranslation();
   const categories = laundryStore.getCategories ? laundryStore.getCategories() : [];
   const [calcCategory, setCalcCategory] = useState('all');
@@ -141,7 +141,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
 
         {/* Main Hero Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15] break-words">
             {t('heroTitlePrefix')} {city === 'Pattaya' ? t('heroTitleCityPattaya') : t('heroTitleCityBangkok')}{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-sky-500 to-teal-500">
               {t('heroTitleSuffix')}
@@ -162,11 +162,14 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
             </button>
 
             <button
-              onClick={() => setView('track')}
+              onClick={() => onOpenContactModal && onOpenContactModal()}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-base px-6 py-3.5 rounded-xl border border-slate-200 shadow-sm transition"
             >
-              <Icon name="search" className="w-5 h-5 text-slate-500" />
-              <span>{t('heroCtaTrack')}</span>
+              <div className="flex -space-x-1">
+                <Icon name="whatsapp" className="w-4 h-4 text-emerald-600" />
+                <Icon name="line" className="w-4 h-4 text-emerald-500" />
+              </div>
+              <span>{t('heroCtaSupport')}</span>
             </button>
           </div>
 
@@ -186,7 +189,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
         </div>
 
         {/* Interactive Multi-Service Quick Estimate Card */}
-        <div className="max-w-5xl mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+        <div className="w-full max-w-5xl mx-auto bg-white rounded-3xl p-4 sm:p-8 shadow-xl shadow-slate-200/50 border border-slate-100 min-w-0 overflow-hidden">
           <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-xs uppercase tracking-wider font-bold text-sky-600 flex items-center gap-1.5">
@@ -207,7 +210,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
           </div>
 
           {/* Category Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-none w-full max-w-full min-w-0">
             <button
               type="button"
               onClick={() => setCalcCategory('all')}
@@ -244,7 +247,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
             })}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-w-0">
             
             {/* Step 1: Select Service Tiers (Multi-Select) */}
             <div className="lg:col-span-5 space-y-2">

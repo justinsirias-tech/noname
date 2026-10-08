@@ -476,16 +476,16 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               </div>
             </div>
 
-            {/* Navigation to Tracker */}
+            {/* Customer Service & Return Home */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <span className="text-xs text-slate-400">
-                You can also track your order anytime online.
+              <span className="text-xs text-slate-500">
+                Our Customer Service team will send you pickup confirmations, digital scale photos, and delivery updates directly via WhatsApp & LINE.
               </span>
               <button
                 onClick={() => onBookingSuccess(completedOrder)}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap"
               >
-                <span>Go to Live Order Tracker</span>
+                <span>Done • Return to Home</span>
                 <Icon name="chevronRight" className="w-4 h-4" />
               </button>
             </div>

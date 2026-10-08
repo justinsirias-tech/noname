@@ -6,6 +6,7 @@ import { OrderKanban } from './OrderKanban.jsx';
 import { OrderDetailsModal } from './OrderDetailsModal.jsx';
 import { InvoiceModal } from './InvoiceModal.jsx';
 import { CustomerCRM } from './CustomerCRM.jsx';
+import { UserManagement } from './UserManagement.jsx';
 import { FaqManager } from './FaqManager.jsx';
 import { IncidentImageLightbox } from './IncidentImageAttachment.jsx';
 import { SalesReconciliation } from './SalesReconciliation.jsx';
@@ -740,6 +741,7 @@ export function AdminPOS({
         {[
           { id: 'orders', label: 'Order Processing & Tracking', icon: 'package', count: orders.length },
           { id: 'sales-reconciliation', label: 'Sales & Reconciliation', icon: 'calculator', count: unreconciledPaidCount },
+          { id: 'users', label: 'User Management', icon: 'shield' },
           { id: 'crm', label: 'Customer CRM', icon: 'users', count: laundryStore.customers ? laundryStore.customers.length : 0 },
           { id: 'faq', label: 'FAQ Manager', icon: 'helpCircle', count: laundryStore.faqs ? laundryStore.faqs.length : 0 },
           { id: 'services-pricing', label: 'Services & Menu Catalog', icon: 'layers', count: services.length },
@@ -2374,6 +2376,18 @@ export function AdminPOS({
       {/* TAB: BANGKOK POSTAL CODES & DELIVERY RATES */}
       {activeTab === 'postal-rates' && (
         <PostalCodeManager />
+      )}
+
+      {/* TAB: USER MANAGEMENT (STAFF & CLIENTS) */}
+      {activeTab === 'users' && (
+        <UserManagement
+          adminUser={adminUser}
+          onSelectCustomer={(cust) => {
+            setActiveTab('crm');
+          }}
+          onCreateManualOrder={onCreateManualOrder}
+          onNavigateToTab={(tabId) => setActiveTab(tabId)}
+        />
       )}
 
       {/* TAB 7: CUSTOMER CRM */}

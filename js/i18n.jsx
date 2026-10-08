@@ -1,3 +1,5 @@
+import React, { createContext, useContext } from 'react';
+
 // Bilingual dictionary for NoName Laundry (English & Thai)
 
 export const translations = {
@@ -30,10 +32,10 @@ export const translations = {
     navBookPickup: 'Book Pickup',
 
     // Hero Section
-    heroBadgeBangkok: '🏙️ Bangkok Cloud Laundry • Purely Digital Door-to-Door',
-    heroBadgePattaya: '🏖️ Pattaya Cloud Laundry • Purely Digital Door-to-Door',
-    heroBadgeOnlineOnly: 'Online Support Only (WhatsApp / LINE / Email)',
-    heroBadgeCashless: '100% Cashless System (PromptPay / Card)',
+    heroBadgeBangkok: '🏙️ Bangkok Digital Laundry • Door-to-Door',
+    heroBadgePattaya: '🏖️ Pattaya Digital Laundry • Door-to-Door',
+    heroBadgeOnlineOnly: 'Online Only: WhatsApp / LINE / Email',
+    heroBadgeCashless: '100% Cashless (PromptPay / Cards)',
     heroTitlePrefix: 'Fresh Laundry By The KG',
     heroTitleCityBangkok: 'In Bangkok.',
     heroTitleCityPattaya: 'In Pattaya.',
@@ -41,7 +43,7 @@ export const translations = {
     heroDescBangkok: 'NoName Laundry brings high-standard garment care directly to your Bangkok condominium or home across all 50 districts and 180 sub-districts. Transparent by-the-KG pricing, digital scale audit, and smooth communication exclusively via WhatsApp, LINE, and Email.',
     heroDescPattaya: 'NoName Laundry brings high-standard garment care directly to your Pattaya condominium, private pool villa, or hotel (Central Pattaya, Wongamat, Pratumnak, Jomtien, Na Jomtien & East Pattaya). Transparent by-the-KG pricing, digital scale audit, and smooth communication exclusively via WhatsApp, LINE, and Email.',
     heroCtaBook: 'Book Digital Pickup',
-    heroCtaTrack: 'Track Existing Order',
+    heroCtaSupport: 'Contact Customer Service',
     heroTrustScales: 'Certified digital scale receipt',
     heroTrustCashless: 'No cash handlers on-site',
     heroTrustJuristic: 'Condo lobby juristic pickup OK',
@@ -175,10 +177,10 @@ export const translations = {
     navBookPickup: 'เรียกรถรับผ้า',
 
     // Hero Section
-    heroBadgeBangkok: '🏙️ บริการซักอบรีดระบบคลาวด์ กรุงเทพฯ • รับส่งถึงหน้าห้อง',
-    heroBadgePattaya: '🏖️ บริการซักอบรีดระบบคลาวด์ พัทยา • รับส่งถึงหน้าห้อง/วิลล่า',
-    heroBadgeOnlineOnly: 'ติดต่อผ่านระบบออนไลน์เท่านั้น (WhatsApp / LINE / Email)',
-    heroBadgeCashless: 'ระบบไร้เงินสด 100% (สแกน PromptPay / บัตร)',
+    heroBadgeBangkok: '🏙️ บริการซักอบรีด กรุงเทพฯ • รับส่งถึงที่',
+    heroBadgePattaya: '🏖️ บริการซักอบรีด พัทยา • รับส่งถึงที่',
+    heroBadgeOnlineOnly: 'ดูแลผ่านออนไลน์: WhatsApp / LINE / Email',
+    heroBadgeCashless: 'ไร้เงินสด 100% (PromptPay / บัตร)',
     heroTitlePrefix: 'บริการซักอบรีด คิดตามกิโลกรัม',
     heroTitleCityBangkok: 'ในกรุงเทพมหานคร',
     heroTitleCityPattaya: 'ในพัทยาและชลบุรี',
@@ -186,7 +188,7 @@ export const translations = {
     heroDescBangkok: 'โนเนม ลอนดรี้ (NoName Laundry) ให้บริการดูแลเสื้อผ้ามาตรฐานสูง จัดส่งตรงถึงคอนโดมิเนียมและบ้านของคุณ ครอบคลุม 50 เขตทั่วกรุงเทพฯ ราคาโปร่งใสชั่งตามน้ำหนักจริง มีรูปถ่ายตาชั่งดิจิทัลยืนยัน สื่อสารสะดวกรวดเร็วผ่าน WhatsApp, LINE และ Email',
     heroDescPattaya: 'โนเนม ลอนดรี้ (NoName Laundry) พร้อมดูแลเสื้อผ้าส่งตรงถึงคอนโด พูลวิลล่า และโรงแรมในพัทยา (พัทยากลาง วงศ์อมาตย์ พระตำหนัก จอมเทียน นาจอมเทียน และพัทยาตะวันออก) คิดราคาตามกิโลกรัมชัดเจน พร้อมระบบตรวจสอบน้ำหนักดิจิทัล และดูแลผ่าน WhatsApp, LINE และ Email',
     heroCtaBook: 'เรียกรถรับผ้าออนไลน์',
-    heroCtaTrack: 'ตรวจสอบสถานะออเดอร์',
+    heroCtaSupport: 'ติดต่อฝ่ายบริการลูกค้า',
     heroTrustScales: 'มีรูปถ่ายตาชั่งดิจิทัลยืนยันน้ำหนัก',
     heroTrustCashless: 'ปลอดภัย ไร้เงินสด ไม่ต้องพกเงินทอน',
     heroTrustJuristic: 'ฝาก-รับผ้าที่นิติบุคคลคอนโดได้สะดวก',

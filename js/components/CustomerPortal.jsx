@@ -390,13 +390,16 @@ export function CustomerPortal({
                       📍 {order.condoName} {order.roomNumber ? `(${order.roomNumber})` : ''}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => onNavigateToTrack(order.id)}
-                      className="px-3.5 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold border border-sky-200 transition flex items-center gap-1 shadow-2xs"
+                    <a
+                      href={CONTACT_CHANNELS.line.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200 transition flex items-center gap-1.5 shadow-2xs"
+                      title="สอบถามสถานะออเดอร์กับฝ่ายบริการลูกค้าทาง LINE"
                     >
-                      <span>🔍 ติดตามผ้า</span>
-                    </button>
+                      <Icon name="line" className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>สอบถามสถานะ (LINE)</span>
+                    </a>
                   </div>
                 </div>
               ))}
