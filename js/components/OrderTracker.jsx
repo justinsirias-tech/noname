@@ -1079,13 +1079,13 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <Icon name="phoneOff" className="w-4 h-4 text-amber-600" />
+                  <Icon name="phone" className="w-4 h-4 text-emerald-600" />
                   <h4 className="text-sm font-extrabold text-slate-900">
-                    Need Support or Have an Incident with this Order?
+                    Need Support or Have a Question about this Order?
                   </h4>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  We do not take phone calls. Submit a ticket online or message us instantly via WhatsApp or LINE.
+                  Call or WhatsApp us at +66 80 888 9885, or submit a support ticket below.
                 </p>
               </div>
 

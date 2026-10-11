@@ -21,32 +21,35 @@ export function TermsAndConditions({ setView }) {
         </p>
       </div>
 
-      {/* Critical Highlight Notice: Strictly No Phone Calls */}
-      <div className="mb-10 bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-500/10 border-2 border-amber-300 rounded-3xl p-6 sm:p-8">
+      {/* Customer Contact & Support Protocol */}
+      <div className="mb-10 bg-gradient-to-r from-sky-500/10 via-sky-50 to-emerald-500/10 border-2 border-sky-300 rounded-3xl p-6 sm:p-8">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md">
-            <Icon name="phoneOff" className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-md">
+            <Icon name="phone" className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base sm:text-lg font-black text-amber-950">
-              Mandatory Notice: Purely Digital Communication Protocol
+            <h3 className="text-base sm:text-lg font-black text-slate-900">
+              Customer Contact & Communication Protocol
             </h3>
-            <p className="text-xs sm:text-sm text-amber-900 mt-2 leading-relaxed">
-              NoName Laundry does <strong>not operate a physical storefront or an incoming phone call center</strong>. All customer communications, queries, address updates, driver coordination, and incident or damage claims are processed exclusively through our official online channels:
+            <p className="text-xs sm:text-sm text-slate-700 mt-2 leading-relaxed">
+              NoName Laundry provides dedicated customer support and driver coordination through our authorized mobile, chat, and email channels:
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
-              <span className="bg-white px-3 py-1.5 rounded-xl border border-amber-300 text-emerald-800 flex items-center gap-1.5 shadow-sm">
-                <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp: {CONTACT_CHANNELS.whatsapp.handle}
-              </span>
-              <span className="bg-white px-3 py-1.5 rounded-xl border border-amber-300 text-green-800 flex items-center gap-1.5 shadow-sm">
+              <a href="tel:+66808889885" className="bg-white px-3 py-1.5 rounded-xl border border-sky-300 text-amber-900 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition">
+                <Icon name="phone" className="w-3.5 h-3.5 text-amber-600" /> Phone: +66 80 888 9885
+              </a>
+              <a href="https://wa.me/66808889885" target="_blank" rel="noreferrer" className="bg-white px-3 py-1.5 rounded-xl border border-sky-300 text-emerald-800 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition">
+                <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp: +66 80 888 9885
+              </a>
+              <a href={CONTACT_CHANNELS.line.url} target="_blank" rel="noreferrer" className="bg-white px-3 py-1.5 rounded-xl border border-sky-300 text-green-800 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition">
                 <Icon name="line" className="w-3.5 h-3.5 text-green-600" /> LINE: {CONTACT_CHANNELS.line.handle}
-              </span>
-              <span className="bg-white px-3 py-1.5 rounded-xl border border-amber-300 text-sky-800 flex items-center gap-1.5 shadow-sm">
+              </a>
+              <a href="mailto:support@nonamelaundry.com" className="bg-white px-3 py-1.5 rounded-xl border border-sky-300 text-sky-800 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition">
                 <Icon name="mail" className="w-3.5 h-3.5 text-sky-600" /> Email: {CONTACT_CHANNELS.email.handle}
-              </span>
+              </a>
             </div>
-            <p className="text-[11px] text-amber-800 mt-2 italic font-medium">
-              * Any voice telephone calls made to our administrative numbers will not be answered. All incident claims must be submitted in writing with photographic documentation.
+            <p className="text-[11px] text-slate-500 mt-2 italic font-medium">
+              * For quality assurance and damage claims, photographic documentation is requested in writing via WhatsApp, LINE, or Email.
             </p>
           </div>
         </div>

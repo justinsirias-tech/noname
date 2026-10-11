@@ -1686,19 +1686,19 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
           </div>
 
           {/* Prompt to read summary */}
-          <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-start gap-2.5">
-              <Icon name="phoneOff" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-900">
-                <span className="font-bold block text-sm">Key Operating Notice: Online-Only Support</span>
-                All support, questions, and incident claims are handled via WhatsApp, LINE, or Email. No phone calls are handled.
+              <Icon name="phone" className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+              <div className="text-xs text-emerald-950">
+                <span className="font-bold block text-sm">Customer Support & Assistance</span>
+                Questions or special requests? Reach our team via Mobile Call & WhatsApp (+66 80 888 9885), LINE Official, or Email.
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setIsTermsModalOpen(true)}
-              className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5"
+              className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5"
             >
               <Icon name="fileText" className="w-4 h-4" />
               <span>{hasReviewedSummary ? 'Review Summary Again' : 'Read Summary of Terms'}</span>
