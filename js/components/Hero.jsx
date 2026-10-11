@@ -2,11 +2,18 @@ import React, { useState } from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS, laundryStore } from '../store.js';
 import { useTranslation } from '../i18n.jsx';
+import { INITIAL_CATEGORIES } from '../data/servicesData.js';
 
 export function Hero({ services, setView, onSelectServiceForBooking, city = 'Bangkok', onSwitchCity, onOpenContactModal }) {
   const { t, language } = useTranslation();
-  const categories = laundryStore.getCategories ? laundryStore.getCategories() : [];
-  const [calcCategory, setCalcCategory] = useState('all');
+  const storeCategories = laundryStore.getCategories ? laundryStore.getCategories() : [];
+  const categories = (Array.isArray(storeCategories) && storeCategories.length > 0) ? storeCategories : INITIAL_CATEGORIES;
+  const defaultCategory = categories[0]?.id || 'laundry_by_weight';
+  const [calcCategory, setCalcCategory] = useState(defaultCategory);
+
+  const activeCategory = (calcCategory && calcCategory !== 'all' && categories.some(c => c.id === calcCategory))
+    ? calcCategory
+    : (categories[0]?.id || 'laundry_by_weight');
 
   // Multi-service selection map: { [serviceId]: { weightKg: number, quantity: number } }
   const [selectedServicesMap, setSelectedServicesMap] = useState(() => {
@@ -105,9 +112,10 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
   const totalPieces = selectedEntries.filter(i => i.isPiece).reduce((sum, i) => sum + i.qty, 0);
 
   // Filtered catalog by category tab
-  const filteredServices = calcCategory === 'all'
-    ? services
-    : services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === calcCategory);
+  const filteredServices = services.filter(s => {
+    const catId = s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight');
+    return catId === activeCategory;
+  });
 
   return (
     <section className="relative overflow-hidden pt-8 pb-16 lg:pt-16 lg:pb-24 bg-gradient-to-b from-sky-50/60 via-white to-slate-50">
@@ -211,26 +219,16 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
 
           {/* Category Filter Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-none w-full max-w-full min-w-0">
-            <button
-              type="button"
-              onClick={() => setCalcCategory('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
-                calcCategory === 'all'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All Services ({services.length})
-            </button>
             {categories.map((cat) => {
               const count = services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === cat.id).length;
+              const isActive = activeCategory === cat.id;
               return (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setCalcCategory(cat.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
-                    calcCategory === cat.id
+                    isActive
                       ? 'bg-sky-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -238,7 +236,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
                   <Icon name={cat.icon || 'layers'} className="w-3 h-3" />
                   <span>{cat.name}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    calcCategory === cat.id ? 'bg-white/20' : 'bg-slate-200 text-slate-700'
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
                   }`}>
                     {count}
                   </span>
