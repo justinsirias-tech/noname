@@ -9,8 +9,6 @@ export function ServicesSection({
   onSelectServiceForBooking
 }) {
   const { t, language } = useTranslation();
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Use provided categories or fallback to defaults
   const activeCategories = useMemo(() => {
@@ -19,6 +17,12 @@ export function ServicesSection({
     }
     return INITIAL_CATEGORIES;
   }, [categories]);
+
+  const [selectedCategory, setSelectedCategory] = useState(() => activeCategories[0]?.id || 'laundry_by_weight');
+  const currentCategory = (selectedCategory && selectedCategory !== 'all' && activeCategories.some(c => c.id === selectedCategory))
+    ? selectedCategory
+    : (activeCategories[0]?.id || 'laundry_by_weight');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Group services by categoryId
   const categoryServicesMap = useMemo(() => {
@@ -106,10 +110,7 @@ export function ServicesSection({
 
   // Filtered categories to display
   const categoriesToRender = useMemo(() => {
-    let cats = activeCategories;
-    if (selectedCategory !== 'all') {
-      cats = cats.filter(c => c.id === selectedCategory);
-    }
+    let cats = activeCategories.filter(c => c.id === currentCategory);
     // Only return categories that have services matching the search
     return cats.map(cat => {
       const allInCat = categoryServicesMap.get(cat.id) || [];
@@ -120,7 +121,7 @@ export function ServicesSection({
         totalInCat: allInCat.length
       };
     });
-  }, [activeCategories, selectedCategory, categoryServicesMap, searchQuery]);
+  }, [activeCategories, currentCategory, categoryServicesMap, searchQuery]);
 
   const totalFilteredCount = useMemo(() => {
     return categoriesToRender.reduce((sum, c) => sum + c.services.length, 0);
@@ -190,30 +191,10 @@ export function ServicesSection({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              
-              {/* All Services Pill */}
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('all')}
-                className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 border cursor-pointer ${
-                  selectedCategory === 'all'
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-md shadow-slate-900/20'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <Icon name="grid" className={`w-4 h-4 ${selectedCategory === 'all' ? 'text-white' : 'text-slate-500'}`} />
-                <span>{language === 'th' ? 'ทุกหมวดหมู่' : 'All Categories'}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-black ${
-                  selectedCategory === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'
-                }`}>
-                  {services.length}
-                </span>
-              </button>
-
               {/* Individual Category Pills */}
               {activeCategories.map((cat) => {
                 const count = (categoryServicesMap.get(cat.id) || []).length;
-                const isActive = selectedCategory === cat.id;
+                const isActive = currentCategory === cat.id;
                 const theme = getCategoryTheme(cat.id);
                 const displayName = language === 'th' && cat.nameTh ? cat.nameTh : cat.name;
 
@@ -261,10 +242,10 @@ export function ServicesSection({
             </p>
             <button
               type="button"
-              onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
-              className="mt-4 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm transition"
+              onClick={() => { setSearchQuery(''); setSelectedCategory(activeCategories[0]?.id || 'laundry_by_weight'); }}
+              className="mt-4 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm transition cursor-pointer"
             >
-              {language === 'th' ? 'ดูบริการทั้งหมด' : 'Show All Services'}
+              {language === 'th' ? 'ล้างการค้นหา' : 'Clear Search'}
             </button>
           </div>
         ) : (
@@ -309,19 +290,6 @@ export function ServicesSection({
                         </p>
                       </div>
                     </div>
-
-                    {/* Quick filter shortcut if in 'all' mode */}
-                    {selectedCategory === 'all' && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategory(cat.id)}
-                        className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 shadow-2xs transition flex items-center gap-1.5 self-start md:self-center shrink-0 cursor-pointer"
-                        title="Filter exclusively to this category"
-                      >
-                        <span>{language === 'th' ? 'ดูเฉพาะหมวดนี้' : 'View Only This Category'}</span>
-                        <Icon name="chevronRight" className="w-3.5 h-3.5 text-slate-400" />
-                      </button>
-                    )}
                   </div>
 
                   {/* Services Grid for This Category */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
+import { BANGKOK_DISTRICTS, TIME_SLOTS, INITIAL_CATEGORIES } from '../data/servicesData.js';
 import { 
   DISTRICT_TO_POSTAL_CODE, 
   BANGKOK_DISTRICTS_TO_SUBDISTRICTS, 
@@ -40,7 +40,10 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
     };
   });
 
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState(() => {
+    const cats = laundryStore.getCategories ? laundryStore.getCategories() : [];
+    return cats[0]?.id || 'laundry_by_weight';
+  });
   const [turnaroundSpeed, setTurnaroundSpeed] = useState('standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
   // Customer Info
@@ -209,7 +212,11 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const [showQrCode, setShowQrCode] = useState(false);
 
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
-  const categories = laundryStore.getCategories ? laundryStore.getCategories() : [];
+  const storeCategories = laundryStore.getCategories ? laundryStore.getCategories() : [];
+  const categories = (Array.isArray(storeCategories) && storeCategories.length > 0) ? storeCategories : INITIAL_CATEGORIES;
+  const currentCategory = (activeCategory && activeCategory !== 'all' && categories.some(c => c.id === activeCategory))
+    ? activeCategory
+    : (categories[0]?.id || 'laundry_by_weight');
 
   // Update selected services if initialSelectedItems or initialServiceId changes
   useEffect(() => {
@@ -627,29 +634,15 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
 
           {/* Category Tabs Filter */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            <button
-              type="button"
-              onClick={() => setActiveCategory('all')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 border ${
-                activeCategory === 'all'
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <span>All Services</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeCategory === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                {services.length}
-              </span>
-            </button>
             {categories.map((cat) => {
-              const count = services.filter(s => s.categoryId === cat.id).length;
-              const isCatActive = activeCategory === cat.id;
+              const count = services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === cat.id).length;
+              const isCatActive = currentCategory === cat.id;
               return (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 border ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 border cursor-pointer ${
                     isCatActive
                       ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
                       : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -669,7 +662,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
 
           {/* Service Cards (Multi-Selectable) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(activeCategory === 'all' ? services : services.filter(s => s.categoryId === activeCategory)).map((srv) => {
+            {services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === currentCategory).map((srv) => {
               const srvStd = srv.standardPricePerKg || srv.pricePerKg || 65;
               const srvNext = srv.nextDayPricePerKg || Math.round(srvStd * 1.3);
               const srvSame = srv.sameDayPricePerKg || Math.round(srvStd * 1.75);
