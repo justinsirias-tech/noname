@@ -445,6 +445,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
       condoName: condoName.trim(),
       roomNumber: roomNumber.trim(),
       leaveWithJuristic,
+      handoverMethod: leaveWithJuristic ? 'juristic' : 'in_person',
       estimatedWeightKg: totalWeightKg > 0 ? totalWeightKg : null,
       quantity: totalPieces > 0 ? totalPieces : (totalWeightKg || 1),
       unit: selectedEntries.length === 1 ? primaryService.unitLabel : 'bundle',
@@ -1026,7 +1027,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
             <h2 className="text-lg font-bold text-slate-900">Digital Contact Channel</h2>
           </div>
           <p className="text-xs text-slate-500 mb-6">
-            We send pickup alerts, scale weigh-in confirmations, and invoices digitally. No telephone calls.
+            We send pickup alerts, scale weigh-in confirmations, and invoices digitally. Reach us anytime via Mobile Call & WhatsApp (+66 80 888 9885).
           </p>
 
           <div className="space-y-4">
@@ -1538,36 +1539,99 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                 )}
               </div>
 
-              {/* Condo Juristic Dropoff Card */}
-              <div 
-                onClick={() => setLeaveWithJuristic(!leaveWithJuristic)}
-                className={`p-3.5 rounded-xl border transition cursor-pointer flex items-start gap-3 select-none ${
-                  leaveWithJuristic 
-                    ? 'bg-sky-50/80 border-sky-300 shadow-2xs' 
-                    : 'bg-white border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="mt-0.5">
-                  <input
-                    type="checkbox"
-                    checked={leaveWithJuristic}
-                    onChange={(e) => setLeaveWithJuristic(e.target.checked)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer"
-                  />
+              {/* Handover Preference Selection */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Laundry Handover Method <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-slate-500">
+                    Choose how our rider collects & delivers
+                  </span>
                 </div>
-                <div className="flex-1 text-xs">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-slate-900">
-                      Drop-off / Collect at Condo Juristic Office or Front Lobby
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
-                      Recommended
-                    </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Option 1: Condo Juristic Dropoff Card */}
+                  <div 
+                    onClick={() => setLeaveWithJuristic(true)}
+                    className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between gap-2.5 select-none relative ${
+                      leaveWithJuristic 
+                        ? 'bg-sky-50/90 border-sky-500 shadow-sm ring-1 ring-sky-500/30' 
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
+                    }`}
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🏢</span>
+                          <span className="font-bold text-slate-900 text-xs">
+                            Condo Juristic / Front Lobby
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                          Recommended
+                        </span>
+                      </div>
+                      <p className="text-slate-600 leading-relaxed text-[11px]">
+                        Driver collects & returns directly at your building's reception or juristic desk without disturbing you. Tag your laundry bag with your name & unit.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 text-xs mt-1">
+                      <input
+                        type="radio"
+                        name="handoverSelection"
+                        checked={leaveWithJuristic}
+                        onChange={() => setLeaveWithJuristic(true)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer"
+                      />
+                      <span className={`text-[11px] font-bold ${leaveWithJuristic ? 'text-sky-700' : 'text-slate-500'}`}>
+                        {leaveWithJuristic ? '✓ Juristic Drop-Off Selected' : 'Select Juristic Drop-Off'}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-slate-600 mt-1 leading-relaxed text-[11px]">
-                    Driver collects & returns directly at your building's reception or juristic desk without disturbing you. Tag your laundry bag with your name.
-                  </p>
+
+                  {/* Option 2: Meet Up in Person Card */}
+                  <div 
+                    onClick={() => setLeaveWithJuristic(false)}
+                    className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between gap-2.5 select-none relative ${
+                      !leaveWithJuristic 
+                        ? 'bg-amber-50/90 border-amber-500 shadow-sm ring-1 ring-amber-500/30' 
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
+                    }`}
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🤝</span>
+                          <span className="font-bold text-slate-900 text-xs">
+                            Meet Up in Person with Rider
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                          Subject to Rider Availability
+                        </span>
+                      </div>
+                      <p className="text-slate-600 leading-relaxed text-[11px]">
+                        Meet our rider in person at your lobby or entrance. <strong className="text-amber-900">Kindly note that in-person meet up is subjected to the availability of the riders.</strong> Rider coordinates via Mobile / WhatsApp upon arrival.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 text-xs mt-1">
+                      <input
+                        type="radio"
+                        name="handoverSelection"
+                        checked={!leaveWithJuristic}
+                        onChange={() => setLeaveWithJuristic(false)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
+                      />
+                      <span className={`text-[11px] font-bold ${!leaveWithJuristic ? 'text-amber-900' : 'text-slate-500'}`}>
+                        {!leaveWithJuristic ? '✓ Meet Up in Person Selected' : 'Select Meet Up in Person'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1729,7 +1793,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                 >
                   Important Terms & Conditions
                 </button>
-                , including the policy that <strong>all customer support, status tracking, and incident claims are conducted strictly online (WhatsApp, LINE, or Email) with NO telephone call service</strong>, and that final billing is subject to central facility digital scale weigh-in.
+                , including the policy that <strong>customer support, status tracking, and incident claims are coordinated via Mobile (+66 80 888 9885), WhatsApp, LINE, or Email</strong>, and that final billing is subject to central facility digital scale weigh-in.
               </div>
             </label>
           </div>
@@ -1774,6 +1838,15 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               </span>
               <span className={`font-semibold ${deliveryInfo.isFree ? 'text-emerald-600 font-bold' : 'text-slate-800'}`}>
                 {deliveryInfo.isFree ? 'FREE (฿0)' : `฿${deliveryInfo.fee} THB`}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200/60">
+              <span className="flex items-center gap-1.5">
+                <span>Handover Preference:</span>
+              </span>
+              <span className={`font-bold ${leaveWithJuristic ? 'text-sky-700' : 'text-amber-800'}`}>
+                {leaveWithJuristic ? '🏢 Condo Juristic / Front Lobby' : '🤝 Meet Up in Person (Subject to Rider Availability)'}
               </span>
             </div>
 

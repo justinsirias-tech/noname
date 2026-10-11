@@ -388,7 +388,7 @@ export function OrderDetailsModal({
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       : 'bg-amber-100 text-amber-800 border border-amber-300'
                   }`}>
-                    {order.leaveWithJuristic ? '✓ Juristic Drop-Off' : 'Door / Counter Handover'}
+                    {order.leaveWithJuristic ? '✓ Juristic Drop-Off' : '🤝 Meet In Person (Subject to Rider)'}
                   </span>
                 </div>
 

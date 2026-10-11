@@ -1026,9 +1026,13 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
                 <div className="text-slate-500 mt-0.5">
                   {activeOrder.subdistrict ? `${activeOrder.subdistrict}, ` : ''}{activeOrder.district ? `${activeOrder.district}, ` : ''}{activeOrder.city || 'Bangkok'}{activeOrder.postalCode ? ` (📮 ${activeOrder.postalCode})` : ''}
                 </div>
-                {activeOrder.leaveWithJuristic && (
+                {activeOrder.leaveWithJuristic !== false ? (
                   <span className="inline-block mt-2 px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-bold">
-                    Juristic Reception Drop-Off Authorized
+                    🏢 Juristic Reception Drop-Off Authorized
+                  </span>
+                ) : (
+                  <span className="inline-block mt-2 px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-200">
+                    🤝 Meet Up in Person (Subject to Rider Availability)
                   </span>
                 )}
               </div>
