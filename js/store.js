@@ -23,10 +23,18 @@ const STORAGE_KEYS = {
 };
 
 export const CONTACT_CHANNELS = {
+  phone: {
+    name: 'Mobile Phone',
+    handle: '+66 80 888 9885',
+    url: 'tel:+66808889885',
+    color: 'amber',
+    badge: 'Direct Call & WhatsApp',
+    icon: 'Phone'
+  },
   whatsapp: {
     name: 'WhatsApp',
-    handle: '+66 94 882 1920',
-    url: 'https://wa.me/66948821920?text=',
+    handle: '+66 80 888 9885',
+    url: 'https://wa.me/66808889885?text=',
     color: 'emerald',
     badge: 'Fastest Response (~5 mins)',
     icon: 'MessageCircle'

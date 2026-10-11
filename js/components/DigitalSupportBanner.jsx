@@ -17,9 +17,9 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
             
             {/* Left Content */}
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold mb-4">
-                <Icon name="phoneOff" className="w-4 h-4 text-amber-400" />
-                <span>Zero Storefront • Zero Phone Calls Policy</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold mb-4">
+                <Icon name="phone" className="w-4 h-4 text-emerald-400" />
+                <span>Call & WhatsApp: +66 80 888 9885 • LINE • Email</span>
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -46,8 +46,27 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
               </div>
             </div>
 
-            {/* Right: The 3 Authorized Channels */}
+            {/* Right: The Authorized Channels */}
             <div className="w-full lg:w-auto flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+              
+              {/* Direct Phone Call Button */}
+              <a
+                href="tel:+66808889885"
+                className="flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-white transition group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-md shadow-amber-500/30 group-hover:scale-105 transition">
+                    <Icon name="phone" className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm text-amber-300">Direct Mobile Call</div>
+                    <div className="text-xs text-slate-300">+66 80 888 9885</div>
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold bg-amber-500/30 text-amber-200 px-2 py-0.5 rounded-md">
+                  Call Now
+                </span>
+              </a>
               
               {/* WhatsApp Button */}
               <a

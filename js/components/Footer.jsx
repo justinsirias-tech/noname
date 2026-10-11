@@ -26,8 +26,8 @@ export function Footer({ setView }) {
               {t('footerBrandDesc')}
             </p>
 
-            <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 text-[11px] text-amber-300 flex items-start gap-2">
-              <Icon name="phoneOff" className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 text-[11px] text-emerald-300 flex items-start gap-2">
+              <Icon name="phone" className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <span>
                 {t('footerZeroPhone')}
               </span>
@@ -77,12 +77,20 @@ export function Footer({ setView }) {
             </ul>
           </div>
 
-          {/* Col 4: Digital Support Channels */}
+          {/* Col 4: Customer Support Channels */}
           <div className="space-y-3">
             <h4 className="text-white font-extrabold text-xs uppercase tracking-wider">
-              Digital Communication Only
+              Customer Support
             </h4>
             <div className="space-y-2">
+              <a
+                href="tel:+66808889885"
+                className="flex items-center gap-2 text-amber-300 hover:text-amber-200 transition"
+              >
+                <Icon name="phone" className="w-4 h-4" />
+                <span>Call: +66 80 888 9885</span>
+              </a>
+
               <a
                 href={`${CONTACT_CHANNELS.whatsapp.url}Hi%20NoName%20Laundry%20Bangkok`}
                 target="_blank"
