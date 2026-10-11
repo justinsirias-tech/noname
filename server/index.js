@@ -7,6 +7,13 @@ const { query } = require('./db');
 const { hashPassword, verifyPassword, createSession, getSession, deleteSession, requireAdminAuth } = require('./auth');
 const { createTlsProxyRouter, callTlsApi, TLS_API_URL, TLS_BRAND } = require('./tlsProxy');
 const { sendBookingNotificationEmail } = require('./mailer');
+let defaultDeliveryZones = [];
+try {
+  const deliveryData = require('./deliveryZonesData.json');
+  defaultDeliveryZones = deliveryData.defaultDeliveryZones || [];
+} catch (e) {
+  console.warn('[SERVER] Could not load deliveryZonesData.json:', e.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
