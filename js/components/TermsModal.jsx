@@ -56,13 +56,13 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
         {/* Modal Scrollable Content */}
         <div className="p-6 overflow-y-auto space-y-4 text-slate-700 text-sm">
           
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-            <Icon name="phoneOff" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-900 leading-relaxed">
-              <strong className="font-bold block text-sm mb-1 text-amber-950">
-                Important: Zero Phone Call Policy
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+            <Icon name="phone" className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+            <div className="text-xs text-emerald-950 leading-relaxed">
+              <strong className="font-bold block text-sm mb-1 text-emerald-950">
+                Customer Support & Assistance
               </strong>
-              NoName Laundry does not provide telephone call support. Inquiries, driver coordination, status questions, and all incident reports are strictly conducted via <strong>WhatsApp, LINE, or Email</strong>.
+              NoName Laundry provides direct phone call and WhatsApp support at <strong>+66 80 888 9885</strong>, alongside <strong>LINE Official</strong> and <strong>Email</strong>.
             </div>
           </div>
 
@@ -73,7 +73,7 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
                 className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3"
               >
                 <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0 mt-0.5">
-                  <Icon name={pt.id === 'digital_only' ? 'phoneOff' : pt.id === 'weight_billing' ? 'scale' : pt.id === 'condo_juristic' ? 'building' : pt.id === 'turnaround' ? 'clock' : 'shieldAlert'} className="w-4 h-4" />
+                  <Icon name={pt.id === 'digital_only' ? 'phone' : pt.id === 'weight_billing' ? 'scale' : pt.id === 'condo_juristic' ? 'building' : pt.id === 'turnaround' ? 'clock' : 'shieldAlert'} className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="font-bold text-slate-900 text-xs sm:text-sm">

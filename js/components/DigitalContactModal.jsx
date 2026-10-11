@@ -78,19 +78,39 @@ export function DigitalContactModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Highlighted Strictly Online Rule */}
-        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
-          <div className="flex items-center gap-1.5 font-bold text-amber-950">
-            <Icon name="phoneOff" className="w-4 h-4 text-amber-700" />
-            <span>Strict Zero Phone Call Support Policy</span>
+        {/* Contact Info Header */}
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1">
+          <div className="flex items-center gap-1.5 font-bold text-emerald-950">
+            <Icon name="phone" className="w-4 h-4 text-emerald-700" />
+            <span>Customer Service & Direct Assistance</span>
           </div>
           <p className="text-slate-700 leading-relaxed">
-            All customer inquiries, pickup instructions, status checks, and incident reports are handled solely via written online chat and email. Phone calls are not answered.
+            Reach our service team via direct mobile call or WhatsApp at <strong className="text-slate-900">+66 80 888 9885</strong>, or message us on LINE Official and Email.
           </p>
         </div>
 
         {activeTab === 'channels' ? (
           <div className="space-y-3">
+            {/* Direct Mobile Call */}
+            <a
+              href="tel:+66808889885"
+              className="p-4 rounded-2xl border border-amber-200 bg-amber-50/50 hover:bg-amber-50 flex items-center justify-between transition group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md">
+                  <Icon name="phone" className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">Direct Mobile Call</div>
+                  <div className="text-xs text-slate-600 font-mono">+66 80 888 9885</div>
+                </div>
+              </div>
+              <span className="text-xs text-amber-700 font-bold group-hover:translate-x-0.5 transition flex items-center gap-1">
+                <span>Call Now</span>
+                <Icon name="phone" className="w-3.5 h-3.5" />
+              </span>
+            </a>
+
             {/* LINE OA Button */}
             <a
               href={lineAddUrl}

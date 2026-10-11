@@ -3,9 +3,9 @@
 export const TERMS_SUMMARY_POINTS = [
   {
     id: 'digital_only',
-    title: '100% Digital Communication — No Phone Calls',
+    title: 'Direct Phone & Digital Support Channels',
     icon: 'MessageSquare',
-    desc: 'All customer service, pickup coordination, queries, and incident resolutions are strictly managed online via LINE, WhatsApp, or Email. We do not operate telephone call support under any circumstances.'
+    desc: 'Customer service, pickup coordination, queries, and incident assistance are accessible via Phone & WhatsApp (+66 80 888 9885), LINE Official (@nonamelaundry), and Email (support@nonamelaundry.com).'
   },
   {
     id: 'weight_billing',
@@ -33,16 +33,16 @@ export const TERMS_SUMMARY_POINTS = [
   },
   {
     id: 'claims_incidents',
-    title: 'Incident Claims (Within 24 Hours via Online Channels)',
+    title: 'Incident Claims (Within 24 Hours with Photo Verification)',
     icon: 'FileText',
-    desc: 'Any claims regarding missing garments or service discrepancies must be reported with photos via LINE, WhatsApp, or Email within 24 hours of delivery. Phone claims are not accepted.'
+    desc: 'Any claims regarding missing garments or service discrepancies should be reported with photos via LINE, WhatsApp (+66 80 888 9885), or Email within 24 hours of delivery for immediate investigation.'
   }
 ];
 
 export const FULL_TERMS_SECTIONS = [
   {
-    title: '1. Purely Digital Business Model & Exclusive Communication Channels',
-    content: "NoName Laundry operates as an exclusively digital, pickup-and-delivery laundry service within the Bangkok Metropolitan Region. NoName Laundry does not maintain a physical customer storefront, walk-in counter, or telephone call center.\n\nAll communications—including booking confirmations, pickup/delivery scheduling, price adjustments, driver coordination, general customer support, and incident/complaint reporting—are conducted exclusively through the following authorized digital channels:\n• WhatsApp Official Chat (+66 94 882 1920)\n• LINE Official Account (@nonamelaundry)\n• Official Support Email (support@nonamelaundry.com)\n\nCustomers explicitly acknowledge and agree that telephone voice calls will not be accepted or answered, and no support or incident resolution will be processed via voice calls."
+    title: '1. Authorized Communication & Support Channels',
+    content: "NoName Laundry operates as a pickup-and-delivery laundry service across the Bangkok Metropolitan Region and Pattaya. We provide customer assistance and driver coordination through our authorized channels:\n• Direct Mobile Phone Calls: +66 80 888 9885\n• WhatsApp Official Chat: +66 80 888 9885\n• LINE Official Account: @nonamelaundry\n• Official Support Email: support@nonamelaundry.com\n\nCustomers can contact us via voice call or written chat for order updates, driver arrival information, or laundry inquiries."
   },
   {
     title: '2. Services Offered & Weight-Based Billing',
