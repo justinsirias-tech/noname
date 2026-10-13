@@ -21,8 +21,8 @@ export const INITIAL_FAQS = [
   {
     id: 'FAQ-3',
     category: 'Digital Communication & Policy',
-    question: 'Why does NoName Laundry operate with a "Zero Storefront & 100% Online Support" policy?',
-    answer: 'By eliminating expensive commercial retail storefronts and telephone switchboards, we pass direct savings to our customers with lower per-KG rates and invest in hospital-grade washing machinery. All communication, order confirmations, scale weigh-in receipts, and customer inquiries are handled digitally via WhatsApp, LINE Official Account, and Email with permanent chat histories.',
+    question: 'How does NoName Laundry provide customer support and pickup delivery?',
+    answer: 'By operating an efficient pickup-and-delivery model without expensive retail storefront overhead, we pass direct savings to our customers with lower per-KG rates and invest in hospital-grade washing machinery. Our customer support team assists you directly via Phone Call & WhatsApp (+66 80 888 9885), LINE Official Account, and Email.',
     order: 3,
     isPublished: true
   },

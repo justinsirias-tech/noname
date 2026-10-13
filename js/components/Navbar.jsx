@@ -36,7 +36,7 @@ export function Navbar({
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 transition-all shadow-sm">
-      {/* Top Banner: Strictly Online Support Notice */}
+      {/* Top Banner: Phone & Online Support Notice */}
       <div className="bg-slate-900 text-slate-200 text-xs py-1.5 px-3 sm:px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
@@ -44,10 +44,14 @@ export function Navbar({
               {currentCity === 'Pattaya' ? (t('cityBannerPattaya') || '🏖️ Pattaya Digital Service') : (t('cityBannerBangkok') || '🏙️ Bangkok Digital Service')}
             </span>
             <span className="hidden sm:inline text-slate-400">|</span>
-            <span className="flex items-center gap-1.5 text-amber-300 font-medium text-[10px] sm:text-xs min-w-0">
-              <Icon name="phoneOff" className="w-3 h-3 text-amber-400 shrink-0" />
-              <span className="truncate lg:overflow-visible lg:whitespace-nowrap">{t('onlineOnlyBanner') || '100% Online Support Only (No Phone Calls)'}</span>
-            </span>
+            <a 
+              href="tel:+66808889885"
+              className="flex items-center gap-1.5 text-emerald-300 hover:text-emerald-200 font-medium text-[10px] sm:text-xs min-w-0 transition"
+              title="Call Customer Support"
+            >
+              <Icon name="phone" className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span className="truncate lg:overflow-visible lg:whitespace-nowrap">{t('onlineOnlyBanner') || 'Phone & WhatsApp Support: +66 80 888 9885'}</span>
+            </a>
           </div>
 
           {/* Admin shortcut for tablet */}
@@ -64,7 +68,16 @@ export function Navbar({
           </button>
 
           <div className="hidden lg:flex items-center gap-3 shrink-0">
-            <span className="text-slate-400 hidden md:inline text-[11px]">{t('instantHelpVia') || 'Instant Help via:'}</span>
+            <span className="text-slate-400 hidden md:inline text-[11px]">{t('instantHelpVia') || 'Assistance & Support:'}</span>
+            <a
+              href="tel:+66808889885"
+              className="inline-flex items-center gap-1 text-sky-300 hover:text-sky-200 font-medium transition"
+              title="Call Phone Support"
+            >
+              <Icon name="phone" className="w-3.5 h-3.5 text-sky-400" />
+              <span>+66 80 888 9885</span>
+            </a>
+            <span className="text-slate-600">/</span>
             <a
               href={`${CONTACT_CHANNELS.whatsapp.url}Hi%20NoName%20Laundry,%20I%20have%20a%20question`}
               target="_blank"
@@ -89,7 +102,7 @@ export function Navbar({
             <span className="text-slate-600">/</span>
             <a
               href="mailto:support@nonamelaundry.com?subject=Inquiry:%20NoName%20Laundry%20Bangkok"
-              className="inline-flex items-center gap-1 text-sky-300 hover:text-sky-200 font-medium transition"
+              className="inline-flex items-center gap-1 text-slate-300 hover:text-slate-200 font-medium transition"
               title="Email Support"
             >
               <Icon name="mail" className="w-3.5 h-3.5" />
@@ -352,11 +365,11 @@ export function Navbar({
             </button>
           </div>
 
-          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 mb-3">
-            <div className="flex items-start gap-2 text-amber-900 text-xs font-medium">
-              <Icon name="phoneOff" className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+          <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 mb-3">
+            <div className="flex items-start gap-2 text-emerald-950 text-xs font-medium">
+              <Icon name="phone" className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
               <span>
-                <strong>Digital Service Only:</strong> No storefront. All support, queries & incidents handled strictly via WhatsApp, LINE, or Email.
+                <strong>Phone & Online Support:</strong> Call or WhatsApp our team at <a href="tel:+66808889885" className="font-bold underline text-emerald-800">+66 80 888 9885</a>, or connect via LINE Official.
               </span>
             </div>
           </div>

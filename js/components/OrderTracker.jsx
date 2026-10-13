@@ -1220,7 +1220,7 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
 
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-[11px] text-slate-400">
-                        Response sent strictly via online chat / email (No phone calls).
+                        Response sent via WhatsApp, Phone call, or Email.
                       </span>
                       <button
                         type="submit"

@@ -7,7 +7,7 @@ export const translations = {
     // Top banner
     cityBannerBangkok: '🏙️ Bangkok Digital Service',
     cityBannerPattaya: '🏖️ Pattaya Digital Service',
-    onlineOnlyBanner: '100% Online Support Only (No Phone Calls)',
+    onlineOnlyBanner: 'Phone & WhatsApp Support: +66 80 888 9885',
     instantHelpVia: 'Instant Help via:',
     adminBtn: '⚙️ Admin',
 
@@ -78,7 +78,7 @@ export const translations = {
     hiwSubtitle: 'Engineered for busy residents, expat professionals, and modern condo living.',
     hiwStep1Title: 'Book Digital Pickup',
     hiwStep1Desc: 'Select your service, estimated KG, and choose your condo/district. Select whether to receive updates via LINE, WhatsApp, or Email.',
-    hiwStep1Badge: 'Zero Phone Calls',
+    hiwStep1Badge: 'Fast Booking',
     hiwStep2Title: 'Bag Tagging & Collection',
     hiwStep2Desc: 'Leave your laundry bag with your condo juristic office or hand directly to our courier. A unique physical barcode tag is attached on-site.',
     hiwStep2Badge: 'Lobby Drop-Off OK',
@@ -90,12 +90,12 @@ export const translations = {
     hiwStep4Badge: 'Prompt Delivery',
 
     // Digital Support Banner
-    dsbTitle: 'Why 100% Digital & Zero Phone Calls?',
-    dsbDesc: 'To guarantee full accountability, digital photographic audit, and lightning-fast response times, NoName Laundry operates entirely without telephone call centers. All inquiries, pickup instructions, status requests, and incident reports are handled strictly through our official online chat and email channels.',
+    dsbTitle: 'Responsive Customer Care & Phone Support',
+    dsbDesc: 'NoName Laundry provides attentive customer support across Phone Call & WhatsApp (+66 80 888 9885), LINE Official (@nonamelaundry), and Email. We are here to assist with pickup scheduling, special laundry instructions, and order tracking.',
     dsbReason1Title: 'Photo & Text Audit Trail',
     dsbReason1Desc: 'Every instruction, gate pass, and condo juristic dropoff note is documented in writing and photo-verified.',
-    dsbReason2Title: 'Faster Than Phone Hold',
-    dsbReason2Desc: 'Our operations team responds directly on WhatsApp and LINE OA in minutes without queues or call transfers.',
+    dsbReason2Title: 'Direct Voice & Chat Support',
+    dsbReason2Desc: 'Speak directly with our team or get instant updates on WhatsApp and LINE OA without hold queues.',
     dsbReason3Title: 'Clear Digital Pricing',
     dsbReason3Desc: 'Digital scale photos and automated QR PromptPay / credit card invoices prevent billing surprises.',
 
@@ -223,7 +223,7 @@ export const translations = {
     hiwSubtitle: 'ออกแบบมาเพื่อชีวิตคนเมือง ชาวคอนโด และชาวต่างชาติที่ต้องการความสะดวกรวดเร็ว',
     hiwStep1Title: '1. เรียกรถรับผ้าผ่านเว็บ',
     hiwStep1Desc: 'เลือกบริการ ระบุน้ำหนักโดยประมาณ และคอนโด/ที่อยู่ของคุณ เลือกว่าต้องการรับการแจ้งเตือนผ่าน LINE, WhatsApp หรือ Email',
-    hiwStep1Badge: 'ไม่ต้องโทรศัพท์',
+    hiwStep1Badge: 'จองง่ายรวดเร็ว',
     hiwStep2Title: '2. ติดแท็กบาร์โค้ดและรับผ้า',
     hiwStep2Desc: 'ฝากถุงผ้าไว้กับนิติบุคคลคอนโด หรือส่งให้คนขับของเราโดยตรง เราจะติดแท็กบาร์โค้ดประจำตัวถุงผ้าทันที',
     hiwStep2Badge: 'ฝากนิติบุคคลได้',
@@ -235,12 +235,12 @@ export const translations = {
     hiwStep4Badge: 'ส่งตรงเวลา',
 
     // Digital Support Banner
-    dsbTitle: 'ทำไมเราจึงให้บริการดิจิทัล 100% โดยไม่ใช้โทรศัพท์?',
-    dsbDesc: 'เพื่อความถูกต้องสูงสุด มีหลักฐานรูปถ่ายชัดเจน และตอบกลับอย่างรวดเร็ว NoName Laundry จึงให้บริการผ่านระบบออนไลน์โดยไม่มีคอลเซ็นเตอร์ทางโทรศัพท์ ข้อความและคำสั่งทั้งหมดจะถูกบันทึกในระบบแชทและอีเมลอย่างเป็นลายลักษณ์อักษร',
+    dsbTitle: 'พร้อมดูแลและบริการลูกค้าอย่างใส่ใจ',
+    dsbDesc: 'NoName Laundry พร้อมช่วยเหลือและตอบทุกข้อสงสัยผ่านทางโทรศัพท์ & WhatsApp (+66 80 888 9885), LINE Official (@nonamelaundry) และ Email ติดต่อเราได้ทันทีเพื่อสอบถามสถานะผ้าหรือนัดหมายการรับส่ง',
     dsbReason1Title: 'มีบันทึกและรูปถ่ายเป็นหลักฐาน',
     dsbReason1Desc: 'ทุกคำสั่ง รายละเอียดการฝากนิติบุคคล และรหัสห้องพัก มีบันทึกชัดเจน ตรวจสอบย้อนหลังได้ตลอดเวลา',
-    dsbReason2Title: 'รวดเร็วกว่ารอสายโทรศัพท์',
-    dsbReason2Desc: 'ทีมงานฝ่ายปฏิบัติการตอบแชท WhatsApp และ LINE OA ภายในไม่กี่นาที ไม่ต้องรอคิวสายโทรศัพท์',
+    dsbReason2Title: 'พูดคุยและแชทกับทีมงานโดยตรง',
+    dsbReason2Desc: 'โทรศัพท์พูดคุยกับทีมงานได้โดยตรง หรือติดต่อผ่าน WhatsApp และ LINE OA ได้อย่างสะดวกรวดเร็ว',
     dsbReason3Title: 'ราคาและสลิปชัดเจน ตรวจสอบได้',
     dsbReason3Desc: 'แสดงภาพตาชั่งและใบเสร็จดิจิทัล พร้อมระบบชำระเงิน QR PromptPay และบัตรเครดิต ปลอดภัย 100%',
 

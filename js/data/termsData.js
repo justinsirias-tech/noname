@@ -62,7 +62,7 @@ export const FULL_TERMS_SECTIONS = [
   },
   {
     title: '6. Loss, Damage & Incident Claims Policy',
-    content: "In the unlikely event of damage or missing items:\n1. All reports must be submitted within 24 hours of delivery via our official LINE, WhatsApp, or Email channels.\n2. Written description and clear high-resolution photographic evidence must accompany the report.\n3. Phone call claims are void and will not be processed.\n4. Maximum liability for any verified lost or damaged item under laundry-by-KG service shall not exceed 5 times the laundry fee charged for that individual garment, up to a maximum ceiling of 1,500 THB per order, unless an extended declared-value coverage was agreed upon in writing prior to pickup."
+    content: "In the unlikely event of damage or missing items:\n1. All reports must be submitted within 24 hours of delivery via our official LINE, WhatsApp, Phone (+66 80 888 9885), or Email channels.\n2. Written description and clear high-resolution photographic evidence must accompany the report.\n3. Claims initiated by phone will be assisted and documented by our team, with photo evidence submitted via WhatsApp, LINE, or Email.\n4. Maximum liability for any verified lost or damaged item under laundry-by-KG service shall not exceed 5 times the laundry fee charged for that individual garment, up to a maximum ceiling of 1,500 THB per order, unless an extended declared-value coverage was agreed upon in writing prior to pickup."
   },
   {
     title: '7. Payment & Cancellation',

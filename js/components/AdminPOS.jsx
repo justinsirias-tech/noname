@@ -2043,10 +2043,10 @@ export function AdminPOS({
       {/* TAB 5: ONLINE INCIDENTS & TICKETS */}
       {activeTab === 'incidents' && (
         <div className="space-y-4">
-          <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 flex items-center gap-3 text-xs text-amber-900">
-            <Icon name="phoneOff" className="w-5 h-5 text-amber-700 shrink-0" />
+          <div className="bg-sky-50 p-4 rounded-2xl border border-sky-200 flex items-center gap-3 text-xs text-sky-900">
+            <Icon name="phone" className="w-5 h-5 text-sky-700 shrink-0" />
             <span>
-              <strong>Reminder for Staff:</strong> All customer queries are strictly handled online via <strong>WhatsApp, LINE, or Email</strong>. Do NOT place voice phone calls.
+              <strong>Customer Support Channels:</strong> Customer queries and phone assistance are supported via <strong>Phone & WhatsApp (+66 80 888 9885)</strong>, LINE Official, or Email.
             </span>
           </div>
 

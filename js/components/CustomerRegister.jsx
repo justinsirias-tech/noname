@@ -354,7 +354,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
             </div>
             <div>
               <h2 className="text-base font-extrabold text-slate-900">Digital Communications / ช่องทางติดต่อ</h2>
-              <p className="text-xs text-slate-400">Strictly 100% online support via WhatsApp, LINE & Email (Zero Phone Calls)</p>
+              <p className="text-xs text-slate-400">Support via Phone & WhatsApp (+66 80 888 9885), LINE & Email</p>
             </div>
           </div>
 
@@ -651,8 +651,8 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 mt-0.5"
               />
               <span className="text-xs text-slate-700 leading-relaxed font-medium">
-                I agree to the <strong>Terms & Conditions</strong> and acknowledge that NoName Laundry operates as an 
-                <strong> exclusively online service (zero phone calls)</strong>. All inquiries, driver coordination, scale audits, and claims are handled strictly via WhatsApp, LINE, and Email with written photographic records.
+                I agree to the <strong>Terms & Conditions</strong> and acknowledge that NoName Laundry provides customer support and driver coordination via 
+                <strong> Phone (+66 80 888 9885), WhatsApp, LINE, and Email</strong>.
               </span>
             </label>
           </div>
