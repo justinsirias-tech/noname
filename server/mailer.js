@@ -117,37 +117,70 @@ async function sendBookingNotificationEmail(order) {
         <!-- Order Summary Section -->
         <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">🧺 Order Summary</h3>
         <table style="width: 100%; font-size: 14px; border-collapse: collapse; margin-bottom: 20px;">
-          <tr>
-            <td style="padding: 6px 0; color: #64748b; width: 140px;">Service:</td>
-            <td style="padding: 6px 0; font-weight: 600; color: #0f172a;">${serviceName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 6px 0; color: #64748b;">Est. Weight/Qty:</td>
-            <td style="padding: 6px 0; font-weight: 600; color: #0f172a;">${weightOrQty} ${unit}</td>
-          </tr>
+          ${Array.isArray(order.items) && order.items.length > 0 ? `
+            <tr style="background-color: #f1f5f9; font-weight: 700; font-size: 12px; color: #475569;">
+              <td style="padding: 8px 6px;">Service Item</td>
+              <td style="padding: 8px 6px; text-align: center;">Qty / Weight</td>
+              <td style="padding: 8px 6px; text-align: right;">Subtotal</td>
+            </tr>
+            ${order.items.map(it => `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 6px; color: #0f172a; font-weight: 600;">
+                  ${it.name || it.serviceName || 'Service'}
+                  <div style="font-size: 11px; color: #64748b; font-weight: normal;">
+                    Rate: ฿${it.rate || it.pricePerKg}/${it.unit || 'KG'}
+                  </div>
+                </td>
+                <td style="padding: 8px 6px; text-align: center; color: #475569;">
+                  ${it.pricingType === 'piece' ? `${it.quantity || 1} pcs` : `${it.billableAmount || it.estimatedWeightKg || it.quantity} KG`}
+                </td>
+                <td style="padding: 8px 6px; text-align: right; font-weight: 700; color: #0f172a;">
+                  ฿${Number(it.subtotal || 0).toLocaleString()} THB
+                </td>
+              </tr>
+            `).join('')}
+          ` : `
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; width: 140px;">Service:</td>
+              <td style="padding: 6px 0; font-weight: 600; color: #0f172a;">${serviceName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b;">Est. Weight/Qty:</td>
+              <td style="padding: 6px 0; font-weight: 600; color: #0f172a;">${weightOrQty} ${unit}</td>
+            </tr>
+          `}
           <tr>
             <td style="padding: 6px 0; color: #64748b;">Delivery Fee:</td>
-            <td style="padding: 6px 0; color: #0f172a;">฿${deliveryFee.toLocaleString()} THB</td>
+            <td style="padding: 6px 0; text-align: right; color: #0f172a;" colspan="${Array.isArray(order.items) && order.items.length > 0 ? '2' : '1'}">
+              ${deliveryFee > 0 ? `฿${deliveryFee.toLocaleString()} THB` : 'FREE (฿0)'}
+            </td>
           </tr>
           <tr style="border-top: 1px dashed #cbd5e1;">
             <td style="padding: 10px 0; font-weight: 700; font-size: 16px; color: #0f172a;">Estimated Total:</td>
-            <td style="padding: 10px 0; font-weight: 700; font-size: 18px; color: #059669;">฿${totalPrice.toLocaleString()} THB</td>
+            <td style="padding: 10px 0; font-weight: 700; font-size: 18px; color: #059669; text-align: right;" colspan="${Array.isArray(order.items) && order.items.length > 0 ? '2' : '1'}">
+              ฿${totalPrice.toLocaleString()} THB
+            </td>
           </tr>
         </table>
 
         <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #f1f5f9;">
           <p style="font-size: 12px; color: #94a3b8; margin: 0;">
-            This automated alert was dispatched directly from the NoName Laundry online booking system.
+            This confirmation and booking summary was dispatched directly from NoName Laundry.
           </p>
         </div>
       </div>
     </div>
   `;
 
+  const recipients = [NOTIFICATION_EMAIL];
+  if (customerEmail && customerEmail.includes('@') && !customerEmail.includes('@customer.local')) {
+    recipients.push(customerEmail);
+  }
+
   const mailOptions = {
-    from: `"NoName Laundry System" <${SMTP_USER}>`,
-    to: NOTIFICATION_EMAIL,
-    subject: `🚨 [New Booking] ${trackingId} - ${customerName} (${pickupDate} ${pickupTime})`,
+    from: `"NoName Laundry" <${SMTP_USER}>`,
+    to: recipients.join(', '),
+    subject: `🧺 Booking Summary & Confirmation - ${trackingId} (${customerName})`,
     html: htmlContent
   };
 

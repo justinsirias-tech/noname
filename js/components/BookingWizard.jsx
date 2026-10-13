@@ -207,9 +207,10 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Completed Order Modal for LINE OA Connect
+  // Completed Order Modal for LINE OA Connect & Booking Summary Receipt
   const [completedOrder, setCompletedOrder] = useState(null);
   const [showQrCode, setShowQrCode] = useState(false);
+  const [copiedOrderId, setCopiedOrderId] = useState(false);
 
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
   const storeCategories = laundryStore.getCategories ? laundryStore.getCategories() : [];
@@ -506,36 +507,213 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
         onViewFullTerms={onViewFullTerms}
       />
 
-      {/* POST-BOOKING MODAL: LINE OA ADD FRIEND & ORDER LINKING */}
+      {/* POST-BOOKING COMPREHENSIVE SUMMARY RECEIPT MODAL */}
       {completedOrder && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 text-center">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl border border-slate-100 space-y-6 text-slate-800 max-h-[92vh] overflow-y-auto">
             
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-md">
-              <Icon name="check" className="w-8 h-8" />
+            {/* Header with Success Badge & Tracking ID */}
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                <Icon name="check" className="w-7 h-7" />
+              </div>
+
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span>Booking Confirmed • Pick-up Scheduled</span>
+                </span>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">
+                  Thank You, {completedOrder.customerName || 'Customer'}!
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Your laundry pickup request has been dispatched to our operations team.
+                </p>
+              </div>
+
+              {/* Order Tracking Reference Card with Copy */}
+              <div className="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-wrap items-center justify-between gap-3 text-left">
+                <div>
+                  <span className="text-[10px] text-sky-800 uppercase font-bold tracking-wider block">Booking Reference & Live Tracking ID</span>
+                  <span className="text-lg font-black font-mono text-sky-950">{completedOrder.id}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator?.clipboard?.writeText) {
+                        navigator.clipboard.writeText(completedOrder.id);
+                        setCopiedOrderId(true);
+                        setTimeout(() => setCopiedOrderId(false), 2000);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white border border-sky-300 text-sky-800 hover:bg-sky-100 text-xs font-bold shadow-2xs transition flex items-center gap-1.5"
+                  >
+                    <Icon name={copiedOrderId ? "check" : "copy"} className="w-3.5 h-3.5" />
+                    <span>{copiedOrderId ? 'Copied ID!' : 'Copy ID'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold shadow-2xs transition flex items-center gap-1.5"
+                    title="Print or Save Summary as PDF"
+                  >
+                    <Icon name="fileText" className="w-3.5 h-3.5" />
+                    <span>Print / Save</span>
+                  </button>
+                </div>
+              </div>
+
+              {completedOrder.email && (
+                <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200 text-left text-xs text-blue-900 flex items-center gap-2">
+                  <Icon name="mail" className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>
+                    A detailed confirmation receipt and itemized breakdown has been emailed to <strong>{completedOrder.email}</strong>.
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div>
-              <span className="text-xs uppercase font-bold text-emerald-600 tracking-wider">
-                Booking Successfully Received
-              </span>
-              <h3 className="text-2xl font-black text-slate-900 mt-1">
-                Tracking ID: <span className="font-mono text-sky-600">{completedOrder.id}</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Estimated: {completedOrder.estimatedWeightKg} KG • ฿{completedOrder.totalPrice} THB • {completedOrder.condoName}
-              </p>
+            {/* 1. Itemized Booking Summary Table */}
+            <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50">
+              <div className="bg-slate-100/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Icon name="package" className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Itemized Booking Summary</span>
+                </span>
+                <span className="text-[10px] text-slate-500 font-semibold">Prices as set on website</span>
+              </div>
+
+              <div className="p-4 space-y-3">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="text-[10px] text-slate-400 uppercase font-semibold border-b border-slate-200">
+                      <th className="pb-2 font-bold">Service / Item</th>
+                      <th className="pb-2 font-bold text-center">Pricing</th>
+                      <th className="pb-2 font-bold text-right">Unit Rate</th>
+                      <th className="pb-2 font-bold text-right">Est. Qty / Wt</th>
+                      <th className="pb-2 font-bold text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {Array.isArray(completedOrder.items) && completedOrder.items.length > 0 ? (
+                      completedOrder.items.map((it, idx) => {
+                        const isPiece = it.pricingType === 'piece' || it.unit === 'piece';
+                        return (
+                          <tr key={idx} className="hover:bg-white/60">
+                            <td className="py-2 font-semibold text-slate-900">
+                              {it.name || it.serviceName}
+                            </td>
+                            <td className="py-2 text-center">
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                isPiece ? 'bg-purple-100 text-purple-800' : 'bg-sky-100 text-sky-800'
+                              }`}>
+                                {isPiece ? 'Per Piece' : 'By Weight'}
+                              </span>
+                            </td>
+                            <td className="py-2 text-right font-mono text-slate-600">
+                              ฿{it.rate || it.pricePerKg} {isPiece ? '/ pc' : '/ KG'}
+                            </td>
+                            <td className="py-2 text-right font-mono text-slate-600">
+                              {isPiece ? `${it.quantity || 1} pcs` : `${it.estimatedWeightKg || it.billableAmount} KG`}
+                            </td>
+                            <td className="py-2 text-right font-mono font-bold text-slate-900">
+                              ฿{it.subtotal || Math.round((it.quantity || it.billableAmount || 1) * (it.rate || it.pricePerKg))} THB
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td className="py-2 font-semibold text-slate-900">{completedOrder.serviceName}</td>
+                        <td className="py-2 text-center">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-100 text-sky-800">By Weight</span>
+                        </td>
+                        <td className="py-2 text-right font-mono text-slate-600">฿{completedOrder.pricePerKg} / KG</td>
+                        <td className="py-2 text-right font-mono text-slate-600">{completedOrder.estimatedWeightKg} KG</td>
+                        <td className="py-2 text-right font-mono font-bold text-slate-900">฿{completedOrder.serviceSubtotal} THB</td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-slate-200 text-xs">
+                      <td colSpan="4" className="pt-2 text-right text-slate-500 font-medium">Services Subtotal:</td>
+                      <td className="pt-2 text-right font-mono font-bold text-slate-900">฿{completedOrder.serviceSubtotal} THB</td>
+                    </tr>
+                    <tr className="text-xs">
+                      <td colSpan="4" className="py-1 text-right text-slate-500 font-medium">
+                        Delivery ({completedOrder.city || 'Bangkok'} · {completedOrder.subdistrict || completedOrder.district}):
+                      </td>
+                      <td className="py-1 text-right font-mono font-bold text-slate-900">
+                        {Number(completedOrder.deliveryFee) > 0 ? `฿${completedOrder.deliveryFee} THB` : <span className="text-emerald-600">FREE</span>}
+                      </td>
+                    </tr>
+                    <tr className="border-t border-slate-300 text-sm font-black text-slate-900">
+                      <td colSpan="4" className="pt-2.5 text-right">Grand Estimated Total:</td>
+                      <td className="pt-2.5 text-right font-mono text-sky-900 text-base">฿{completedOrder.totalPrice} THB</td>
+                    </tr>
+                  </tfoot>
+                </table>
+                <p className="text-[10px] text-slate-400 italic">
+                  * Note: For weight-based laundry, final bill is verified on our calibrated digital scale upon intake. Cashless invoice is issued before return delivery.
+                </p>
+              </div>
             </div>
 
-            {/* Crucial LINE OA Privacy Explanation & 1-Click Action */}
-            <div className="bg-green-50/80 rounded-2xl p-5 border-2 border-green-500/40 text-left space-y-3">
+            {/* 2. Schedule, Address & Handover Logistics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-left">
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Pickup & Delivery Logistics</span>
+                <div>
+                  <strong className="text-slate-900 block font-bold">📅 Pickup Window:</strong>
+                  <span className="text-slate-700">{completedOrder.pickupDate} • {completedOrder.pickupTime}</span>
+                </div>
+                <div>
+                  <strong className="text-slate-900 block font-bold">🚀 Target Turnaround:</strong>
+                  <span className="text-slate-700">
+                    {completedOrder.turnaroundSpeed === 'same_day' 
+                      ? 'Same Day Express (<18h)' 
+                      : completedOrder.turnaroundSpeed === 'next_day_24h' 
+                      ? 'Next Day Express (24h)' 
+                      : 'Standard Turnaround (48h)'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    {completedOrder.deliveryDate} • {completedOrder.deliveryTime}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Address & Handover Method</span>
+                <div>
+                  <strong className="text-slate-900 block font-bold">📍 Location:</strong>
+                  <span className="text-slate-700 block">
+                    {completedOrder.condoName}{completedOrder.roomNumber ? `, Room ${completedOrder.roomNumber}` : ''}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    {completedOrder.subdistrict || completedOrder.district}, {completedOrder.district}, {completedOrder.city || 'Bangkok'} {completedOrder.postalCode}
+                  </span>
+                </div>
+                <div>
+                  <strong className="text-slate-900 block font-bold">🤝 Handover Preference:</strong>
+                  <span className="text-slate-700">
+                    {completedOrder.leaveWithJuristic 
+                      ? '🏢 Leave with Juristic / Condo Front Desk' 
+                      : '🤝 Meet in person (Subject to rider availability)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Official LINE OA & Support Channels */}
+            <div className="bg-green-50/80 rounded-2xl p-4 sm:p-5 border-2 border-green-500/40 text-left space-y-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-green-500 text-white flex items-center justify-center font-bold shrink-0">
                   <Icon name="line" className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="text-sm font-black text-green-950">
-                    Important Step: Connect on LINE Official Account
+                    Connect on LINE Official Account for Live Photo Updates
                   </h4>
                   <span className="text-[11px] text-green-700 font-semibold font-mono">
                     {lineOaId}
@@ -544,25 +722,30 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               </div>
 
               <p className="text-xs text-slate-700 leading-relaxed">
-                Due to LINE Official Account privacy regulations in Thailand, <strong>our business cannot initiate a message or add your personal LINE account directly</strong>.
+                Due to LINE privacy regulations in Thailand, businesses cannot initiate messages directly. Tap below to send your Booking ID to our LINE OA so we can send your digital scale photos and delivery ETA!
               </p>
-              
-              <div className="p-3 bg-white rounded-xl border border-green-200 text-xs text-slate-800 font-medium space-y-1">
-                <div>👉 <strong>Step 1:</strong> Tap the button below to open our LINE OA chat.</div>
-                <div>👉 <strong>Step 2:</strong> Tap <strong>"Send"</strong> on the pre-filled message with your Booking ID.</div>
-                <div>👉 <strong>Result:</strong> Our team can immediately send your scale photos, pickup ETA, and invoices!</div>
-              </div>
 
-              {/* 1-Click Mobile Button */}
-              <a
-                href={lineDeepLink}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full py-3.5 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-green-600/30 transition flex items-center justify-center gap-2"
-              >
-                <Icon name="line" className="w-5 h-5" />
-                <span>Open LINE App & Add Official Account (@nonamelaundry)</span>
-              </a>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <a
+                  href={lineDeepLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-3 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 text-center"
+                >
+                  <Icon name="line" className="w-4 h-4" />
+                  <span>Add LINE OA ({lineOaId})</span>
+                </a>
+
+                <a
+                  href={`https://wa.me/66808889885?text=${encodeURIComponent(`Hello NoName Laundry Bangkok, I have submitted booking #${completedOrder.id} for ${completedOrder.customerName}.`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 text-center"
+                >
+                  <Icon name="messageCircle" className="w-4 h-4" />
+                  <span>WhatsApp (+66 80 888 9885)</span>
+                </a>
+              </div>
 
               {/* QR Code Toggle for Desktop Users */}
               <div className="pt-1 text-center">
@@ -580,7 +763,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                     <img
                       src={lineQrCodeUrl}
                       alt="Scan to Add LINE OA @nonamelaundry"
-                      className="w-48 h-48 mx-auto rounded-lg"
+                      className="w-44 h-44 mx-auto rounded-lg"
                     />
                     <p className="text-[11px] text-slate-500 mt-2 font-mono">
                       Scan to add <strong>{lineOaId}</strong>
@@ -590,12 +773,35 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               </div>
             </div>
 
-            {/* Customer Service & Return Home */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <span className="text-xs text-slate-500">
-                Our Customer Service team will send you pickup confirmations, digital scale photos, and delivery updates directly via WhatsApp & LINE.
+            {/* Direct Phone Support Notice */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-slate-600">
+                Need urgent assistance or change pickup time? Call Phone Support:
               </span>
+              <a
+                href="tel:+66808889885"
+                className="font-bold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1"
+              >
+                <Icon name="phone" className="w-3.5 h-3.5 text-sky-600" />
+                <span>+66 80 888 9885</span>
+              </a>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
               <button
+                type="button"
+                onClick={() => {
+                  window.location.href = `/?track=${completedOrder.id}`;
+                }}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 font-bold text-xs shadow-2xs transition flex items-center justify-center gap-1.5"
+              >
+                <Icon name="search" className="w-4 h-4 text-sky-600" />
+                <span>Track Order Online</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => onBookingSuccess(completedOrder)}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap"
               >

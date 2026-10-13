@@ -78,10 +78,62 @@ export function OrderDetailsModal({
     ? Number(editCustomRate)
     : getRateForSpeed(activeSrv, editTurnaroundSpeed);
 
-  // Recalculated price estimate based on modal inputs
+  const orderItems = Array.isArray(order.items) && order.items.length > 0 ? order.items : null;
+  const isMultiItem = Boolean(orderItems && orderItems.length > 1);
+  const isSinglePiece = !isMultiItem && (order.unit === 'piece' || activeSrv.pricingType === 'piece' || activeSrv.unit === 'piece');
+
+  // Compute live items breakdown reflecting editTurnaroundSpeed and editWeight
+  const computedItems = orderItems ? orderItems.map(item => {
+    const srv = allServices.find(s => s.id === item.serviceId || (s.name && (item.name || item.serviceName) && s.name.toLowerCase() === (item.name || item.serviceName).toLowerCase())) || {};
+    const isPieceItem = item.pricingType === 'piece' || item.unit === 'piece' || srv.pricingType === 'piece' || srv.unit === 'piece';
+    
+    // Determine rate for current turnaround speed
+    let rate = Number(item.rate || item.pricePerKg || 0);
+    if (editTurnaroundSpeed !== order.turnaroundSpeed) {
+      rate = getRateForSpeed(srv, editTurnaroundSpeed);
+    }
+    
+    let billable = Number(item.billableAmount || item.quantity || 1);
+    let weight = item.estimatedWeightKg !== undefined ? item.estimatedWeightKg : null;
+    
+    if (!isPieceItem) {
+      const weightItems = orderItems.filter(i => i.pricingType !== 'piece' && i.unit !== 'piece');
+      if (weightItems.length === 1 && editWeight !== '' && editWeight !== null && editWeight !== undefined) {
+        weight = parseFloat(editWeight);
+      } else {
+        weight = parseFloat(item.actualWeightKg) || parseFloat(item.estimatedWeightKg) || 4.0;
+      }
+      const minW = srv.minWeightKg || 4.0;
+      billable = Math.max(weight, minW);
+    }
+    
+    const subtotal = Math.round(billable * rate);
+    return {
+      ...item,
+      name: item.name || item.serviceName || srv.name || 'Service',
+      serviceName: item.serviceName || item.name || srv.name || 'Service',
+      pricingType: isPieceItem ? 'piece' : 'weight',
+      unit: isPieceItem ? 'piece' : 'KG',
+      rate,
+      pricePerKg: rate,
+      estimatedWeightKg: isPieceItem ? null : (item.estimatedWeightKg !== undefined ? item.estimatedWeightKg : weight),
+      actualWeightKg: isPieceItem ? null : (editWeight && orderItems.filter(i => i.pricingType !== 'piece' && i.unit !== 'piece').length === 1 ? parseFloat(editWeight) : item.actualWeightKg),
+      billableAmount: billable,
+      quantity: isPieceItem ? billable : (item.quantity || 1),
+      subtotal
+    };
+  }) : null;
+
+  // Recalculated price estimate based on modal inputs and multi-items
   const previewWeight = parseFloat(editWeight) || order.estimatedWeightKg || 4.0;
   const billableKg = Math.max(previewWeight, activeMinWeight);
-  const previewServiceSubtotal = Math.round(billableKg * currentRate);
+  
+  const previewServiceSubtotal = computedItems
+    ? computedItems.reduce((acc, it) => acc + (Number(it.subtotal) || 0), 0)
+    : (isSinglePiece
+        ? Math.round((Number(order.quantity) || 1) * currentRate)
+        : Math.round(billableKg * currentRate));
+
   const deliveryFee = Number(order.deliveryFee !== undefined && order.deliveryFee !== null ? order.deliveryFee : 0);
   const previewPrice = previewServiceSubtotal + deliveryFee;
 
@@ -92,7 +144,8 @@ export function OrderDetailsModal({
   const activeOrderForInvoice = {
     ...order,
     serviceId: activeSrv?.id || order.serviceId,
-    serviceName: activeSrv?.name || order.serviceName,
+    serviceName: isMultiItem ? order.serviceName : (activeSrv?.name || order.serviceName),
+    items: computedItems || order.items || [],
     turnaroundSpeed: editTurnaroundSpeed,
     actualWeightKg: editWeight !== '' && editWeight !== null && editWeight !== undefined ? Number(editWeight) : order.actualWeightKg,
     pricePerKg: currentRate,
@@ -197,9 +250,9 @@ export function OrderDetailsModal({
 
       let defaultNote = '';
       if (editStatus !== order.status && isServiceChanged) {
-        defaultNote = `Stage moved to ${ORDER_STATUSES[editStatus]?.label || editStatus}. Service adjusted to ${activeSrv.name} (${formatSpeedLabel(editTurnaroundSpeed)}) at ฿${currentRate}/KG. Total: ฿${previewPrice} THB.`;
+        defaultNote = `Stage moved to ${ORDER_STATUSES[editStatus]?.label || editStatus}. Service adjusted to ${isMultiItem ? order.serviceName : activeSrv.name} (${formatSpeedLabel(editTurnaroundSpeed)}). Total: ฿${previewPrice} THB.`;
       } else if (isServiceChanged) {
-        defaultNote = `Service adjusted to ${activeSrv.name} (${formatSpeedLabel(editTurnaroundSpeed)}) at ฿${currentRate}/KG. Billable: ${billableKg} KG = ฿${previewPrice} THB.`;
+        defaultNote = `Service adjusted to ${isMultiItem ? order.serviceName : activeSrv.name} (${formatSpeedLabel(editTurnaroundSpeed)}). Total: ฿${previewPrice} THB.`;
       } else if (editStatus !== order.status) {
         defaultNote = `Status updated to ${ORDER_STATUSES[editStatus]?.label || editStatus} by staff.`;
       } else {
@@ -210,8 +263,9 @@ export function OrderDetailsModal({
 
       const serviceUpdates = {
         serviceId: activeSrv.id,
-        serviceName: activeSrv.name,
+        serviceName: isMultiItem ? order.serviceName : activeSrv.name,
         turnaroundSpeed: editTurnaroundSpeed,
+        items: computedItems || order.items || [],
         pricePerKg: currentRate,
         minWeightAppliedKg: activeMinWeight,
         serviceSubtotal: previewServiceSubtotal,
@@ -429,7 +483,11 @@ export function OrderDetailsModal({
                   
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-sky-700 bg-white px-2 py-0.5 rounded-lg border border-sky-200">
-                      ฿{currentRate} / KG
+                      {isMultiItem
+                        ? `Multi-Service (${computedItems.length} items)`
+                        : (isSinglePiece
+                            ? `฿${currentRate} / piece`
+                            : `฿${currentRate} / KG`)}
                     </span>
                     <button
                       type="button"
@@ -610,10 +668,13 @@ export function OrderDetailsModal({
                 )}
 
                 {/* 4 Summary Metric Cards */}
+                {/* 4 Summary Metric Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div className="p-3 bg-white rounded-xl border border-sky-100">
                     <span className="text-slate-400 block text-[10px] font-semibold uppercase">Service</span>
-                    <span className="font-bold text-slate-900">{activeSrv.name}</span>
+                    <span className="font-bold text-slate-900 line-clamp-2" title={isMultiItem ? (order.serviceName || 'Multi-Service Order') : activeSrv.name}>
+                      {isMultiItem ? (order.serviceName || 'Multi-Service Order') : activeSrv.name}
+                    </span>
                     {activeSrv.id !== (order.serviceId || initialSrv?.id) && (
                       <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[9px]">Modified</span>
                     )}
@@ -645,6 +706,67 @@ export function OrderDetailsModal({
                   </div>
                 </div>
 
+                {/* Itemized Services Breakdown Table */}
+                {computedItems && computedItems.length > 0 && (
+                  <div className="bg-white rounded-xl border border-sky-200 p-3.5 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800 border-b border-slate-100 pb-2">
+                      <span className="flex items-center gap-1.5 text-sky-900">
+                        <Icon name="checkCircle" className="w-3.5 h-3.5 text-sky-600" />
+                        <span>Itemized Services Breakdown ({computedItems.length} {computedItems.length === 1 ? 'service' : 'services'})</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-normal">Prices as set on website</span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="text-[10px] text-slate-400 uppercase font-semibold border-b border-slate-100">
+                            <th className="pb-1.5 font-bold">Service / Item</th>
+                            <th className="pb-1.5 font-bold text-center">Pricing Type</th>
+                            <th className="pb-1.5 font-bold text-right">Unit Rate</th>
+                            <th className="pb-1.5 font-bold text-right">Qty / Weight</th>
+                            <th className="pb-1.5 font-bold text-right">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 text-slate-700">
+                          {computedItems.map((item, idx) => {
+                            const isPiece = item.pricingType === 'piece' || item.unit === 'piece';
+                            return (
+                              <tr key={idx} className="hover:bg-slate-50/50">
+                                <td className="py-2 font-semibold text-slate-900">
+                                  {item.name || item.serviceName}
+                                </td>
+                                <td className="py-2 text-center">
+                                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                    isPiece ? 'bg-purple-100 text-purple-800' : 'bg-sky-100 text-sky-800'
+                                  }`}>
+                                    {isPiece ? 'Per Piece' : 'By Weight'}
+                                  </span>
+                                </td>
+                                <td className="py-2 text-right font-mono">
+                                  ฿{item.rate} {isPiece ? '/ pc' : '/ KG'}
+                                </td>
+                                <td className="py-2 text-right font-mono font-medium">
+                                  {isPiece ? `${item.quantity || 1} pcs` : `${item.billableAmount} KG`}
+                                </td>
+                                <td className="py-2 text-right font-mono font-bold text-slate-900">
+                                  ฿{item.subtotal} THB
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t border-slate-200 text-xs font-bold text-slate-900">
+                            <td colSpan="4" className="pt-2 text-right">Services Subtotal:</td>
+                            <td className="pt-2 text-right font-mono text-sky-900">฿{previewServiceSubtotal} THB</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {/* Change Notice */}
                 {(editServiceId !== (order.serviceId || initialSrv?.id) || editTurnaroundSpeed !== (order.turnaroundSpeed || 'standard_48h') || currentRate !== Number(order.pricePerKg)) && (
                   <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between">
@@ -660,7 +782,11 @@ export function OrderDetailsModal({
                 <div className="p-4 bg-white rounded-xl border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <span className="text-[11px] text-slate-500 block">
-                      Total Billable (Min {activeMinWeight} KG applied):
+                      {isMultiItem
+                        ? `Multi-Service Total (${computedItems.length} items):`
+                        : (isSinglePiece
+                            ? `Total Billable (${order.quantity || 1} pcs):`
+                            : `Total Billable (Min ${activeMinWeight} KG applied):`)}
                     </span>
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-black text-slate-900">
@@ -788,7 +914,11 @@ export function OrderDetailsModal({
                         <Icon name="tag" className="w-3.5 h-3.5 text-sky-600" />
                         <span>Service & Turnaround Time</span>
                       </label>
-                      <span className="text-[10px] font-mono font-bold text-sky-700">฿{currentRate}/KG</span>
+                      <span className="text-[10px] font-mono font-bold text-sky-700">
+                        {isMultiItem
+                          ? `${computedItems.length} Services`
+                          : (isSinglePiece ? `฿${currentRate}/pc` : `฿${currentRate}/KG`)}
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -888,7 +1018,13 @@ export function OrderDetailsModal({
                   <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                     <div>
                       <span className="text-[11px] text-slate-600 font-semibold block">Recalculated Total:</span>
-                      <span className="text-[10px] text-slate-400 font-mono">({billableKg} KG × ฿{currentRate}/KG)</span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {isMultiItem
+                          ? `(Subtotal ฿${previewServiceSubtotal} + ฿${deliveryFee} Deliv)`
+                          : (isSinglePiece
+                              ? `(${order.quantity || 1} pcs × ฿${currentRate} + ฿${deliveryFee} Deliv)`
+                              : `(${billableKg} KG × ฿${currentRate}/KG + ฿${deliveryFee} Deliv)`)}
+                      </span>
                     </div>
                     <span className="text-base font-black text-slate-900">฿{previewPrice} THB</span>
                   </div>

@@ -875,7 +875,7 @@ export class LaundryStore {
 
     if (hasMultiItems) {
       calculatedTotal = orderInput.items.reduce((sum, it) => sum + (Number(it.subtotal) || 0), 0);
-      mainServiceName = orderInput.items.map(i => i.serviceName).join(' + ');
+      mainServiceName = orderInput.items.map(i => i.name || i.serviceName).join(' + ');
     } else {
       const billableAmount = isPiece
         ? quantity
@@ -913,7 +913,33 @@ export class LaundryStore {
       email: orderInput.email,
       serviceId: service.id,
       serviceName: mainServiceName,
-      items: hasMultiItems ? orderInput.items : null,
+      items: hasMultiItems 
+        ? orderInput.items.map(it => ({
+            serviceId: it.serviceId || it.id,
+            name: it.name || it.serviceName || service.name,
+            serviceName: it.serviceName || it.name || service.name,
+            pricingType: it.pricingType || (it.unit === 'piece' ? 'piece' : 'weight'),
+            unit: it.unit || 'KG',
+            quantity: Number(it.quantity || it.qty || 1),
+            rate: Number(it.rate || it.pricePerKg || 0),
+            pricePerKg: Number(it.rate || it.pricePerKg || 0),
+            estimatedWeightKg: it.estimatedWeightKg !== undefined ? it.estimatedWeightKg : null,
+            billableAmount: Number(it.billableAmount || it.billable || it.quantity || 1),
+            subtotal: Number(it.subtotal || 0)
+          }))
+        : [{
+            serviceId: service.id,
+            name: service.name,
+            serviceName: service.name,
+            pricingType: isPiece ? 'piece' : 'weight',
+            unit: isPiece ? (service.unit || 'piece') : 'KG',
+            quantity,
+            rate: unitPrice,
+            pricePerKg: unitPrice,
+            estimatedWeightKg: isPiece ? null : Number(orderInput.estimatedWeightKg || 4.0),
+            billableAmount: isPiece ? quantity : Math.max(Number(orderInput.estimatedWeightKg || 4.0), Number(service.minWeightKg || 4.0)),
+            subtotal: calculatedTotal
+          }],
       district: orderInput.district,
       condoName: orderInput.condoName,
       roomNumber: orderInput.roomNumber,
@@ -1066,24 +1092,40 @@ export class LaundryStore {
           updated.categoryId = serviceUpdates.categoryId;
         }
 
+        if (serviceUpdates.items && Array.isArray(serviceUpdates.items) && serviceUpdates.items.length > 0) {
+          updated.items = serviceUpdates.items;
+        }
+
         if (actualWeightKg !== null && actualWeightKg !== undefined && actualWeightKg !== '') {
           updated.actualWeightKg = Number(actualWeightKg);
         }
 
+        const hasItems = Array.isArray(updated.items) && updated.items.length > 0;
         const isPiece = updated.unit === 'piece' || (serviceUpdates && serviceUpdates.unit === 'piece');
         const effectiveKg = updated.actualWeightKg !== null && updated.actualWeightKg !== undefined
           ? Number(updated.actualWeightKg)
           : Number(updated.estimatedWeightKg || 4.0);
         const billableKg = Math.max(effectiveKg, updated.minWeightAppliedKg || 4.0);
         
-        const countOrWeight = isPiece ? (Number(updated.quantity) || 1) : billableKg;
-        const subtotal = Math.round(countOrWeight * Number(updated.pricePerKg));
+        let subtotal = 0;
+        if (hasItems && updated.items.length > 1) {
+          subtotal = updated.items.reduce((acc, it) => acc + (Number(it.subtotal) || 0), 0);
+        } else if (hasItems && updated.items.length === 1) {
+          subtotal = Number(updated.items[0].subtotal || 0);
+        } else {
+          const countOrWeight = isPiece ? (Number(updated.quantity) || 1) : billableKg;
+          subtotal = Math.round(countOrWeight * Number(updated.pricePerKg));
+        }
+
         const deliveryFee = updated.deliveryFee !== undefined ? Number(updated.deliveryFee) : 0;
         
-        updated.serviceSubtotal = subtotal;
+        updated.serviceSubtotal = (serviceUpdates.serviceSubtotal !== undefined && serviceUpdates.serviceSubtotal !== null)
+          ? Number(serviceUpdates.serviceSubtotal)
+          : subtotal;
+
         updated.totalPrice = (serviceUpdates.totalPrice !== undefined && serviceUpdates.totalPrice !== null)
           ? Number(serviceUpdates.totalPrice)
-          : (subtotal + deliveryFee);
+          : (updated.serviceSubtotal + deliveryFee);
 
         const newTimelineEvent = {
           status: updated.status,

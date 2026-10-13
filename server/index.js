@@ -1926,12 +1926,26 @@ const handleOrderStatusUpdate = async (req, res) => {
       updatedActualKg = Number(sUpdates.actualWeightKg);
     }
 
+    const targetItems = Array.isArray(sUpdates.items) && sUpdates.items.length > 0
+      ? sUpdates.items
+      : (Array.isArray(currentOrder.items) ? currentOrder.items : []);
+
     const effectiveKg = (updatedActualKg !== null && updatedActualKg !== undefined) ? updatedActualKg : Number(currentOrder.estimated_weight_kg || currentOrder.estimatedWeightKg || 4.0);
     const billableKg = Math.max(effectiveKg, targetMinWeight);
-    const calculatedTotal = targetUnit === 'piece' 
-      ? Math.round((Number(targetQuantity) || 1) * targetPricePerKg)
-      : Math.round(billableKg * targetPricePerKg);
-    const finalTotalPrice = (totalPrice !== undefined && totalPrice !== null) ? Number(totalPrice) : (sUpdates.totalPrice !== undefined ? Number(sUpdates.totalPrice) : calculatedTotal);
+
+    let calculatedTotal = 0;
+    if (targetItems.length > 0) {
+      calculatedTotal = targetItems.reduce((acc, it) => acc + (Number(it.subtotal) || 0), 0);
+    } else {
+      calculatedTotal = targetUnit === 'piece' 
+        ? Math.round((Number(targetQuantity) || 1) * targetPricePerKg)
+        : Math.round(billableKg * targetPricePerKg);
+    }
+
+    const currentDeliveryFee = Number(sUpdates.deliveryFee !== undefined ? sUpdates.deliveryFee : (currentOrder.delivery_fee !== undefined ? currentOrder.delivery_fee : (currentOrder.deliveryFee || 0)));
+    const finalTotalPrice = (totalPrice !== undefined && totalPrice !== null)
+      ? Number(totalPrice)
+      : (sUpdates.totalPrice !== undefined ? Number(sUpdates.totalPrice) : (calculatedTotal + currentDeliveryFee));
 
     const updatedTagNumber = (tagNumber && tagNumber.trim()) ? tagNumber.trim() : ((sUpdates.tagNumber && sUpdates.tagNumber.trim()) ? sUpdates.tagNumber.trim() : (currentOrder.tag_number || currentOrder.tagNumber));
     const targetDeliveryDate = deliveryDate || sUpdates.deliveryDate || currentOrder.delivery_date || currentOrder.deliveryDate;
@@ -1964,8 +1978,9 @@ const handleOrderStatusUpdate = async (req, res) => {
               quantity = $13,
               unit = $14,
               category_id = $15,
+              items = $16,
               updated_at = NOW()
-          WHERE id = $16
+          WHERE id = $17
           RETURNING *
         `, [
           targetStatus,
@@ -1983,6 +1998,7 @@ const handleOrderStatusUpdate = async (req, res) => {
           targetQuantity,
           targetUnit,
           targetCategoryId,
+          JSON.stringify(targetItems),
           id
         ]);
 
@@ -2015,6 +2031,7 @@ const handleOrderStatusUpdate = async (req, res) => {
       quantity: targetQuantity,
       unit: targetUnit,
       categoryId: targetCategoryId,
+      items: targetItems,
       updatedAt: now.toISOString()
     };
 
