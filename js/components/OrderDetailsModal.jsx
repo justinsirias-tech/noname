@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { ORDER_STATUSES, INITIAL_SERVICES } from '../data/servicesData.js';
+import { ORDER_STATUSES, INITIAL_SERVICES, AVAILABLE_DELIVERY_RIDERS } from '../data/servicesData.js';
 import { getLineOaAddFriendUrl, laundryStore } from '../store.js';
 import { InvoiceModal } from './InvoiceModal.jsx';
 
@@ -35,14 +35,16 @@ export function OrderDetailsModal({
 
   // Helper to get default rate for a given service and turnaround speed
   const getRateForSpeed = (srv, speed) => {
-    if (!srv) return 65;
+    if (!srv) return 70;
+    const fallbackStd = (srv.id === 'wash_fold' || !srv.id) ? 70 : (srv.standardPricePerKg || srv.pricePerKg || 70);
+    const stdPrice = Number(srv.standardPricePerKg !== undefined ? srv.standardPricePerKg : (srv.pricePerKg || fallbackStd));
     if (speed === 'same_day') {
-      return srv.sameDayPricePerKg !== undefined ? Number(srv.sameDayPricePerKg) : Math.round((srv.standardPricePerKg || srv.pricePerKg || 65) * 1.75);
+      return srv.sameDayPricePerKg !== undefined ? Number(srv.sameDayPricePerKg) : Math.round(stdPrice * 1.75);
     }
     if (speed === 'next_day_24h' || speed === 'next_day') {
-      return srv.nextDayPricePerKg !== undefined ? Number(srv.nextDayPricePerKg) : Math.round((srv.standardPricePerKg || srv.pricePerKg || 65) * 1.3);
+      return srv.nextDayPricePerKg !== undefined ? Number(srv.nextDayPricePerKg) : Math.round(stdPrice * 1.3);
     }
-    return Number(srv.standardPricePerKg !== undefined ? srv.standardPricePerKg : (srv.pricePerKg || 65));
+    return stdPrice;
   };
 
   const formatSpeedLabel = (speed) => {
@@ -57,17 +59,27 @@ export function OrderDetailsModal({
     (s.name && order.serviceName && s.name.toLowerCase() === order.serviceName.toLowerCase())
   ) || allServices[0];
 
-  const [editStatus, setEditStatus] = useState(order.status || 'BOOKING_REQUESTED');
+  const [editStatus, setEditStatus] = useState(order.status || 'TBA');
+  const [editAssignedRider, setEditAssignedRider] = useState(order.assignedRider || '');
   const [editWeight, setEditWeight] = useState(order.actualWeightKg !== null && order.actualWeightKg !== undefined ? order.actualWeightKg : (order.estimatedWeightKg || 4.0));
   const [editTag, setEditTag] = useState(order.tagNumber === 'TAG-PENDING' ? '' : (order.tagNumber || ''));
   const [editNote, setEditNote] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedCustomerMsg, setCopiedCustomerMsg] = useState(false);
+  const [sendingBillingEmail, setSendingBillingEmail] = useState(false);
+  const [billingEmailSentToast, setBillingEmailSentToast] = useState('');
 
   // Flexible Service & Turnaround Speed State
   const [editServiceId, setEditServiceId] = useState(initialSrv?.id || 'wash_fold');
   const [editTurnaroundSpeed, setEditTurnaroundSpeed] = useState(order.turnaroundSpeed || 'standard_48h');
-  const [editCustomRate, setEditCustomRate] = useState(order.pricePerKg || getRateForSpeed(initialSrv, order.turnaroundSpeed || 'standard_48h'));
+  
+  const menuRate = getRateForSpeed(initialSrv, order.turnaroundSpeed || 'standard_48h');
+  const initialRate = (order.pricePerKg && Number(order.pricePerKg) !== 65) 
+    ? Number(order.pricePerKg) 
+    : menuRate;
+  const [editCustomRate, setEditCustomRate] = useState(initialRate);
+
   const [isEditingService, setIsEditingService] = useState(false);
   const [editDeliveryDate, setEditDeliveryDate] = useState(order.deliveryDate || '');
   const [editDeliveryTime, setEditDeliveryTime] = useState(order.deliveryTime || '');
@@ -78,6 +90,10 @@ export function OrderDetailsModal({
     ? Number(editCustomRate)
     : getRateForSpeed(activeSrv, editTurnaroundSpeed);
 
+  // Recalculated price estimate based on modal inputs and scale weight
+  const previewWeight = parseFloat(editWeight) || order.estimatedWeightKg || 4.0;
+  const billableKg = Math.max(previewWeight, activeMinWeight);
+
   const orderItems = Array.isArray(order.items) && order.items.length > 0 ? order.items : null;
   const isMultiItem = Boolean(orderItems && orderItems.length > 1);
   const isSinglePiece = !isMultiItem && (order.unit === 'piece' || activeSrv.pricingType === 'piece' || activeSrv.unit === 'piece');
@@ -87,10 +103,14 @@ export function OrderDetailsModal({
     const srv = allServices.find(s => s.id === item.serviceId || (s.name && (item.name || item.serviceName) && s.name.toLowerCase() === (item.name || item.serviceName).toLowerCase())) || {};
     const isPieceItem = item.pricingType === 'piece' || item.unit === 'piece' || srv.pricingType === 'piece' || srv.unit === 'piece';
     
-    // Determine rate for current turnaround speed
-    let rate = Number(item.rate || item.pricePerKg || 0);
-    if (editTurnaroundSpeed !== order.turnaroundSpeed) {
-      rate = getRateForSpeed(srv, editTurnaroundSpeed);
+    // Determine rate from current service menu definition or active speed
+    const srvMenuRate = getRateForSpeed(srv, editTurnaroundSpeed);
+    let rate = srvMenuRate;
+    if (editTurnaroundSpeed === order.turnaroundSpeed) {
+      const existingRate = Number(item.rate || item.pricePerKg || 0);
+      if (existingRate && existingRate !== 65) {
+        rate = existingRate;
+      }
     }
     
     let billable = Number(item.billableAmount || item.quantity || 1);
@@ -122,12 +142,23 @@ export function OrderDetailsModal({
       quantity: isPieceItem ? billable : (item.quantity || 1),
       subtotal
     };
-  }) : null;
+  }) : [
+    {
+      serviceId: activeSrv.id,
+      name: activeSrv.name,
+      serviceName: activeSrv.name,
+      pricingType: isSinglePiece ? 'piece' : 'weight',
+      unit: isSinglePiece ? 'piece' : 'KG',
+      rate: currentRate,
+      pricePerKg: currentRate,
+      estimatedWeightKg: isSinglePiece ? null : (order.estimatedWeightKg || 4.0),
+      actualWeightKg: isSinglePiece ? null : (editWeight !== '' ? parseFloat(editWeight) : order.actualWeightKg),
+      billableAmount: isSinglePiece ? (Number(order.quantity) || 1) : billableKg,
+      quantity: isSinglePiece ? (Number(order.quantity) || 1) : 1,
+      subtotal: Math.round((isSinglePiece ? (Number(order.quantity) || 1) : billableKg) * currentRate)
+    }
+  ];
 
-  // Recalculated price estimate based on modal inputs and multi-items
-  const previewWeight = parseFloat(editWeight) || order.estimatedWeightKg || 4.0;
-  const billableKg = Math.max(previewWeight, activeMinWeight);
-  
   const previewServiceSubtotal = computedItems
     ? computedItems.reduce((acc, it) => acc + (Number(it.subtotal) || 0), 0)
     : (isSinglePiece
@@ -220,21 +251,102 @@ export function OrderDetailsModal({
     }
   };
 
-  // Direct customer contact URLs
+  // Generates clean, friendly confirmed billing text with direct payment link
+  const getCustomerMessageText = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const gatewayUrl = `${origin}/?track=${encodeURIComponent(order.id)}&pay=1`;
+    const speed = order.turnaroundSpeed === 'same_day' 
+      ? 'Same Day Express (<18h)' 
+      : (order.turnaroundSpeed?.includes('next_day') ? 'Next Day (24h)' : 'Standard (48h)');
+    const isPaid = order.paymentStatus === 'PAID';
+    const finalWeight = editWeight !== '' ? parseFloat(editWeight) : (order.actualWeightKg || order.estimatedWeightKg || 4.0);
+
+    return `🧺 NoName Laundry Bangkok
+Confirmed Billing & Cashless Payment Request
+
+Order #${order.id}
+Customer: ${order.customerName}
+
+We have completed intake weighing for your laundry:
+• Service: ${activeSrv?.name || order.serviceName} (${speed})
+• Verified Weight: ${finalWeight} KG
+• Confirmed Total: ฿${previewPrice || order.totalPrice || 0} THB
+• Payment: ${isPaid ? 'PAID ✅' : 'Pending Payment (100% Cashless)'}
+
+👉 Cashless Payment Link:
+${gatewayUrl}
+
+(PromptPay QR Code from any Thai bank & Credit/Debit Cards accepted)
+
+Need assistance? Phone / WhatsApp: +66 80 888 9885
+LINE: @nonamelaundry`;
+  };
+
+  const handleSendBillingEmail = async () => {
+    if (!order) return;
+    setSendingBillingEmail(true);
+    setBillingEmailSentToast('');
+    try {
+      const finalWeight = editWeight !== '' ? parseFloat(editWeight) : order.actualWeightKg;
+      const res = await fetch(`/api/orders/${encodeURIComponent(order.id)}/send-billing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: order.email,
+          actualWeightKg: finalWeight,
+          totalPrice: previewPrice,
+          serviceName: activeSrv?.name || order.serviceName,
+          items: computedItems || order.items
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBillingEmailSentToast(`✓ Confirmed billing email sent to ${order.email || 'customer'}!`);
+      } else {
+        // Fallback to mailto
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+        const paymentUrl = `${origin}/?track=${encodeURIComponent(order.id)}&pay=1`;
+        const subject = encodeURIComponent(`NoName Laundry - Confirmed Billing & Payment Link - Order #${order.id} (฿${previewPrice} THB)`);
+        const body = encodeURIComponent(`Hello ${order.customerName},\n\nYour laundry has arrived and all needed weighing is complete.\n\nVerified Weight: ${finalWeight || 4.0} KG\nConfirmed Total: ฿${previewPrice} THB\n\nPlease complete your cashless payment online:\n👉 ${paymentUrl}\n\nNeed assistance? Phone / WhatsApp: +66 80 888 9885`);
+        window.location.href = `mailto:${order.email || ''}?subject=${subject}&body=${body}`;
+        setBillingEmailSentToast(`Opened email client to send confirmed billing.`);
+      }
+      setTimeout(() => setBillingEmailSentToast(''), 5000);
+    } catch (err) {
+      console.warn('Send billing error:', err);
+    } finally {
+      setSendingBillingEmail(false);
+    }
+  };
+
+  // Direct customer contact URLs with nicely formatted message & gateway link
   const getCustomerChatUrl = () => {
+    const msg = getCustomerMessageText();
     if (order.contactChannel === 'whatsapp') {
       const cleanPhone = (order.contactValue || '').replace(/[^0-9]/g, '');
-      const text = encodeURIComponent(`Hello ${order.customerName}, this is NoName Laundry Bangkok regarding your order #${order.id}.`);
-      return `https://wa.me/${cleanPhone}?text=${text}`;
+      let formattedPhone = cleanPhone;
+      if (formattedPhone.startsWith('0')) formattedPhone = '66' + formattedPhone.substring(1);
+      return formattedPhone.length >= 9
+        ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`
+        : `https://wa.me/?text=${encodeURIComponent(msg)}`;
     }
     if (order.contactChannel === 'line') {
       return getLineOaAddFriendUrl(order.contactValue);
     }
     if (order.contactChannel === 'email') {
-      const subject = encodeURIComponent(`NoName Laundry Bangkok - Order #${order.id}`);
-      return `mailto:${order.email || order.contactValue}?subject=${subject}`;
+      const subject = encodeURIComponent(`NoName Laundry - Order #${order.id} Details & Payment Gateway`);
+      return `mailto:${order.email || order.contactValue}?subject=${subject}&body=${encodeURIComponent(msg)}`;
     }
     return '#';
+  };
+
+  const handleCopyCustomerMessage = () => {
+    const text = getCustomerMessageText();
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setCopiedCustomerMsg(true);
+      setTimeout(() => setCopiedCustomerMsg(false), 2500);
+    }
   };
 
   const handleSaveUpdate = async (e) => {
@@ -272,7 +384,8 @@ export function OrderDetailsModal({
         deliveryFee: deliveryFee,
         totalPrice: previewPrice,
         deliveryDate: editDeliveryDate || order.deliveryDate,
-        deliveryTime: editDeliveryTime || order.deliveryTime
+        deliveryTime: editDeliveryTime || order.deliveryTime,
+        assignedRider: editAssignedRider || null
       };
 
       if (onUpdateOrder) {
@@ -333,12 +446,6 @@ export function OrderDetailsModal({
             ) : (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
                 🕒 STANDARD (48H)
-              </span>
-            )}
-
-            {order.tagNumber && order.tagNumber !== 'TAG-PENDING' && (
-              <span className="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-sky-950 text-sky-300 border border-sky-800">
-                🏷️ {order.tagNumber}
               </span>
             )}
           </div>
@@ -420,15 +527,43 @@ export function OrderDetailsModal({
 
                   <button
                     type="button"
+                    onClick={handleCopyCustomerMessage}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300 transition"
+                    title="Copy formatted customer update message with cashless gateway link"
+                  >
+                    <Icon name="copy" className="w-3.5 h-3.5 text-slate-600" />
+                    <span>{copiedCustomerMsg ? 'Copied Message & Link! ✓' : 'Copy Confirmed Billing'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSendBillingEmail}
+                    disabled={sendingBillingEmail}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition"
+                    title="Send Confirmed Billing & Cashless Payment Link via Email"
+                  >
+                    <Icon name="mail" className="w-3.5 h-3.5" />
+                    <span>{sendingBillingEmail ? 'Sending...' : 'Send Billing Link'}</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setShowInvoiceModal(true)}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition"
-                    title="Generate & Send Official Invoice to Customer"
+                    title="Generate & View Official Tax Invoice"
                   >
                     <Icon name="fileText" className="w-3.5 h-3.5" />
-                    <span>Send Invoice & Pay Link</span>
+                    <span>Invoice / Pay Link</span>
                   </button>
                 </div>
               </div>
+
+              {billingEmailSentToast && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold text-xs flex items-center justify-between animate-fadeIn">
+                  <span>{billingEmailSentToast}</span>
+                  <button type="button" onClick={() => setBillingEmailSentToast('')} className="text-emerald-600 hover:text-emerald-900 font-bold">✕</button>
+                </div>
+              )}
 
               {/* Delivery & Juristic Location */}
               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
@@ -570,7 +705,7 @@ export function OrderDetailsModal({
                             <span>🕒 Standard (48h)</span>
                           </div>
                           <div className="text-[10px] opacity-80 mt-0.5">
-                            ฿{activeSrv?.standardPricePerKg || activeSrv?.pricePerKg || 65} / KG • Regular queue
+                            ฿{getRateForSpeed(activeSrv, 'standard_48h')} / KG • Regular queue
                           </div>
                         </button>
 
@@ -588,7 +723,7 @@ export function OrderDetailsModal({
                             <span>⚡ Next Day (24h)</span>
                           </div>
                           <div className="text-[10px] opacity-80 mt-0.5">
-                            ฿{activeSrv?.nextDayPricePerKg || Math.round((activeSrv?.pricePerKg || 65) * 1.3)} / KG • Fast Track
+                            ฿{getRateForSpeed(activeSrv, 'next_day_24h')} / KG • Fast Track
                           </div>
                         </button>
 
@@ -611,7 +746,7 @@ export function OrderDetailsModal({
                           <div className="text-[10px] opacity-80 mt-0.5">
                             {activeSrv?.sameDayAvailable === false
                               ? 'Not available for this service'
-                              : `฿${activeSrv?.sameDayPricePerKg || Math.round((activeSrv?.pricePerKg || 65) * 1.75)} / KG • Before 18:00`}
+                              : `฿${getRateForSpeed(activeSrv, 'same_day')} / KG • Before 18:00`}
                           </div>
                         </button>
                       </div>
@@ -963,42 +1098,52 @@ export function OrderDetailsModal({
                       onChange={(e) => setEditStatus(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold text-slate-900"
                     >
-                      {Object.keys(ORDER_STATUSES).map((key) => (
-                        <option key={key} value={key}>
-                          {ORDER_STATUSES[key].label}
-                        </option>
+                      <option value="TBA">1. 💬 TBA (Confirm Details with Customer)</option>
+                      <option value="SCHEDULED">2. 📅 Scheduled</option>
+                      <option value="BILLING">3. 📄 Billing (Awaiting Payment / Send Invoice)</option>
+                      <option value="IN_PROCESS">4. ⚙️ In Process (Laundry Care & Wash)</option>
+                      <option value="READY_FOR_DELIVERY">5. 🛵 Ready For Delivery (Assign Rider)</option>
+                      <option value="DELIVERED">6. ✅ Delivered</option>
+                      <option value="CANCELLED">❌ Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-bold text-slate-700">
+                        Assign Delivery Rider
+                      </label>
+                      {editAssignedRider && (
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                          🛵 Assigned
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={editAssignedRider}
+                      onChange={(e) => setEditAssignedRider(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold text-slate-900 text-xs"
+                    >
+                      <option value="">Select Rider / Courier...</option>
+                      {AVAILABLE_DELIVERY_RIDERS.map((r, i) => (
+                        <option key={i} value={r}>{r}</option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block font-bold text-slate-700 mb-1">
-                        Scale Weight (KG)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        placeholder="e.g. 4.80"
-                        value={editWeight}
-                        onChange={(e) => setEditWeight(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-bold bg-white text-slate-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-slate-700 mb-1">
-                        Bag Tag #
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="TAG-BKK-XXX"
-                        value={editTag}
-                        onChange={(e) => setEditTag(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono font-bold bg-white text-slate-900"
-                      />
-                    </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Scale Weight (KG)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="0"
+                      placeholder="e.g. 4.80"
+                      value={editWeight}
+                      onChange={(e) => setEditWeight(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-bold bg-white text-slate-900"
+                    />
                   </div>
 
                   <div>
@@ -1029,14 +1174,27 @@ export function OrderDetailsModal({
                     <span className="text-base font-black text-slate-900">฿{previewPrice} THB</span>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
-                  >
-                    <Icon name="check" className="w-4 h-4" />
-                    <span>{isSaving ? 'Saving to Database...' : 'Save & Update Stage & Service'}</span>
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5"
+                    >
+                      <Icon name="check" className="w-4 h-4" />
+                      <span>{isSaving ? 'Saving...' : 'Save Stage & Weights'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={sendingBillingEmail}
+                      onClick={handleSendBillingEmail}
+                      className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
+                      title="Send Confirmed Billing & Cashless Payment Link to customer via Email"
+                    >
+                      <Icon name="mail" className="w-4 h-4" />
+                      <span>{sendingBillingEmail ? 'Sending...' : 'Send Billing Link'}</span>
+                    </button>
+                  </div>
                 </div>
               </form>
 

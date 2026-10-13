@@ -23,7 +23,8 @@ export function CustomerCRM({
 
   // Add Customer Modal
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newFullName, setNewFullName] = useState('');
+  const [newFirstName, setNewFirstName] = useState('');
+  const [newLastName, setNewLastName] = useState('');
   const [newNickName, setNewNickName] = useState('');
   const [newGender, setNewGender] = useState('Rather not say');
   const [newDob, setNewDob] = useState('');
@@ -116,6 +117,13 @@ export function CustomerCRM({
   };
 
   useEffect(() => {
+    // Initial sync from backend to ensure all customers (including Lucas Vance) are freshly loaded
+    if (typeof laundryStore.loadCustomers === 'function') {
+      laundryStore.loadCustomers().then(() => {
+        refreshCustomers();
+      });
+    }
+
     return laundryStore.subscribe(() => {
       refreshCustomers();
     });
@@ -198,14 +206,16 @@ export function CustomerCRM({
   // Handle Add Customer Submit
   const handleCreateCustomerSubmit = (e) => {
     e.preventDefault();
-    if (!newFullName.trim() || !newMobile.trim()) {
-      alert('Please provide at least a Full Name and Mobile Number.');
+    if (!newFirstName.trim() || !newLastName.trim() || !newMobile.trim()) {
+      alert('Please provide First Name, Last Name, and Mobile Number.');
       return;
     }
 
     const created = laundryStore.createCustomer({
-      fullName: newFullName.trim(),
-      nickName: newNickName.trim(),
+      firstName: newFirstName.trim(),
+      lastName: newLastName.trim(),
+      fullName: `${newFirstName.trim()} ${newLastName.trim()}`,
+      nickName: (newNickName || newFirstName).trim(),
       gender: newGender,
       dateOfBirth: newDob,
       mobileNumber: newMobile.trim(),
@@ -243,7 +253,8 @@ export function CustomerCRM({
     showToast(`Customer "${created.fullName}" registered successfully!`);
 
     // Reset Form
-    setNewFullName('');
+    setNewFirstName('');
+    setNewLastName('');
     setNewNickName('');
     setNewMobile('+66 ');
     setNewIsWhatsApp(true);
@@ -1567,7 +1578,7 @@ export function CustomerCRM({
                           <div>Est Weight: <strong>{order.estimatedWeightKg} KG</strong></div>
                           <div>Actual Scale: <strong>{order.actualWeightKg !== null ? `${order.actualWeightKg} KG` : 'Pending weigh-in'}</strong></div>
                           <div>Amount: <strong>฿{order.totalPrice} THB</strong></div>
-                          <div>Tag: <span className="font-mono font-bold text-sky-800">{order.tagNumber || 'PENDING'}</span></div>
+                          <div>Speed: <span className="font-semibold text-sky-800">{order.turnaroundSpeed?.replace(/_/g, ' ') || 'standard'}</span></div>
                         </div>
 
                         <div className="text-[11px] text-slate-500 pt-1 border-t border-sky-200/60 flex items-center justify-between">
@@ -1802,14 +1813,26 @@ export function CustomerCRM({
               
               {/* Personal Details */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-700 mb-1">Full Name (ชื่อ-นามสกุล) *</label>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">First Name (ชื่อจริง) *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Alex Thorne / ศิริพร ธนากา"
-                    value={newFullName}
-                    onChange={(e) => setNewFullName(e.target.value)}
+                    placeholder="e.g. Alex / ศิริพร"
+                    value={newFirstName}
+                    onChange={(e) => setNewFirstName(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Last Name (นามสกุล) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Thorne / ธนากา"
+                    value={newLastName}
+                    onChange={(e) => setNewLastName(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300"
                   />
                 </div>

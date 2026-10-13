@@ -3,16 +3,48 @@ import { Icon } from './Icons.jsx';
 import { ORDER_STATUSES } from '../data/servicesData.js';
 import { laundryStore } from '../store.js';
 
+export function calculateOrderPayout(order, gatewaySettings = {}) {
+  const gross = Number(order.totalPrice || 0);
+  const method = (order.paymentMethod || 'PromptPay QR').toLowerCase();
+  
+  let feeRatePercent = 0;
+  if (method.includes('card') || method.includes('credit') || method.includes('debit')) {
+    feeRatePercent = Number(gatewaySettings.cardFeeRate ?? 3.65);
+  } else if (method.includes('promptpay') || method.includes('qr')) {
+    feeRatePercent = Number(gatewaySettings.promptpayFeeRate ?? 0.00);
+  } else {
+    feeRatePercent = 0.00;
+  }
+  
+  const gatewayFee = order.gatewayFee !== null && order.gatewayFee !== undefined
+    ? Number(order.gatewayFee)
+    : Number(((gross * feeRatePercent) / 100).toFixed(2));
+    
+  const netPayout = order.netPayout !== null && order.netPayout !== undefined
+    ? Number(order.netPayout)
+    : Number(Math.max(0, gross - gatewayFee).toFixed(2));
+    
+  return {
+    gross,
+    feeRatePercent,
+    gatewayFee,
+    netPayout
+  };
+}
+
 export function SalesReconciliation({
   orders = [],
   services = [],
   adminUser,
+  settings,
   onReconcileOrder,
   onBatchReconcileOrders,
   onMarkPaid,
   onUpdateServicePricing,
   onNavigateToServices
 }) {
+  const gatewayConfig = settings?.paymentGateway || laundryStore.settings?.paymentGateway || {};
+
   // Date Presets & Custom Range
   const [datePreset, setDatePreset] = useState('ALL'); // 'TODAY', 'YESTERDAY', 'THIS_WEEK', 'THIS_MONTH', 'LAST_MONTH', 'ALL', 'CUSTOM'
   const [customStartDate, setCustomStartDate] = useState('');
@@ -38,6 +70,8 @@ export function SalesReconciliation({
   const [modalStatus, setModalStatus] = useState('RECONCILED');
   const [modalBankRef, setModalBankRef] = useState('');
   const [modalNotes, setModalNotes] = useState('');
+  const [modalFee, setModalFee] = useState(0);
+  const [modalNetPayout, setModalNetPayout] = useState(0);
   const [isModalSaving, setIsModalSaving] = useState(false);
 
   // Feedback Alerts
@@ -159,6 +193,10 @@ export function SalesReconciliation({
     let discrepancyCount = 0;
     let paidCount = 0;
     let reconciledCount = 0;
+    let totalGatewayFees = 0;
+    let totalNetPayout = 0;
+    let reconciledNetPayout = 0;
+    let unreconciledNetPayout = 0;
 
     const methodBreakdown = {
       'PromptPay QR': 0,
@@ -171,9 +209,13 @@ export function SalesReconciliation({
       const price = Number(o.totalPrice) || 0;
       grossRevenue += price;
 
+      const payout = calculateOrderPayout(o, gatewayConfig);
+
       if (o.paymentStatus === 'PAID') {
         collectedRevenue += price;
         paidCount++;
+        totalGatewayFees += payout.gatewayFee;
+        totalNetPayout += payout.netPayout;
 
         const method = o.paymentMethod || 'PromptPay QR';
         if (method.toLowerCase().includes('promptpay')) {
@@ -189,9 +231,11 @@ export function SalesReconciliation({
         const isReconciled = o.reconciliationStatus === 'RECONCILED';
         if (isReconciled) {
           reconciledAmount += price;
+          reconciledNetPayout += payout.netPayout;
           reconciledCount++;
         } else {
           unreconciledAmount += price;
+          unreconciledNetPayout += payout.netPayout;
         }
       } else {
         pendingReceivables += price;
@@ -203,6 +247,7 @@ export function SalesReconciliation({
     });
 
     const reconciliationRate = collectedRevenue > 0 ? Math.round((reconciledAmount / collectedRevenue) * 100) : 0;
+    const netDepositRate = totalNetPayout > 0 ? Math.round((reconciledNetPayout / totalNetPayout) * 100) : 0;
 
     return {
       grossRevenue,
@@ -214,9 +259,14 @@ export function SalesReconciliation({
       paidCount,
       reconciledCount,
       discrepancyCount,
+      totalGatewayFees,
+      totalNetPayout,
+      reconciledNetPayout,
+      unreconciledNetPayout,
+      netDepositRate,
       methodBreakdown
     };
-  }, [filteredOrders]);
+  }, [filteredOrders, gatewayConfig]);
 
   // 3. Detailed Services Analytics & Pricing Elasticity Computation
   const servicesAnalysis = useMemo(() => {
@@ -228,9 +278,9 @@ export function SalesReconciliation({
         id: s.id,
         name: s.name,
         nameTh: s.nameTh || '',
-        standardPricePerKg: Number(s.standardPricePerKg || s.pricePerKg || 65),
-        nextDayPricePerKg: Number(s.nextDayPricePerKg || Math.round((s.pricePerKg || 65) * 1.3)),
-        sameDayPricePerKg: Number(s.sameDayPricePerKg || Math.round((s.pricePerKg || 65) * 1.75)),
+        standardPricePerKg: Number(s.standardPricePerKg || s.pricePerKg || (s.id === 'wash_fold' ? 70 : 70)),
+        nextDayPricePerKg: Number(s.nextDayPricePerKg || Math.round((s.pricePerKg || (s.id === 'wash_fold' ? 70 : 70)) * 1.3)),
+        sameDayPricePerKg: Number(s.sameDayPricePerKg || Math.round((s.pricePerKg || (s.id === 'wash_fold' ? 70 : 70)) * 1.75)),
         minWeightKg: Number(s.minWeightKg || 4.0),
         popular: Boolean(s.popular),
         ordersCount: 0,
@@ -266,9 +316,9 @@ export function SalesReconciliation({
           id: srvId,
           name: order.serviceName || 'Custom Service',
           nameTh: '',
-          standardPricePerKg: Number(order.pricePerKg || 65),
-          nextDayPricePerKg: Number(order.pricePerKg ? Math.round(order.pricePerKg * 1.3) : 85),
-          sameDayPricePerKg: Number(order.pricePerKg ? Math.round(order.pricePerKg * 1.75) : 115),
+          standardPricePerKg: Number(order.pricePerKg || 70),
+          nextDayPricePerKg: Number(order.pricePerKg ? Math.round(order.pricePerKg * 1.3) : 91),
+          sameDayPricePerKg: Number(order.pricePerKg ? Math.round(order.pricePerKg * 1.75) : 123),
           minWeightKg: Number(order.minWeightAppliedKg || 4.0),
           popular: false,
           ordersCount: 0,
@@ -423,9 +473,12 @@ export function SalesReconciliation({
   // Open Modal for Single Order Audit
   const handleOpenAuditModal = (order) => {
     setAuditingOrder(order);
+    const payoutCalc = calculateOrderPayout(order, gatewayConfig);
     setModalStatus(order.reconciliationStatus || (order.paymentStatus === 'PAID' ? 'RECONCILED' : 'UNRECONCILED'));
-    setModalBankRef(order.bankAccountRef || (order.paymentMethod ? `${order.paymentMethod} Batch` : 'PromptPay Settlement'));
+    setModalBankRef(order.depositBankRef || order.bankAccountRef || (order.paymentMethod ? `${order.paymentMethod} Batch` : 'PromptPay Settlement'));
     setModalNotes(order.reconciliationNotes || '');
+    setModalFee(order.gatewayFee !== null && order.gatewayFee !== undefined ? Number(order.gatewayFee) : payoutCalc.gatewayFee);
+    setModalNetPayout(order.netPayout !== null && order.netPayout !== undefined ? Number(order.netPayout) : payoutCalc.netPayout);
   };
 
   // Save Single Order Audit
@@ -439,10 +492,13 @@ export function SalesReconciliation({
           reconciliationStatus: modalStatus,
           bankAccountRef: modalBankRef.trim(),
           reconciliationNotes: modalNotes.trim(),
-          reconciledBy: adminUser?.username || 'admin'
+          reconciledBy: adminUser?.username || 'admin',
+          gatewayFee: Number(modalFee),
+          netPayout: Number(modalNetPayout),
+          depositBankRef: modalBankRef.trim()
         });
       }
-      showFeedback(`Order #${auditingOrder.id} status updated to ${modalStatus}.`);
+      showFeedback(`Order #${auditingOrder.id} status updated to ${modalStatus}. Net Payout ฿${modalNetPayout} verified.`);
       setAuditingOrder(null);
     } catch (err) {
       alert('Error updating reconciliation: ' + err.message);
@@ -477,14 +533,17 @@ export function SalesReconciliation({
       'Est Weight (KG)',
       'Scale Intake Weight (KG)',
       'Rate Per KG (THB)',
-      'Total Amount (THB)',
+      'Gross Amount Paid (THB)',
+      'Gateway Fee Rate (%)',
+      'Gateway Service Fee (THB)',
+      'Exact Net Bank Payout (THB)',
       'Payment Status',
       'Payment Method',
       'Payment Ref / Txn ID',
-      'Reconciliation Status',
+      'Bank Deposit Audit Status',
       'Reconciled At',
       'Reconciled By',
-      'Bank Account / Settlement Ref',
+      'Bank Account / Settlement Batch Ref',
       'Reconciliation Notes'
     ];
 
@@ -494,35 +553,41 @@ export function SalesReconciliation({
       return `"${str}"`;
     };
 
-    const rows = filteredOrders.map(o => [
-      escapeCsv(o.id),
-      escapeCsv(o.createdAt ? o.createdAt.replace('T', ' ').substring(0, 19) : ''),
-      escapeCsv(o.pickupDate || ''),
-      escapeCsv(o.customerName),
-      escapeCsv(o.contactChannel),
-      escapeCsv(o.contactValue),
-      escapeCsv(o.condoName),
-      escapeCsv(o.roomNumber),
-      escapeCsv(o.city || 'Bangkok'),
-      escapeCsv(o.district),
-      escapeCsv(o.subdistrict || ''),
-      escapeCsv(o.postalCode || ''),
-      escapeCsv(o.deliveryFee !== undefined && o.deliveryFee !== null ? o.deliveryFee : 0),
-      escapeCsv(o.serviceName),
-      escapeCsv(o.turnaroundSpeed),
-      escapeCsv(o.estimatedWeightKg),
-      escapeCsv(o.actualWeightKg !== null ? o.actualWeightKg : 'Pending'),
-      escapeCsv(o.pricePerKg),
-      escapeCsv(o.totalPrice),
-      escapeCsv(o.paymentStatus),
-      escapeCsv(o.paymentMethod || 'Awaiting Payment'),
-      escapeCsv(o.paymentRef || ''),
-      escapeCsv(o.reconciliationStatus || 'UNRECONCILED'),
-      escapeCsv(o.reconciledAt ? o.reconciledAt.replace('T', ' ').substring(0, 19) : ''),
-      escapeCsv(o.reconciledBy || ''),
-      escapeCsv(o.bankAccountRef || ''),
-      escapeCsv(o.reconciliationNotes || '')
-    ]);
+    const rows = filteredOrders.map(o => {
+      const payout = calculateOrderPayout(o, gatewayConfig);
+      return [
+        escapeCsv(o.id),
+        escapeCsv(o.createdAt ? o.createdAt.replace('T', ' ').substring(0, 19) : ''),
+        escapeCsv(o.pickupDate || ''),
+        escapeCsv(o.customerName),
+        escapeCsv(o.contactChannel),
+        escapeCsv(o.contactValue),
+        escapeCsv(o.condoName),
+        escapeCsv(o.roomNumber),
+        escapeCsv(o.city || 'Bangkok'),
+        escapeCsv(o.district),
+        escapeCsv(o.subdistrict || ''),
+        escapeCsv(o.postalCode || ''),
+        escapeCsv(o.deliveryFee !== undefined && o.deliveryFee !== null ? o.deliveryFee : 0),
+        escapeCsv(o.serviceName),
+        escapeCsv(o.turnaroundSpeed),
+        escapeCsv(o.estimatedWeightKg),
+        escapeCsv(o.actualWeightKg !== null ? o.actualWeightKg : 'Pending'),
+        escapeCsv(o.pricePerKg),
+        escapeCsv(o.totalPrice),
+        escapeCsv(payout.feeRatePercent + '%'),
+        escapeCsv(payout.gatewayFee),
+        escapeCsv(payout.netPayout),
+        escapeCsv(o.paymentStatus),
+        escapeCsv(o.paymentMethod || 'Awaiting Payment'),
+        escapeCsv(o.paymentRef || ''),
+        escapeCsv(o.reconciliationStatus || 'UNRECONCILED'),
+        escapeCsv(o.reconciledAt ? o.reconciledAt.replace('T', ' ').substring(0, 19) : ''),
+        escapeCsv(o.reconciledBy || ''),
+        escapeCsv(o.depositBankRef || o.bankAccountRef || ''),
+        escapeCsv(o.reconciliationNotes || '')
+      ];
+    });
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -676,6 +741,89 @@ export function SalesReconciliation({
           </div>
           <div className="text-[10px] text-rose-600 font-semibold mt-0.5">
             {metrics.discrepancyCount > 0 ? 'Requires accountant audit' : 'Zero discrepancies'}
+          </div>
+        </div>
+      </div>
+
+      {/* 3RD-PARTY GATEWAY REPORT & NET BANK PAYOUT AUDIT STATION */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-6 shadow-md border border-slate-700/60 relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-1.5 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+              <Icon name="receipt" className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Gateway Settlement & Bank Deposit Audit Station</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
+              <span>Net Payout Audit: Cashless Gateways to Bank Account</span>
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Verify exact cashless earnings deposited into your bank account. Gateways automatically deduct Merchant Discount Rate (MDR) transaction fees (Cards: {gatewayConfig.cardFeeRate}%, PromptPay: {gatewayConfig.promptpayFeeRate}%) before wiring the net payout to your corporate account.
+            </p>
+            <div className="pt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-300">
+              <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700 font-mono">
+                <Icon name="landmark" className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Destination: <strong>{gatewayConfig.settlementBank || 'Kasikorn Bank (KBANK)'}</strong> {gatewayConfig.settlementAccountNo ? `(${gatewayConfig.settlementAccountNo})` : ''}</span>
+              </span>
+              <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">
+                <span>MDR Fee Policy: PromptPay <strong>{gatewayConfig.promptpayFeeRate}%</strong> • Cards <strong>{gatewayConfig.cardFeeRate}%</strong></span>
+              </span>
+            </div>
+          </div>
+
+          {/* 4-Box Payout Metrics Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+            {/* 1. Gross Cashless Collected */}
+            <div className="bg-slate-800/90 border border-slate-700/80 p-3.5 rounded-2xl">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gross Paid</div>
+              <div className="text-lg font-black font-mono text-white mt-1">
+                ฿{metrics.collectedRevenue.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                {metrics.paidCount} cashless payments
+              </div>
+            </div>
+
+            {/* 2. Gateway Service Fees */}
+            <div className="bg-slate-800/90 border border-rose-500/30 p-3.5 rounded-2xl">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-rose-300 flex items-center gap-1">
+                <span>Gateway Fees (MDR)</span>
+              </div>
+              <div className="text-lg font-black font-mono text-rose-400 mt-1">
+                -฿{metrics.totalGatewayFees.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[10px] text-rose-200/70 mt-0.5">
+                Deducted by gateway
+              </div>
+            </div>
+
+            {/* 3. Exact Net Bank Payout */}
+            <div className="bg-emerald-950/60 border border-emerald-500/40 p-3.5 rounded-2xl relative overflow-hidden">
+              <div className="text-[10px] font-black uppercase tracking-wider text-emerald-300 flex items-center justify-between">
+                <span>Exact Net Payout</span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-900 text-[9px] font-black">BANK</span>
+              </div>
+              <div className="text-xl font-black font-mono text-emerald-300 mt-1">
+                ฿{metrics.totalNetPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[10px] text-emerald-400 font-semibold mt-0.5">
+                Expected deposit in bank
+              </div>
+            </div>
+
+            {/* 4. Verified in Bank Statement */}
+            <div className="bg-sky-950/60 border border-sky-500/40 p-3.5 rounded-2xl">
+              <div className="text-[10px] font-black uppercase tracking-wider text-sky-300 flex items-center justify-between">
+                <span>Verified in Bank</span>
+                <span className="font-mono text-sky-200">{metrics.netDepositRate}%</span>
+              </div>
+              <div className="text-lg font-black font-mono text-sky-300 mt-1">
+                ฿{metrics.reconciledNetPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[10px] text-sky-300/80 font-semibold mt-0.5">
+                ฿{metrics.unreconciledNetPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unverified
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1224,8 +1372,10 @@ export function SalesReconciliation({
                 <th className="py-3.5 px-4">Tracking ID & Date</th>
                 <th className="py-3.5 px-4">Customer & Condo</th>
                 <th className="py-3.5 px-4">Service & Scale Intake</th>
-                <th className="py-3.5 px-4">Payment & Gateway Ref</th>
-                <th className="py-3.5 px-4">Reconciliation Status</th>
+                <th className="py-3.5 px-4">Gross Collected</th>
+                <th className="py-3.5 px-4">Gateway Fee (MDR)</th>
+                <th className="py-3.5 px-4">Exact Net Bank Payout</th>
+                <th className="py-3.5 px-4">Audit Status</th>
                 <th className="py-3.5 px-4">Bank Statement / Batch Ref</th>
                 <th className="py-3.5 px-4 text-right print:hidden">Action</th>
               </tr>
@@ -1233,7 +1383,7 @@ export function SalesReconciliation({
             <tbody className="divide-y divide-slate-100">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="py-12 text-center text-slate-400">
+                  <td colSpan="10" className="py-12 text-center text-slate-400">
                     No transactions match the selected filters or date period.
                   </td>
                 </tr>
@@ -1242,6 +1392,7 @@ export function SalesReconciliation({
                   const isPaid = order.paymentStatus === 'PAID';
                   const reconStatus = order.reconciliationStatus || 'UNRECONCILED';
                   const isSelected = selectedOrderIds.includes(order.id);
+                  const payout = calculateOrderPayout(order, gatewayConfig);
 
                   let reconBadgeColor = 'bg-amber-100 text-amber-800 border-amber-300';
                   let reconIcon = 'clock';
@@ -1292,7 +1443,7 @@ export function SalesReconciliation({
                         <div className="text-[10px] text-slate-400">฿{order.pricePerKg}/KG (Min {order.minWeightAppliedKg || 4}KG)</div>
                       </td>
 
-                      {/* Payment & Amount */}
+                      {/* Gross Paid */}
                       <td className="py-3.5 px-4">
                         <div className="font-black text-slate-900 text-sm">฿{order.totalPrice} THB</div>
                         <div className="mt-0.5">
@@ -1308,9 +1459,45 @@ export function SalesReconciliation({
                           )}
                         </div>
                         {order.paymentRef && (
-                          <div className="text-[10px] font-mono text-slate-400 mt-0.5 truncate max-w-[140px]">
+                          <div className="text-[10px] font-mono text-slate-400 mt-0.5 truncate max-w-[130px]" title={order.paymentRef}>
                             Ref: {order.paymentRef}
                           </div>
+                        )}
+                      </td>
+
+                      {/* Gateway Fee */}
+                      <td className="py-3.5 px-4">
+                        {isPaid ? (
+                          <div>
+                            <div className="font-mono font-bold text-rose-600 text-xs">
+                              {payout.gatewayFee > 0 ? `-฿${payout.gatewayFee.toFixed(2)}` : '฿0.00'}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-medium">
+                              Fee: {payout.feeRatePercent}% ({order.paymentMethod?.includes('Card') ? 'Card MDR' : 'PromptPay QR'})
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-300 font-mono text-xs">—</span>
+                        )}
+                      </td>
+
+                      {/* Exact Net Bank Payout */}
+                      <td className="py-3.5 px-4">
+                        {isPaid ? (
+                          <div className="bg-emerald-50/90 border border-emerald-200 p-2 rounded-xl">
+                            <div className="text-[9.5px] uppercase font-black text-emerald-800 tracking-wider flex items-center gap-1">
+                              <Icon name="landmark" className="w-3 h-3 text-emerald-600" />
+                              <span>Net Bank Payout</span>
+                            </div>
+                            <div className="font-black text-emerald-900 font-mono text-sm mt-0.5">
+                              ฿{payout.netPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-[9.5px] text-emerald-700/90 truncate max-w-[150px] mt-0.5 font-semibold">
+                              → {order.depositBankRef || gatewayConfig.settlementBank || 'Kasikorn Bank'}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-slate-400 text-xs italic">Awaiting Payment</div>
                         )}
                       </td>
 
@@ -1444,6 +1631,60 @@ export function SalesReconciliation({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Gateway Service Fee & Net Bank Payout Audit */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/90 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-indigo-900 tracking-wide flex items-center gap-1.5">
+                    <Icon name="calculator" className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Gateway MDR & Net Bank Payout Audit</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-200/70 text-indigo-800">
+                    {auditingOrder.paymentMethod || 'PromptPay'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Gross Total</label>
+                    <div className="font-mono font-black text-slate-900 text-sm px-2.5 py-1.5 bg-white rounded-lg border border-slate-200">
+                      ฿{auditingOrder.totalPrice}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Gateway Fee (฿)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={modalFee}
+                      onChange={(e) => {
+                        const fee = parseFloat(e.target.value) || 0;
+                        setModalFee(fee);
+                        setModalNetPayout(Math.max(0, Math.round(((auditingOrder.totalPrice || 0) - fee) * 100) / 100));
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-rose-300 font-mono font-bold text-rose-700 bg-white text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Exact Net Payout (฿)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={modalNetPayout}
+                      onChange={(e) => setModalNetPayout(parseFloat(e.target.value) || 0)}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono font-black text-emerald-800 bg-white text-xs"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-indigo-900/80 leading-tight">
+                  Verify against your bank deposit credit notification. Bank statements reflect <strong>฿{modalNetPayout}</strong> after deducting ฿{modalFee} gateway processing fee.
+                </p>
               </div>
 
               <div>
@@ -1698,7 +1939,9 @@ export function SalesReconciliation({
                 <th className="py-1 px-3">Customer & Condo</th>
                 <th className="py-1 px-2">Service</th>
                 <th className="py-1 px-2 text-right">Scale KG</th>
-                <th className="py-1 px-2 text-right">Total (฿)</th>
+                <th className="py-1 px-2 text-right">Gross (฿)</th>
+                <th className="py-1 px-2 text-right">Fee (฿)</th>
+                <th className="py-1 px-2 text-right">Net Payout (฿)</th>
                 <th className="py-1 px-2">Method</th>
                 <th className="py-1 px-2 text-center">Audit Status</th>
                 <th className="py-1 px-2">Statement / Batch Ref</th>
@@ -1707,7 +1950,7 @@ export function SalesReconciliation({
             <tbody className="divide-y divide-slate-200">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="py-4 text-center text-slate-400 italic">
+                  <td colSpan="11" className="py-4 text-center text-slate-400 italic">
                     No transactions found for the selected reporting period.
                   </td>
                 </tr>
@@ -1715,6 +1958,7 @@ export function SalesReconciliation({
                 filteredOrders.map((order) => {
                   const reconStatus = order.reconciliationStatus || 'UNRECONCILED';
                   const datePart = (order.createdAt ? order.createdAt.split('T')[0] : (order.pickupDate || ''));
+                  const payout = calculateOrderPayout(order, gatewayConfig);
                   return (
                     <tr key={order.id} className="leading-tight">
                       <td className="py-1 px-2 font-mono font-bold text-slate-900">
@@ -1732,6 +1976,12 @@ export function SalesReconciliation({
                       </td>
                       <td className="py-1 px-2 text-right font-mono font-black text-slate-900 whitespace-nowrap">
                         ฿{Number(order.totalPrice || 0).toLocaleString()}
+                      </td>
+                      <td className="py-1 px-2 text-right font-mono text-rose-700 whitespace-nowrap">
+                        {payout.gatewayFee > 0 ? `-฿${payout.gatewayFee.toFixed(2)}` : '฿0.00'}
+                      </td>
+                      <td className="py-1 px-2 text-right font-mono font-black text-emerald-800 whitespace-nowrap bg-emerald-50/50">
+                        ฿{payout.netPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="py-1 px-2 text-slate-600 whitespace-nowrap">
                         {order.paymentMethod || 'PromptPay QR'}
@@ -1767,8 +2017,14 @@ export function SalesReconciliation({
                   <td className="py-1.5 px-2 text-right font-mono font-black text-slate-900">
                     ฿{metrics.grossRevenue.toLocaleString()}
                   </td>
+                  <td className="py-1.5 px-2 text-right font-mono text-rose-700">
+                    -฿{metrics.totalGatewayFees.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="py-1.5 px-2 text-right font-mono font-black text-emerald-800 bg-emerald-100/60">
+                    ฿{metrics.totalNetPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
                   <td colSpan="3" className="py-1.5 px-2 text-slate-600 text-[8.5px]">
-                    Reconciled: ฿{metrics.reconciledAmount.toLocaleString()} ({metrics.reconciliationRate}%) • Receivables: ฿{metrics.pendingReceivables.toLocaleString()}
+                    Reconciled Bank Deposits: ฿{metrics.reconciledNetPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({metrics.netDepositRate}%)
                   </td>
                 </tr>
               </tfoot>

@@ -95,6 +95,20 @@ async function build() {
     console.log('Copied css directory -> public/css');
   }
 
+  // 6. Copy images directory to public/images if present
+  const imagesDir = path.join(rootDir, 'images');
+  if (fs.existsSync(imagesDir)) {
+    const publicImagesDir = path.join(publicDir, 'images');
+    fs.mkdirSync(publicImagesDir, { recursive: true });
+    for (const file of fs.readdirSync(imagesDir)) {
+      const srcFile = path.join(imagesDir, file);
+      if (fs.statSync(srcFile).isFile()) {
+        fs.copyFileSync(srcFile, path.join(publicImagesDir, file));
+      }
+    }
+    console.log('Copied images directory -> public/images');
+  }
+
   // 6. Copy SEO assets (robots.txt, sitemap.xml, manifest.json) to public/
   const seoFiles = ['robots.txt', 'sitemap.xml', 'manifest.json'];
   for (const f of seoFiles) {

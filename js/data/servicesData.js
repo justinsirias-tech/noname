@@ -113,10 +113,10 @@ export const INITIAL_SERVICES = [
     description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
     unit: 'KG',
     pricingType: 'weight',
-    pricePerKg: 65,
-    standardPricePerKg: 65,
-    nextDayPricePerKg: 85,
-    sameDayPricePerKg: 115,
+    pricePerKg: 70,
+    standardPricePerKg: 70,
+    nextDayPricePerKg: 129,
+    sameDayPricePerKg: 259,
     sameDayAvailable: true,
     minWeightKg: 4.0,
     turnaroundHours: 48,
@@ -383,18 +383,66 @@ export const INITIAL_SERVICES = [
   }
 ];
 
+export const TRACKING_STAGES = [
+  { key: 'tba', label: '1. TBA (Confirm Details)', step: 1, color: 'bg-purple-100 text-purple-800 border-purple-300', dotColor: 'bg-purple-500', desc: 'Confirming order details with customer' },
+  { key: 'scheduled', label: '2. Scheduled', step: 2, color: 'bg-sky-100 text-sky-800 border-sky-300', dotColor: 'bg-sky-500', desc: 'Pickup scheduled with rider' },
+  { key: 'billing', label: '3. Billing', step: 3, color: 'bg-blue-100 text-blue-800 border-blue-300', dotColor: 'bg-blue-500', desc: 'Weight verified & invoice issued' },
+  { key: 'in_process', label: '4. In Process', step: 4, color: 'bg-amber-100 text-amber-800 border-amber-300', dotColor: 'bg-amber-500', desc: 'Laundry care, wash & press in progress' },
+  { key: 'ready_for_delivery', label: '5. Ready For Delivery', step: 5, color: 'bg-indigo-100 text-indigo-800 border-indigo-300', dotColor: 'bg-indigo-500', desc: 'Packed clean laundry & rider assigned' },
+  { key: 'delivered', label: '6. Delivered', step: 6, color: 'bg-emerald-100 text-emerald-800 border-emerald-300', dotColor: 'bg-emerald-500', desc: 'Clean laundry delivered safely' }
+];
+
+export function getTrackingStage(status) {
+  const s = String(status || '').toLowerCase().trim();
+  if (s === 'delivered' || s === 'completed') {
+    return TRACKING_STAGES[5];
+  }
+  if (s === 'ready_for_delivery' || s === 'ready for delivery' || s === 'out_for_delivery') {
+    return TRACKING_STAGES[4];
+  }
+  if (s === 'in_process' || s === 'in process' || s === 'processing' || s === 'in_wash' || s === 'iron_fold') {
+    return TRACKING_STAGES[3];
+  }
+  if (s === 'billing' || s === 'billing_pending' || s === 'awaiting_payment' || s === 'weighed_inspected') {
+    return TRACKING_STAGES[2];
+  }
+  if (s === 'scheduled' || s === 'pickup_scheduled' || s === 'picked_up') {
+    return TRACKING_STAGES[1];
+  }
+  return TRACKING_STAGES[0];
+}
+
 export const ORDER_STATUSES = {
-  BOOKING_REQUESTED: { label: 'Booking Requested', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 1 },
-  PICKUP_SCHEDULED: { label: 'Pickup Scheduled', color: 'bg-blue-100 text-blue-800 border-blue-300', step: 2 },
-  PICKED_UP: { label: 'Bag Collected', color: 'bg-indigo-100 text-indigo-800 border-indigo-300', step: 3 },
-  WEIGHED_INSPECTED: { label: 'Weighed & Inspected', color: 'bg-purple-100 text-purple-800 border-purple-300', step: 4 },
-  IN_WASH: { label: 'Washing & Drying', color: 'bg-cyan-100 text-cyan-800 border-cyan-300', step: 5 },
-  IRON_FOLD: { label: 'Ironing & Finishing', color: 'bg-teal-100 text-teal-800 border-teal-300', step: 6 },
-  READY_FOR_DELIVERY: { label: 'Ready for Dispatch', color: 'bg-emerald-100 text-emerald-800 border-emerald-300', step: 7 },
-  OUT_FOR_DELIVERY: { label: 'Out for Delivery', color: 'bg-orange-100 text-orange-800 border-orange-300', step: 8 },
-  DELIVERED: { label: 'Delivered & Complete', color: 'bg-green-100 text-green-800 border-green-300', step: 9 },
-  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-800 border-red-300', step: 0 }
+  TBA: { label: '1. TBA (Confirm Details)', color: 'bg-purple-100 text-purple-800 border-purple-300', step: 1 },
+  SCHEDULED: { label: '2. Scheduled', color: 'bg-sky-100 text-sky-800 border-sky-300', step: 2 },
+  BILLING: { label: '3. Billing', color: 'bg-blue-100 text-blue-800 border-blue-300', step: 3 },
+  IN_PROCESS: { label: '4. In Process', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 4 },
+  READY_FOR_DELIVERY: { label: '5. Ready For Delivery', color: 'bg-indigo-100 text-indigo-800 border-indigo-300', step: 5 },
+  DELIVERED: { label: '6. Delivered', color: 'bg-emerald-100 text-emerald-800 border-emerald-300', step: 6 },
+  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-800 border-red-300', step: 0 },
+  // Backward compatibility mappings
+  BOOKING_REQUESTED: { label: '1. TBA (Confirm Details)', color: 'bg-purple-100 text-purple-800 border-purple-300', step: 1 },
+  PENDING: { label: '1. TBA (Confirm Details)', color: 'bg-purple-100 text-purple-800 border-purple-300', step: 1 },
+  PENDING_CONFIRMATION: { label: '1. TBA (Confirm Details)', color: 'bg-purple-100 text-purple-800 border-purple-300', step: 1 },
+  PICKUP_SCHEDULED: { label: '2. Scheduled', color: 'bg-sky-100 text-sky-800 border-sky-300', step: 2 },
+  PICKED_UP: { label: '2. Scheduled', color: 'bg-sky-100 text-sky-800 border-sky-300', step: 2 },
+  BILLING_PENDING: { label: '3. Billing', color: 'bg-blue-100 text-blue-800 border-blue-300', step: 3 },
+  AWAITING_PAYMENT: { label: '3. Billing', color: 'bg-blue-100 text-blue-800 border-blue-300', step: 3 },
+  WEIGHED_INSPECTED: { label: '3. Billing', color: 'bg-blue-100 text-blue-800 border-blue-300', step: 3 },
+  IN_WASH: { label: '4. In Process', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 4 },
+  IRON_FOLD: { label: '4. In Process', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 4 },
+  PROCESSING: { label: '4. In Process', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 4 },
+  OUT_FOR_DELIVERY: { label: '5. Ready For Delivery', color: 'bg-indigo-100 text-indigo-800 border-indigo-300', step: 5 },
+  COMPLETED: { label: '6. Delivered', color: 'bg-emerald-100 text-emerald-800 border-emerald-300', step: 6 }
 };
+
+export const AVAILABLE_DELIVERY_RIDERS = [
+  'Sompong Jaidee (Bangkok Express Rider)',
+  'Somchai (Rider #1 - Sukhumvit / Watthana)',
+  'Lek (Rider #2 - Silom / Sathon)',
+  'GrabExpress On-Demand Rider',
+  'Lalamove Express Delivery'
+];
 
 export const INITIAL_ORDERS = [
   {
@@ -442,11 +490,11 @@ export const INITIAL_ORDERS = [
     condoName: 'Ashton Silom',
     roomNumber: 'Floor 22, Room 2209',
     leaveWithJuristic: false,
-    estimatedWeightKg: 3.0,
-    actualWeightKg: 3.2,
-    minWeightAppliedKg: 3.0,
-    pricePerKg: 65,
-    totalPrice: 208,
+    estimatedWeightKg: 4.0,
+    actualWeightKg: 4.0,
+    minWeightAppliedKg: 4.0,
+    pricePerKg: 70,
+    totalPrice: 280,
     status: 'OUT_FOR_DELIVERY',
     tagNumber: 'TAG-BKK-084',
     pickupDate: '2026-09-15',
@@ -548,6 +596,8 @@ export const CUSTOMER_TIERS = {
 export const INITIAL_CUSTOMERS = [
   {
     id: 'CUST-8491',
+    firstName: 'Alex',
+    lastName: 'Thorne',
     fullName: 'Alex Thorne',
     nickName: 'Alex',
     gender: 'Male',
@@ -596,6 +646,8 @@ export const INITIAL_CUSTOMERS = [
   },
   {
     id: 'CUST-3920',
+    firstName: 'Siriporn',
+    lastName: 'Tanaka',
     fullName: 'Siriporn Tanaka',
     nickName: 'Som',
     gender: 'Female',
@@ -634,6 +686,8 @@ export const INITIAL_CUSTOMERS = [
   },
   {
     id: 'CUST-7741',
+    firstName: 'Marcus',
+    lastName: 'Dupont',
     fullName: 'Marcus Dupont',
     nickName: 'Marc',
     gender: 'Male',

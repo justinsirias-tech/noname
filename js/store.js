@@ -139,6 +139,41 @@ export class LaundryStore {
         // silent polling
       }
     }, 4000);
+
+    // Immediate customer directory sync and periodic polling every 8 seconds
+    this.loadCustomers();
+    if (this._custPollingInterval) clearInterval(this._custPollingInterval);
+    this._custPollingInterval = setInterval(() => {
+      this.loadCustomers();
+    }, 8000);
+  }
+
+  async loadCustomers() {
+    try {
+      const res = await fetch('/api/customers');
+      if (res.ok) {
+        const remoteCusts = await res.json();
+        if (Array.isArray(remoteCusts) && remoteCusts.length > 0) {
+          const custMap = new Map();
+          for (const c of (this.customers || [])) {
+            if (c && c.id) custMap.set(c.id, c);
+          }
+          for (const rc of remoteCusts) {
+            if (rc && rc.id) {
+              const ex = custMap.get(rc.id);
+              custMap.set(rc.id, ex ? { ...ex, ...rc } : rc);
+            }
+          }
+          this.customers = Array.from(custMap.values());
+          this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+          this.notify();
+          return this.customers;
+        }
+      }
+    } catch (e) {
+      console.warn('Silent customer load error:', e.message);
+    }
+    return this.customers || [];
   }
 
   mergeOrders(remoteOrders) {
@@ -256,19 +291,22 @@ export class LaundryStore {
 
       this.services = loadedServices.map(s => {
         const isPiece = s.pricingType === 'piece' || s.unit === 'piece';
-        const stdPrice = s.standardPricePerKg !== undefined 
+        let stdPrice = s.standardPricePerKg !== undefined 
           ? Number(s.standardPricePerKg) 
-          : Number(s.pricePerKg || 65);
+          : Number(s.pricePerKg || (s.id === 'wash_fold' ? 70 : 70));
+        if (s.id === 'wash_fold' && (stdPrice === 65 || !stdPrice)) {
+          stdPrice = 70;
+        }
         let nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : 0;
         let samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : 0;
-        if (!nextPrice || (nextPrice === stdPrice && s.id === 'wash_fold')) {
-          if (s.id === 'wash_fold') nextPrice = 85;
+        if (!nextPrice || ((nextPrice === stdPrice || nextPrice === 85) && s.id === 'wash_fold')) {
+          if (s.id === 'wash_fold') nextPrice = 129;
           else if (s.id === 'wash_iron_fold') nextPrice = 130;
           else if (s.id === 'wash_iron_hang') nextPrice = 160;
           else nextPrice = Math.round(stdPrice * 1.3);
         }
-        if (!samePrice || (samePrice === 95 && s.id === 'wash_fold')) {
-          if (s.id === 'wash_fold') samePrice = 115;
+        if (!samePrice || ((samePrice === 95 || samePrice === 115) && s.id === 'wash_fold')) {
+          if (s.id === 'wash_fold') samePrice = 259;
           else if (s.id === 'wash_iron_fold') samePrice = 175;
           else if (s.id === 'wash_iron_hang') samePrice = 210;
           else samePrice = Math.round(stdPrice * 1.75);
@@ -409,8 +447,18 @@ export class LaundryStore {
         this.incidents = data.incidents;
         this.persist(STORAGE_KEYS.INCIDENTS, this.incidents);
       }
-      if (Array.isArray(data.customers)) {
-        this.customers = data.customers;
+      if (Array.isArray(data.customers) && data.customers.length > 0) {
+        const custMap = new Map();
+        for (const c of (this.customers || [])) {
+          if (c && c.id) custMap.set(c.id, c);
+        }
+        for (const rc of data.customers) {
+          if (rc && rc.id) {
+            const ex = custMap.get(rc.id);
+            custMap.set(rc.id, ex ? { ...ex, ...rc } : rc);
+          }
+        }
+        this.customers = Array.from(custMap.values());
         this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
       }
       if (data.settings && Object.keys(data.settings).length > 0) {
@@ -551,7 +599,7 @@ export class LaundryStore {
       if (srv.id === serviceId) {
         const stdPrice = updatedData.standardPricePerKg !== undefined
           ? Number(updatedData.standardPricePerKg)
-          : (updatedData.pricePerKg !== undefined ? Number(updatedData.pricePerKg) : (srv.standardPricePerKg || srv.pricePerKg || 65));
+          : (updatedData.pricePerKg !== undefined ? Number(updatedData.pricePerKg) : (srv.standardPricePerKg || srv.pricePerKg || 70));
         const nextPrice = updatedData.nextDayPricePerKg !== undefined 
           ? Number(updatedData.nextDayPricePerKg) 
           : (srv.nextDayPricePerKg || Math.round(stdPrice * 1.3));
@@ -627,7 +675,7 @@ export class LaundryStore {
       if (!draft) return srv;
       const stdPrice = draft.standardPricePerKg !== undefined
         ? Number(draft.standardPricePerKg)
-        : (draft.pricePerKg !== undefined ? Number(draft.pricePerKg) : (srv.standardPricePerKg || srv.pricePerKg || 65));
+        : (draft.pricePerKg !== undefined ? Number(draft.pricePerKg) : (srv.standardPricePerKg || srv.pricePerKg || 70));
       const nextPrice = draft.nextDayPricePerKg !== undefined 
         ? Number(draft.nextDayPricePerKg) 
         : (srv.nextDayPricePerKg || Math.round(stdPrice * 1.3));
@@ -779,7 +827,7 @@ export class LaundryStore {
   // Add a brand new service dynamically
   addService(serviceData) {
     const id = serviceData.id || (serviceData.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000));
-    const stdPrice = Number(serviceData.standardPricePerKg || serviceData.pricePerKg) || 65;
+    const stdPrice = Number(serviceData.standardPricePerKg || serviceData.pricePerKg) || 70;
     const nextPrice = Number(serviceData.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
     const samePrice = Number(serviceData.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
     const isPiece = serviceData.pricingType === 'piece' || serviceData.unit === 'piece';
@@ -850,13 +898,13 @@ export class LaundryStore {
     else if (rawSpeed === 'next_day' || rawSpeed === 'next_day_24h') speed = 'next_day_24h';
     else speed = 'standard_48h';
 
-    let unitPrice = Number(service.standardPricePerKg || service.pricePerKg || 65);
+    let unitPrice = Number(service.standardPricePerKg || service.pricePerKg || 70);
     if (speed === 'same_day') {
-      unitPrice = Number(service.sameDayPricePerKg) || Math.round(Number(service.standardPricePerKg || service.pricePerKg || 65) * 1.75);
+      unitPrice = Number(service.sameDayPricePerKg) || Math.round(Number(service.standardPricePerKg || service.pricePerKg || 70) * 1.75);
     } else if (speed === 'next_day_24h') {
-      unitPrice = Number(service.nextDayPricePerKg) || Math.round(Number(service.standardPricePerKg || service.pricePerKg || 65) * 1.3);
+      unitPrice = Number(service.nextDayPricePerKg) || Math.round(Number(service.standardPricePerKg || service.pricePerKg || 70) * 1.3);
     } else {
-      unitPrice = Number(service.standardPricePerKg || service.pricePerKg || 65);
+      unitPrice = Number(service.standardPricePerKg || service.pricePerKg || 70);
     }
 
     const hasMultiItems = Array.isArray(orderInput.items) && orderInput.items.length > 0;
@@ -956,7 +1004,7 @@ export class LaundryStore {
       deliveryFee,
       totalPrice: grandTotal,
       turnaroundSpeed: speed,
-      status: 'BOOKING_REQUESTED',
+      status: orderInput.status || 'TBA',
       paymentStatus: 'PENDING', // PENDING, PAID
       paymentMethod: null,
       paymentRef: null,
@@ -968,12 +1016,14 @@ export class LaundryStore {
       specialInstructions: orderInput.specialInstructions || '',
       agreedTerms: true,
       cashlessPolicyAcknowledged: true,
+      assignedRider: orderInput.assignedRider || null,
+      billingSentAt: orderInput.billingSentAt || null,
       createdAt: now.toISOString(),
       timeline: [
         {
-          status: 'BOOKING_REQUESTED',
+          status: orderInput.status || 'TBA',
           timestamp: timestampStr,
-          note: 'Booking created online via ' + (orderInput.contactChannel || 'online').toUpperCase() + '. Pick-up requested at ' + (orderInput.condoName || orderInput.district || 'Bangkok') + '.'
+          note: 'Booking created online via ' + (orderInput.contactChannel || 'online').toUpperCase() + '. Details to be confirmed with customer.'
         }
       ]
     };
@@ -984,13 +1034,37 @@ export class LaundryStore {
 
     // Auto-create or link Customer in CRM
     try {
-      const existingCust = (this.customers || []).find(c =>
-        (orderInput.customerName && c.fullName && c.fullName.trim().toLowerCase() === orderInput.customerName.trim().toLowerCase()) ||
-        (orderInput.email && c.email && c.email.trim().toLowerCase() === orderInput.email.trim().toLowerCase()) ||
-        (orderInput.contactValue && c.mobileNumber && c.mobileNumber.replace(/[^0-9]/g, '') === orderInput.contactValue.replace(/[^0-9]/g, ''))
-      );
+      const inputPhoneDigits = (orderInput.mobileNumber || orderInput.contactValue || '').replace(/\D/g, '');
+      const inputSuffix = inputPhoneDigits.length >= 8 ? inputPhoneDigits.slice(-9) : '';
+
+      const existingCust = (this.customers || []).find(c => {
+        if (inputSuffix) {
+          const c1 = (c.mobileNumber || '').replace(/\D/g, '');
+          const c2 = (c.secondaryMobile || '').replace(/\D/g, '');
+          if ((c1.length >= 8 && c1.slice(-9) === inputSuffix) || (c2.length >= 8 && c2.slice(-9) === inputSuffix)) {
+            return true;
+          }
+        }
+        if (orderInput.email && c.email && c.email.trim().toLowerCase() === orderInput.email.trim().toLowerCase()) {
+          return true;
+        }
+        if (orderInput.customerName && c.fullName && c.fullName.trim().toLowerCase() === orderInput.customerName.trim().toLowerCase()) {
+          return true;
+        }
+        return false;
+      });
 
       if (existingCust) {
+        const updates = {};
+        if (orderInput.firstName && !existingCust.firstName) updates.firstName = orderInput.firstName.trim();
+        if (orderInput.lastName && !existingCust.lastName) updates.lastName = orderInput.lastName.trim();
+        if (orderInput.email && (!existingCust.email || existingCust.email.includes('@customer.local'))) {
+          updates.email = orderInput.email.trim().toLowerCase();
+        }
+        if (orderInput.companyTax?.required) {
+          updates.companyTax = orderInput.companyTax;
+        }
+
         // If customer ordered at a new condo/address, add it to their saved addresses
         const hasAddr = (existingCust.addresses || []).some(a => 
           orderInput.condoName && (a.address.toLowerCase().includes(orderInput.condoName.toLowerCase()) || a.label.toLowerCase().includes(orderInput.condoName.toLowerCase()))
@@ -1005,16 +1079,22 @@ export class LaundryStore {
             isPrimary: false
           });
         }
-        // Update company tax if provided in booking
-        if (orderInput.companyTax?.required) {
-          this.updateCustomer(existingCust.id, { companyTax: orderInput.companyTax });
+        if (Object.keys(updates).length > 0) {
+          this.updateCustomer(existingCust.id, updates);
         }
-      } else if (orderInput.customerName) {
+      } else if (orderInput.customerName || orderInput.firstName) {
+        const fName = (orderInput.firstName || (orderInput.customerName ? orderInput.customerName.trim().split(' ')[0] : '')).trim();
+        const lName = (orderInput.lastName || (orderInput.customerName ? orderInput.customerName.trim().split(' ').slice(1).join(' ') : '')).trim();
+        const combinedFullName = (orderInput.customerName || `${fName} ${lName}`).trim();
+        const phone = orderInput.mobileNumber || (orderInput.contactChannel === 'whatsapp' || /^\+?\d{8,15}$/.test(orderInput.contactValue) ? orderInput.contactValue : '');
+
         this.createCustomer({
-          fullName: orderInput.customerName,
-          nickName: orderInput.nickName || orderInput.customerName.split(' ')[0],
+          firstName: fName,
+          lastName: lName,
+          fullName: combinedFullName,
+          nickName: orderInput.nickName || fName,
           gender: orderInput.gender || 'Rather not say',
-          mobileNumber: orderInput.contactChannel === 'whatsapp' || /^\+?\d{8,15}$/.test(orderInput.contactValue) ? orderInput.contactValue : '',
+          mobileNumber: phone,
           isWhatsApp: orderInput.contactChannel === 'whatsapp' || Boolean(orderInput.isWhatsApp),
           email: orderInput.email || '',
           lineId: orderInput.contactChannel === 'line' ? orderInput.contactValue : (orderInput.lineId || ''),
@@ -1096,6 +1176,13 @@ export class LaundryStore {
           updated.items = serviceUpdates.items;
         }
 
+        if (serviceUpdates.assignedRider !== undefined) {
+          updated.assignedRider = serviceUpdates.assignedRider;
+        }
+        if (serviceUpdates.billingSentAt !== undefined) {
+          updated.billingSentAt = serviceUpdates.billingSentAt;
+        }
+
         if (actualWeightKg !== null && actualWeightKg !== undefined && actualWeightKg !== '') {
           updated.actualWeightKg = Number(actualWeightKg);
         }
@@ -1157,6 +1244,54 @@ export class LaundryStore {
     });
   }
 
+  // Issue confirmed billing to customer
+  async sendBilling(orderId, details = {}) {
+    const now = new Date().toISOString();
+    this.orders = this.orders.map(o => {
+      if (o.id === orderId) {
+        return {
+          ...o,
+          billingSentAt: now,
+          status: o.status === 'TBA' || o.status === 'SCHEDULED' ? 'BILLING' : o.status
+        };
+      }
+      return o;
+    });
+    this.persist(STORAGE_KEYS.ORDERS, this.orders);
+    this.notify();
+
+    try {
+      const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/send-billing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(details)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.order) {
+          this.orders = this.orders.map(o => o.id === orderId ? data.order : o);
+          this.persist(STORAGE_KEYS.ORDERS, this.orders);
+          this.notify();
+        }
+        return data;
+      }
+    } catch (e) {
+      console.warn('sendBilling API error:', e);
+    }
+  }
+
+  // Assign delivery rider
+  async assignRider(orderId, riderName) {
+    return this.updateOrderStatus(
+      orderId,
+      undefined,
+      `Delivery rider assigned: ${riderName || 'Unassigned'}`,
+      null,
+      null,
+      { assignedRider: riderName }
+    );
+  }
+
   // Mark Order Paid via 3rd-Party Gateway
   markOrderPaid(orderId, paymentMethod = 'PromptPay QR', transactionRef = '') {
     const now = new Date();
@@ -1200,11 +1335,15 @@ export class LaundryStore {
     reconciliationStatus = 'RECONCILED',
     reconciliationNotes = '',
     bankAccountRef = '',
-    reconciledBy = 'admin'
+    reconciledBy = 'admin',
+    gatewayFee,
+    netPayout,
+    depositBankRef
   } = {}) {
     const now = new Date();
     const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
     const isReconciled = reconciliationStatus === 'RECONCILED';
+    const bankRefVal = depositBankRef || bankAccountRef || '';
 
     this.orders = this.orders.map(order => {
       if (order.id === orderId) {
@@ -1214,13 +1353,16 @@ export class LaundryStore {
           reconciledAt: isReconciled ? now.toISOString() : (reconciliationStatus === 'UNRECONCILED' ? null : order.reconciledAt),
           reconciledBy,
           reconciliationNotes,
-          bankAccountRef,
+          bankAccountRef: bankRefVal,
+          gatewayFee: gatewayFee !== undefined ? Number(gatewayFee) : order.gatewayFee,
+          netPayout: netPayout !== undefined ? Number(netPayout) : order.netPayout,
+          depositBankRef: bankRefVal,
           timeline: [
             ...(order.timeline || []),
             {
               status: `RECON_${reconciliationStatus}`,
               timestamp: timestampStr,
-              note: `Transaction marked as ${reconciliationStatus} by ${reconciledBy}.${bankAccountRef ? ` Bank/Batch Ref: ${bankAccountRef}.` : ''}${reconciliationNotes ? ` Notes: ${reconciliationNotes}` : ''}`
+              note: `Transaction marked as ${reconciliationStatus} by ${reconciledBy}.${bankRefVal ? ` Bank/Batch Ref: ${bankRefVal}.` : ''}${reconciliationNotes ? ` Notes: ${reconciliationNotes}` : ''}`
             }
           ]
         };
@@ -1237,8 +1379,11 @@ export class LaundryStore {
       body: JSON.stringify({
         reconciliationStatus,
         reconciliationNotes,
-        bankAccountRef,
-        reconciledBy
+        bankAccountRef: bankRefVal,
+        reconciledBy,
+        gatewayFee,
+        netPayout,
+        depositBankRef: bankRefVal
       })
     }).then(res => res.json()).catch(err => {
       console.warn('Failed to sync reconciliation to PostgreSQL:', err);
@@ -1406,12 +1551,30 @@ export class LaundryStore {
     });
   }
 
+  findCustomerByPhone(phone) {
+    if (!phone) return null;
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length < 8) return null;
+    const suffix = clean.slice(-9);
+    return (this.customers || []).find(c => {
+      const c1 = (c.mobileNumber || '').replace(/\D/g, '');
+      const c2 = (c.secondaryMobile || '').replace(/\D/g, '');
+      return (c1.length >= 8 && c1.slice(-9) === suffix) || (c2.length >= 8 && c2.slice(-9) === suffix);
+    }) || null;
+  }
+
   createCustomer(data) {
     const newId = 'CUST-' + Math.floor(1000 + Math.random() * 9000);
+    const firstName = (data.firstName || (data.fullName ? data.fullName.trim().split(' ')[0] : '')).trim();
+    const lastName = (data.lastName || (data.fullName ? data.fullName.trim().split(' ').slice(1).join(' ') : '')).trim();
+    const fullName = (data.fullName || `${firstName} ${lastName}`).trim();
+
     const newCustomer = {
       id: newId,
-      fullName: (data.fullName || '').trim(),
-      nickName: (data.nickName || '').trim(),
+      firstName,
+      lastName,
+      fullName,
+      nickName: (data.nickName || firstName).trim(),
       gender: data.gender || 'Rather not say',
       dateOfBirth: data.dateOfBirth || '',
       mobileNumber: (data.mobileNumber || '').trim(),

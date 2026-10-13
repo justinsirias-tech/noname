@@ -6,7 +6,7 @@ const cors = require('cors');
 const { query } = require('./db');
 const { hashPassword, verifyPassword, createSession, getSession, deleteSession, requireAdminAuth } = require('./auth');
 const { createTlsProxyRouter, callTlsApi, TLS_API_URL, TLS_BRAND } = require('./tlsProxy');
-const { sendBookingNotificationEmail } = require('./mailer');
+const { sendBookingConfirmationEmail, sendConfirmedBillingEmail, sendBookingNotificationEmail } = require('./mailer');
 let defaultDeliveryZones = [];
 try {
   const deliveryData = require('./deliveryZonesData.json');
@@ -36,9 +36,9 @@ let initialServices = [
     description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
     unit: 'KG',
     pricingType: 'weight',
-    stdPrice: 65,
-    nextPrice: 85,
-    samePrice: 115,
+    stdPrice: 70,
+    nextPrice: 129,
+    samePrice: 259,
     sameAvail: true,
     minWeight: 4.0,
     turnaround: 48,
@@ -249,11 +249,66 @@ async function ensureDatabaseSchema() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS quantity NUMERIC DEFAULT 1;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS unit VARCHAR(32) DEFAULT 'KG';
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS category_id VARCHAR(64) DEFAULT 'laundry_by_weight';
-      ALTER TABLE orders ADD COLUMN IF NOT EXISTS items JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS first_name VARCHAR(128);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS last_name VARCHAR(128);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS gateway_fee NUMERIC;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS net_payout NUMERIC;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS deposit_bank_ref VARCHAR(128);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS assigned_rider VARCHAR(128);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS billing_sent_at TIMESTAMPTZ;
+
+      CREATE TABLE IF NOT EXISTS customers (
+        id VARCHAR(64) PRIMARY KEY,
+        first_name VARCHAR(128),
+        last_name VARCHAR(128),
+        full_name VARCHAR(255) NOT NULL,
+        nick_name VARCHAR(128),
+        gender VARCHAR(32) DEFAULT 'Rather not say',
+        date_of_birth VARCHAR(64),
+        mobile_number VARCHAR(64) NOT NULL,
+        is_whatsapp BOOLEAN DEFAULT TRUE,
+        secondary_mobile VARCHAR(64),
+        is_secondary_whatsapp BOOLEAN DEFAULT FALSE,
+        email VARCHAR(255),
+        line_id VARCHAR(128),
+        pin_code VARCHAR(16) DEFAULT '123456',
+        is_verified BOOLEAN DEFAULT FALSE,
+        verified_via VARCHAR(32),
+        tier VARCHAR(32) DEFAULT 'Regular',
+        notes TEXT,
+        company_tax JSONB DEFAULT '{}'::jsonb,
+        addresses JSONB DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      ALTER TABLE customers ADD COLUMN IF NOT EXISTS first_name VARCHAR(128);
+      ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_name VARCHAR(128);
       ALTER TABLE services ADD COLUMN IF NOT EXISTS category_id VARCHAR(64) DEFAULT 'laundry_by_weight';
       ALTER TABLE services ADD COLUMN IF NOT EXISTS pricing_type VARCHAR(32) DEFAULT 'weight';
+
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(128) UNIQUE,
+        email VARCHAR(255),
+        full_name VARCHAR(255),
+        phone VARCHAR(64),
+        role VARCHAR(64) DEFAULT 'staff',
+        status VARCHAR(32) DEFAULT 'active',
+        password_hash VARCHAR(255),
+        salt VARCHAR(255),
+        permissions JSONB DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '[]'::jsonb;
+      UPDATE admin_users 
+      SET role = 'super_admin'
+      WHERE LOWER(email) = 'justin.sirias@gmail.com' 
+         OR LOWER(username) = 'test@nonamelaundry.com';
     `);
-    console.log('[POSTGRES] Orders reconciliation, delivery fee, categories, linens and multi-items schema verified.');
+    console.log('[POSTGRES] Orders reconciliation, customer first/last names, delivery fee, categories, and admin users verified.');
 
     // Seed missing default services
     const existingServices = await query('SELECT id FROM services');
@@ -367,7 +422,7 @@ ensureDatabaseSchema();
 // Helper row mappers
 function mapService(row) {
   if (!row) return null;
-  const stdPrice = Number(row.standard_price_per_kg || row.price_per_kg || 65);
+  const stdPrice = Number(row.standard_price_per_kg || row.price_per_kg || 70);
   const nextPrice = Number(row.next_day_price_per_kg || Math.round(stdPrice * 1.3));
   const samePrice = Number(row.same_day_price_per_kg || Math.round(stdPrice * 1.75));
   return {
@@ -395,6 +450,8 @@ function mapOrder(row) {
   return {
     id: row.id,
     customerName: row.customer_name,
+    firstName: row.first_name || (row.customer_name ? row.customer_name.trim().split(' ')[0] : null),
+    lastName: row.last_name || (row.customer_name ? row.customer_name.trim().split(' ').slice(1).join(' ') : null),
     contactChannel: row.contact_channel,
     contactValue: row.contact_value,
     email: row.email,
@@ -430,12 +487,17 @@ function mapOrder(row) {
     reconciliationNotes: row.reconciliation_notes || '',
     customerId: row.customer_id || null,
     bankAccountRef: row.bank_account_ref || '',
+    gatewayFee: row.gateway_fee !== null && row.gateway_fee !== undefined ? Number(row.gateway_fee) : null,
+    netPayout: row.net_payout !== null && row.net_payout !== undefined ? Number(row.net_payout) : null,
+    depositBankRef: row.deposit_bank_ref || row.bank_account_ref || '',
     postalCode: row.postal_code || '10110',
     deliveryFee: row.delivery_fee !== null ? Number(row.delivery_fee) : 0,
     quantity: row.quantity !== null && row.quantity !== undefined ? Number(row.quantity) : (row.actual_weight_kg || row.estimated_weight_kg || 1),
     unit: row.unit || 'KG',
     categoryId: row.category_id || 'laundry_by_weight',
     items: row.items && Array.isArray(row.items) ? row.items : (typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || [])),
+    assignedRider: row.assigned_rider || null,
+    billingSentAt: row.billing_sent_at ? new Date(row.billing_sent_at).toISOString() : null,
     timeline: Array.isArray(row.timeline) ? row.timeline : [],
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
   };
@@ -444,10 +506,15 @@ function mapOrder(row) {
 
 function mapCustomer(row) {
   if (!row) return null;
+  const fName = row.first_name || (row.full_name ? row.full_name.trim().split(' ')[0] : '');
+  const lName = row.last_name || (row.full_name ? row.full_name.trim().split(' ').slice(1).join(' ') : '');
+  const combinedName = row.full_name || `${fName} ${lName}`.trim();
   return {
     id: row.id,
-    fullName: row.full_name,
-    nickName: row.nick_name || '',
+    firstName: fName,
+    lastName: lName,
+    fullName: combinedName,
+    nickName: row.nick_name || fName,
     gender: row.gender || 'Rather not say',
     dateOfBirth: row.date_of_birth || '',
     mobileNumber: row.mobile_number,
@@ -691,6 +758,26 @@ function loadLocalAdminUsers() {
       const raw = fs.readFileSync(ADMIN_USERS_FILE, 'utf8');
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        let changed = false;
+        parsed.forEach(u => {
+          if (
+            (u.email && u.email.toLowerCase() === 'justin.sirias@gmail.com') ||
+            (u.username && u.username.toLowerCase() === 'test@nonamelaundry.com') ||
+            (u.fullName && u.fullName.toLowerCase().includes('justin'))
+          ) {
+            if (u.role !== 'super_admin' || !Array.isArray(u.permissions) || u.permissions.length < 11) {
+              u.role = 'super_admin';
+              u.permissions = [
+                'orders', 'sales-reconciliation', 'users', 'crm', 'faq',
+                'services-pricing', 'postal-rates', 'gateway', 'line-oa', 'incidents', 'new-pos'
+              ];
+              changed = true;
+            }
+          }
+        });
+        if (changed) {
+          try { fs.writeFileSync(ADMIN_USERS_FILE, JSON.stringify(parsed, null, 2), 'utf8'); } catch (e) {}
+        }
         return parsed;
       }
     }
@@ -729,8 +816,8 @@ const DEFAULT_LOCAL_ORDERS = [
     estimatedWeightKg: 4.5,
     actualWeightKg: null,
     minWeightAppliedKg: 4.0,
-    pricePerKg: 65,
-    totalPrice: 343,
+    pricePerKg: 70,
+    totalPrice: 365,
     turnaroundSpeed: 'standard_48h',
     status: 'BOOKING_REQUESTED',
     paymentStatus: 'PENDING',
@@ -802,8 +889,8 @@ const DEFAULT_LOCAL_ORDERS = [
     estimatedWeightKg: 3.0,
     actualWeightKg: 3.2,
     minWeightAppliedKg: 3.0,
-    pricePerKg: 65,
-    totalPrice: 208,
+    pricePerKg: 70,
+    totalPrice: 224,
     turnaroundSpeed: 'standard_48h',
     status: 'OUT_FOR_DELIVERY',
     tagNumber: 'TAG-BKK-084',
@@ -852,6 +939,243 @@ function saveLocalOrders(orders) {
 let localOrders = loadLocalOrders();
 if (!fs.existsSync(ORDERS_FILE)) {
   saveLocalOrders(localOrders);
+}
+
+const CUSTOMERS_FILE = path.join(__dirname, 'customers_local.json');
+
+const DEFAULT_LOCAL_CUSTOMERS = [
+  {
+    id: 'CUST-8491',
+    firstName: 'Alex',
+    lastName: 'Thorne',
+    fullName: 'Alex Thorne',
+    nickName: 'Alex',
+    gender: 'Male',
+    dateOfBirth: '1990-05-14',
+    mobileNumber: '+66 82 455 9182',
+    isWhatsApp: false,
+    secondaryMobile: '+1 (415) 890-1234',
+    isSecondaryWhatsApp: true,
+    email: 'alex.thorne@gmail.com',
+    lineId: 'alex_bkk',
+    pinCode: '123456',
+    isVerified: true,
+    verifiedVia: 'whatsapp',
+    companyTax: {
+      required: true,
+      companyName: 'Thorne Design & Living (Thailand) Co., Ltd.',
+      taxId: '0105562019284',
+      branch: 'Head Office (สำนักงานใหญ่)',
+      companyAddress: '8 Sukhumvit 26, Khlong Tan, Khlong Toei, Bangkok 10110'
+    },
+    addresses: [
+      {
+        id: 'ADDR-101',
+        label: 'Home (The Estelle)',
+        address: 'The Estelle Phrom Phong, 8 Sukhumvit 26, Khlong Tan',
+        district: 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+        roomNumber: 'Tower A, Room 1804',
+        googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=The+Estelle+Phrom+Phong+Sukhumvit+26+Bangkok',
+        leaveWithJuristic: true,
+        isPrimary: true
+      }
+    ],
+    tier: 'VIP',
+    notes: 'Prefers eco-friendly detergent.',
+    createdAt: '2026-08-10T10:00:00Z'
+  },
+  {
+    id: 'CUST-3920',
+    firstName: 'Siriporn',
+    lastName: 'Tanaka',
+    fullName: 'Siriporn Tanaka',
+    nickName: 'Som',
+    gender: 'Female',
+    dateOfBirth: '1993-11-28',
+    mobileNumber: '+66 89 712 3456',
+    isWhatsApp: true,
+    secondaryMobile: '+81 90 1234 5678',
+    isSecondaryWhatsApp: false,
+    email: 'siriporn.t@yahoo.co.th',
+    lineId: '@siriporn_bkk',
+    pinCode: '654321',
+    isVerified: true,
+    addresses: [
+      {
+        id: 'ADDR-201',
+        label: 'Condo (Ashton Silom)',
+        address: 'Ashton Silom, 162 Silom Rd, Suriya Wong, Bang Rak',
+        district: 'Bang Rak (Silom, Surawong)',
+        roomNumber: 'Floor 22, Room 2209',
+        leaveWithJuristic: false,
+        isPrimary: true
+      }
+    ],
+    tier: 'Regular',
+    createdAt: '2026-08-22T14:30:00Z'
+  }
+];
+
+function loadLocalCustomers() {
+  try {
+    if (fs.existsSync(CUSTOMERS_FILE)) {
+      const raw = fs.readFileSync(CUSTOMERS_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read customers_local.json:', err.message);
+  }
+  return DEFAULT_LOCAL_CUSTOMERS;
+}
+
+function saveLocalCustomers(custs) {
+  try {
+    fs.writeFileSync(CUSTOMERS_FILE, JSON.stringify(custs, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('Could not write customers_local.json:', err.message);
+  }
+}
+
+let localCustomers = loadLocalCustomers();
+if (!fs.existsSync(CUSTOMERS_FILE)) {
+  saveLocalCustomers(localCustomers);
+}
+
+// Automatically save or update customer in CRM system whenever a booking is created
+async function autoSaveCustomerFromOrder(o) {
+  try {
+    const fName = (o.firstName || (o.customerName ? o.customerName.trim().split(' ')[0] : '')).trim();
+    const lName = (o.lastName || (o.customerName ? o.customerName.trim().split(' ').slice(1).join(' ') : '')).trim();
+    const fullName = (o.customerName || `${fName} ${lName}`).trim();
+    const phoneRaw = (o.mobileNumber || (o.contactChannel === 'whatsapp' || /^\+?\d{8,15}$/.test(o.contactValue) ? o.contactValue : '')).trim();
+    const cleanPhone = phoneRaw.replace(/\D/g, '');
+    const suffix = cleanPhone.length >= 8 ? cleanPhone.slice(-9) : '';
+    const email = (o.email || '').trim().toLowerCase();
+
+    let existing = null;
+    if (suffix) {
+      try {
+        const checkRes = await query(`
+          SELECT * FROM customers 
+          WHERE regexp_replace(mobile_number, '[^0-9]', '', 'g') LIKE $1
+             OR regexp_replace(secondary_mobile, '[^0-9]', '', 'g') LIKE $1
+          LIMIT 1
+        `, [`%${suffix}`]);
+        if (checkRes.rows.length > 0) {
+          existing = mapCustomer(checkRes.rows[0]);
+        }
+      } catch (err) {}
+    }
+
+    if (!existing && email && !email.includes('@customer.local')) {
+      try {
+        const checkRes = await query(`SELECT * FROM customers WHERE LOWER(email) = $1 LIMIT 1`, [email]);
+        if (checkRes.rows.length > 0) {
+          existing = mapCustomer(checkRes.rows[0]);
+        }
+      } catch (err) {}
+    }
+
+    if (!existing && suffix) {
+      existing = (localCustomers || []).find(c => {
+        const c1 = (c.mobileNumber || '').replace(/\D/g, '');
+        const c2 = (c.secondaryMobile || '').replace(/\D/g, '');
+        return (c1.length >= 8 && c1.slice(-9) === suffix) || (c2.length >= 8 && c2.slice(-9) === suffix);
+      });
+    }
+
+    const now = new Date();
+    const newAddressObj = {
+      id: 'ADDR-' + Math.floor(100 + Math.random() * 900),
+      label: (o.condoName || 'Home').trim(),
+      address: `${o.condoName || ''}, ${o.district || 'Bangkok'}`.trim(),
+      district: o.district || 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+      roomNumber: (o.roomNumber || '').trim(),
+      leaveWithJuristic: Boolean(o.leaveWithJuristic),
+      isPrimary: true
+    };
+
+    if (existing) {
+      let updatedAddrs = Array.isArray(existing.addresses) ? [...existing.addresses] : [];
+      const hasCondo = updatedAddrs.some(a => 
+        o.condoName && (a.address.toLowerCase().includes(o.condoName.toLowerCase()) || a.label.toLowerCase().includes(o.condoName.toLowerCase()))
+      );
+      if (!hasCondo && o.condoName) {
+        updatedAddrs.push({ ...newAddressObj, isPrimary: false });
+      }
+
+      try {
+        await query(`
+          UPDATE customers SET 
+            addresses = $1,
+            email = COALESCE(NULLIF(email, ''), $2),
+            first_name = COALESCE(NULLIF(first_name, ''), $3),
+            last_name = COALESCE(NULLIF(last_name, ''), $4),
+            updated_at = NOW()
+          WHERE id = $5
+        `, [JSON.stringify(updatedAddrs), email || null, fName || null, lName || null, existing.id]);
+      } catch (updErr) {}
+
+      localCustomers = (localCustomers || []).map(c => c.id === existing.id ? { ...c, addresses: updatedAddrs } : c);
+      saveLocalCustomers(localCustomers);
+      return existing;
+    } else if (fullName || fName) {
+      const custId = o.customerId || ('CUST-' + Math.floor(1000 + Math.random() * 9000));
+      const newCust = {
+        id: custId,
+        firstName: fName,
+        lastName: lName,
+        fullName: fullName,
+        nickName: (o.nickName || fName).trim(),
+        gender: 'Rather not say',
+        dateOfBirth: '',
+        mobileNumber: phoneRaw,
+        isWhatsApp: o.contactChannel === 'whatsapp',
+        secondaryMobile: '',
+        isSecondaryWhatsApp: false,
+        email: email,
+        lineId: o.contactChannel === 'line' ? o.contactValue : '',
+        pinCode: '123456',
+        isVerified: false,
+        tier: 'New',
+        notes: `Customer auto-saved from online order ${o.id || ''}`,
+        companyTax: o.companyTax || {},
+        addresses: [newAddressObj],
+        createdAt: now.toISOString()
+      };
+
+      try {
+        await query(`
+          INSERT INTO customers (
+            id, first_name, last_name, full_name, nick_name, gender,
+            mobile_number, is_whatsapp, email, line_id, pin_code,
+            tier, notes, company_tax, addresses, created_at, updated_at
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16
+          ) ON CONFLICT (id) DO NOTHING
+        `, [
+          custId, fName, lName, fullName, (o.nickName || fName).trim(), 'Rather not say',
+          phoneRaw, o.contactChannel === 'whatsapp', email || null,
+          o.contactChannel === 'line' ? o.contactValue : null, '123456',
+          'New', `Customer auto-saved from online order ${o.id || ''}`,
+          JSON.stringify(o.companyTax || {}), JSON.stringify([newAddressObj]), now
+        ]);
+      } catch (insErr) {
+        console.warn('[SERVER] Auto-save customer to PG failed, saving to localCustomers:', insErr.message);
+      }
+
+      localCustomers = [newCust, ...(localCustomers || []).filter(c => c.id !== custId)];
+      saveLocalCustomers(localCustomers);
+      console.log(`[CRM AUTO-SAVE] Auto-saved new customer "${fullName}" (${custId}) from booking.`);
+      return newCust;
+    }
+  } catch (err) {
+    console.warn('[CRM AUTO-SAVE ERROR]', err);
+  }
+  return null;
 }
 
 // Admin Authentication Routes
@@ -1427,14 +1751,35 @@ app.delete('/api/admin/users/:id', requireAdminAuth, async (req, res) => {
   }
 });
 
+function mergeCustomerLists(dbCustomers = [], localCusts = []) {
+  const map = new Map();
+  // 1. Initial/local customers
+  for (const c of (localCusts || [])) {
+    if (!c) continue;
+    const key = (c.id || c.mobileNumber || c.email || '').toLowerCase().trim();
+    if (key) map.set(key, c);
+  }
+  // 2. Overwrite / enrich with DB customers
+  for (const c of (dbCustomers || [])) {
+    if (!c) continue;
+    const key = (c.id || c.mobileNumber || c.email || '').toLowerCase().trim();
+    if (key) {
+      const existing = map.get(key);
+      map.set(key, existing ? { ...existing, ...c } : c);
+    }
+  }
+  return Array.from(map.values());
+}
+
 // 2. Full State for instant hydration
 app.get('/api/state', async (req, res) => {
   try {
-    const [servicesRes, ordersRes, incidentsRes, settingsRes] = await Promise.all([
+    const [servicesRes, ordersRes, incidentsRes, settingsRes, customersRes] = await Promise.all([
       query('SELECT * FROM services ORDER BY price_per_kg ASC'),
       query('SELECT * FROM orders ORDER BY created_at DESC'),
       query('SELECT * FROM incidents ORDER BY created_at DESC'),
-      query("SELECT value FROM settings WHERE key = 'app_config'")
+      query("SELECT value FROM settings WHERE key = 'app_config'"),
+      query('SELECT * FROM customers ORDER BY created_at DESC').catch(() => ({ rows: [] }))
     ]);
 
     const services = servicesRes.rows.map(mapService);
@@ -1442,11 +1787,15 @@ app.get('/api/state', async (req, res) => {
     const incidents = incidentsRes.rows.map(mapIncident);
     const settings = settingsRes.rows.length > 0 ? settingsRes.rows[0].value : null;
 
+    const dbCustomers = (customersRes?.rows || []).map(mapCustomer).filter(Boolean);
+    const mergedCustomers = mergeCustomerLists(dbCustomers, localCustomers);
+
     res.json({
       services,
       orders,
       incidents,
-      settings
+      settings,
+      customers: mergedCustomers
     });
   } catch (err) {
     console.warn('[SERVER] PostgreSQL query fallback for /api/state:', err.message);
@@ -1472,6 +1821,7 @@ app.get('/api/state', async (req, res) => {
       })),
       orders: localOrders,
       incidents: [],
+      customers: localCustomers,
       settings: {
         categories: [
           { id: 'laundry_by_weight', name: 'Laundry by Weight (KG)', nameTh: 'ซัก อบ รีด ตามน้ำหนัก (กิโลกรัม)', icon: 'scale', badge: '🧺 By Weight (KG)', pricingType: 'weight', description: 'Everyday casual clothes billed by weight.', displayOrder: 1 },
@@ -1519,7 +1869,7 @@ app.post('/api/services', requireAdminAuth, async (req, res) => {
   try {
     const s = req.body;
     const id = s.id || (s.name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(Math.random() * 1000));
-    const stdPrice = Number(s.standardPricePerKg || s.pricePerKg) || 65;
+    const stdPrice = Number(s.standardPricePerKg || s.pricePerKg) || 70;
     const nextPrice = Number(s.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
     const samePrice = Number(s.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
     const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true;
@@ -1731,17 +2081,23 @@ app.post('/api/orders', async (req, res) => {
   const now = new Date();
   const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
 
+  // Auto-save customer info in CRM system on every booking
+  const autoSavedCustomer = await autoSaveCustomerFromOrder(o);
+
   const initialTimeline = o.timeline && o.timeline.length > 0 ? o.timeline : [
     {
-      status: 'BOOKING_REQUESTED',
+      status: o.status || 'TBA',
       timestamp: timestampStr,
-      note: `Booking created online via ${(o.contactChannel || 'online').toUpperCase()}. Pick-up requested at ${o.condoName || o.district || 'Bangkok'}.`
+      note: `Booking created online via ${(o.contactChannel || 'online').toUpperCase()}. Details to be confirmed with customer.`
     }
   ];
 
   const localOrderObj = {
     id: trackingNumber,
-    customerName: o.customerName || 'Online Customer',
+    customerId: autoSavedCustomer?.id || o.customerId || null,
+    firstName: o.firstName || autoSavedCustomer?.firstName || null,
+    lastName: o.lastName || autoSavedCustomer?.lastName || null,
+    customerName: o.customerName || (autoSavedCustomer ? autoSavedCustomer.fullName : 'Online Customer'),
     contactChannel: o.contactChannel || 'online',
     contactValue: o.contactValue || '',
     email: o.email || '',
@@ -1754,10 +2110,10 @@ app.post('/api/orders', async (req, res) => {
     estimatedWeightKg: o.estimatedWeightKg !== undefined ? Number(o.estimatedWeightKg) : 4.0,
     actualWeightKg: o.actualWeightKg !== undefined && o.actualWeightKg !== null ? Number(o.actualWeightKg) : null,
     minWeightAppliedKg: Number(o.minWeightAppliedKg) || 4.0,
-    pricePerKg: Number(o.pricePerKg) || 65,
-    totalPrice: Number(o.totalPrice) || 260,
+    pricePerKg: Number(o.pricePerKg) || 70,
+    totalPrice: Number(o.totalPrice) || 280,
     turnaroundSpeed: o.turnaroundSpeed || 'standard_48h',
-    status: o.status || 'BOOKING_REQUESTED',
+    status: o.status || 'TBA',
     paymentStatus: o.paymentStatus || 'PENDING',
     paymentMethod: o.paymentMethod || null,
     paymentRef: o.paymentRef || null,
@@ -1776,7 +2132,9 @@ app.post('/api/orders', async (req, res) => {
     quantity: o.quantity !== undefined && o.quantity !== null ? Number(o.quantity) : 1,
     unit: o.unit || 'KG',
     categoryId: o.categoryId || 'laundry_by_weight',
-    items: o.items || []
+    items: o.items || [],
+    assignedRider: o.assignedRider || null,
+    billingSentAt: o.billingSentAt || null
   };
 
   try {
@@ -1790,12 +2148,14 @@ app.post('/api/orders', async (req, res) => {
         pickup_date, pickup_time, delivery_date, delivery_time,
         special_instructions, agreed_terms, cashless_policy_acknowledged,
         timeline, created_at, postal_code, delivery_fee,
-        quantity, unit, category_id, items
+        quantity, unit, category_id, items,
+        customer_id, first_name, last_name,
+        assigned_rider, billing_sent_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
         $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33,
-        $34, $35, $36, $37
+        $34, $35, $36, $37, $38, $39, $40, $41, $42
       )
       RETURNING *
     `, [
@@ -1813,10 +2173,10 @@ app.post('/api/orders', async (req, res) => {
       Number(o.estimatedWeightKg) || 0,
       o.actualWeightKg !== undefined && o.actualWeightKg !== null ? Number(o.actualWeightKg) : null,
       Number(o.minWeightAppliedKg) || 4.0,
-      Number(o.pricePerKg) || 65,
+      Number(o.pricePerKg) || 70,
       Number(o.totalPrice) || 0,
       o.turnaroundSpeed || 'standard_48h',
-      o.status || 'BOOKING_REQUESTED',
+      o.status || 'TBA',
       o.paymentStatus || 'PENDING',
       o.paymentMethod || null,
       o.paymentRef || null,
@@ -1835,7 +2195,12 @@ app.post('/api/orders', async (req, res) => {
       o.quantity !== undefined && o.quantity !== null ? Number(o.quantity) : (Number(o.actualWeightKg) || Number(o.estimatedWeightKg) || 1),
       o.unit || 'KG',
       o.categoryId || 'laundry_by_weight',
-      JSON.stringify(o.items || [])
+      JSON.stringify(o.items || []),
+      localOrderObj.customerId || null,
+      localOrderObj.firstName || null,
+      localOrderObj.lastName || null,
+      o.assignedRider || null,
+      o.billingSentAt || null
     ]);
 
     const createdOrder = mapOrder(result.rows[0]);
@@ -1913,7 +2278,7 @@ const handleOrderStatusUpdate = async (req, res) => {
     const targetServiceId = serviceId || sUpdates.serviceId || currentOrder.service_id || currentOrder.serviceId;
     const targetServiceName = serviceName || sUpdates.serviceName || currentOrder.service_name || currentOrder.serviceName;
     const targetTurnaround = turnaroundSpeed || sUpdates.turnaroundSpeed || currentOrder.turnaround_speed || currentOrder.turnaroundSpeed;
-    const targetPricePerKg = (pricePerKg !== undefined && pricePerKg !== null) ? Number(pricePerKg) : (sUpdates.pricePerKg !== undefined ? Number(sUpdates.pricePerKg) : Number(currentOrder.price_per_kg || currentOrder.pricePerKg || 65));
+    const targetPricePerKg = (pricePerKg !== undefined && pricePerKg !== null) ? Number(pricePerKg) : (sUpdates.pricePerKg !== undefined ? Number(sUpdates.pricePerKg) : Number(currentOrder.price_per_kg || currentOrder.pricePerKg || 70));
     const targetMinWeight = (minWeightAppliedKg !== undefined && minWeightAppliedKg !== null) ? Number(minWeightAppliedKg) : (sUpdates.minWeightAppliedKg !== undefined ? Number(sUpdates.minWeightAppliedKg) : Number(currentOrder.min_weight_applied_kg || currentOrder.minWeightAppliedKg || 4.0));
     const targetQuantity = (req.body.quantity !== undefined && req.body.quantity !== null) ? Number(req.body.quantity) : (currentOrder.quantity || 1);
     const targetUnit = req.body.unit || sUpdates.unit || currentOrder.unit || 'KG';
@@ -1951,6 +2316,17 @@ const handleOrderStatusUpdate = async (req, res) => {
     const targetDeliveryDate = deliveryDate || sUpdates.deliveryDate || currentOrder.delivery_date || currentOrder.deliveryDate;
     const targetDeliveryTime = deliveryTime || sUpdates.deliveryTime || currentOrder.delivery_time || currentOrder.deliveryTime;
 
+    const targetAssignedRider = req.body.assignedRider !== undefined
+      ? req.body.assignedRider
+      : (sUpdates.assignedRider !== undefined ? sUpdates.assignedRider : (currentOrder.assigned_rider !== undefined ? currentOrder.assigned_rider : currentOrder.assignedRider));
+    
+    let targetBillingSentAt = req.body.billingSentAt !== undefined
+      ? req.body.billingSentAt
+      : (sUpdates.billingSentAt !== undefined ? sUpdates.billingSentAt : (currentOrder.billing_sent_at !== undefined ? currentOrder.billing_sent_at : currentOrder.billingSentAt));
+    if (targetStatus === 'BILLING' && req.body.markBillingSent && !targetBillingSentAt) {
+      targetBillingSentAt = now.toISOString();
+    }
+
     const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
     const newTimelineEvent = {
       status: targetStatus,
@@ -1979,8 +2355,10 @@ const handleOrderStatusUpdate = async (req, res) => {
               unit = $14,
               category_id = $15,
               items = $16,
+              assigned_rider = $17,
+              billing_sent_at = $18,
               updated_at = NOW()
-          WHERE id = $17
+          WHERE id = $19
           RETURNING *
         `, [
           targetStatus,
@@ -1999,6 +2377,8 @@ const handleOrderStatusUpdate = async (req, res) => {
           targetUnit,
           targetCategoryId,
           JSON.stringify(targetItems),
+          targetAssignedRider || null,
+          targetBillingSentAt || null,
           id
         ]);
 
@@ -2032,6 +2412,8 @@ const handleOrderStatusUpdate = async (req, res) => {
       unit: targetUnit,
       categoryId: targetCategoryId,
       items: targetItems,
+      assignedRider: targetAssignedRider || null,
+      billingSentAt: targetBillingSentAt ? new Date(targetBillingSentAt).toISOString() : null,
       updatedAt: now.toISOString()
     };
 
@@ -2052,6 +2434,84 @@ const handleOrderStatusUpdate = async (req, res) => {
 
 app.patch('/api/orders/:id/status', handleOrderStatusUpdate);
 app.put('/api/orders/:id/status', handleOrderStatusUpdate);
+
+// Send Confirmed Billing & Payment Link to Customer
+app.post('/api/orders/:id/send-billing', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { recipientEmail, actualWeightKg, totalPrice, serviceName, items, note } = req.body || {};
+
+    let order = null;
+    let fromDb = false;
+    try {
+      const dbRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
+      if (dbRes.rows.length > 0) {
+        order = mapOrder(dbRes.rows[0]);
+        fromDb = true;
+      }
+    } catch (e) {
+      console.warn('[SERVER] PostgreSQL query fallback in /api/orders/:id/send-billing:', e.message);
+    }
+
+    if (!order) {
+      order = localOrders.find(o => o.id === id);
+    }
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Overlay any freshly entered values from the admin modal
+    if (actualWeightKg !== undefined && actualWeightKg !== null) order.actualWeightKg = Number(actualWeightKg);
+    if (totalPrice !== undefined && totalPrice !== null) order.totalPrice = Number(totalPrice);
+    if (serviceName) order.serviceName = serviceName;
+    if (items && Array.isArray(items)) order.items = items;
+    if (recipientEmail) order.email = recipientEmail;
+
+    const now = new Date();
+    const billingSentAt = now.toISOString();
+    order.billingSentAt = billingSentAt;
+
+    // Dispatch the confirmed billing email
+    const emailRes = await sendConfirmedBillingEmail(order, recipientEmail || order.email);
+
+    // Audit log
+    const auditNote = note || `Admin sent Confirmed Billing & Cashless Payment Link to customer (${order.email || order.contactValue}) for ฿${order.totalPrice} THB.`;
+    const timelineEntry = { status: order.status || 'BILLING', timestamp: now.toISOString(), note: auditNote };
+    order.timeline = [...(order.timeline || []), timelineEntry];
+
+    if (fromDb) {
+      try {
+        await query(`
+          UPDATE orders
+          SET billing_sent_at = $1,
+              timeline = $2,
+              updated_at = NOW()
+          WHERE id = $3
+        `, [billingSentAt, JSON.stringify(order.timeline), id]);
+      } catch (dbErr) {
+        console.warn('[SERVER] Could not update billing_sent_at in Postgres:', dbErr.message);
+      }
+    }
+
+    const locIdx = localOrders.findIndex(o => o.id === id);
+    if (locIdx !== -1) {
+      localOrders[locIdx] = { ...localOrders[locIdx], ...order, billingSentAt };
+      saveLocalOrders(localOrders);
+    }
+
+    res.json({
+      success: emailRes.sent,
+      billingSentAt,
+      order,
+      messageId: emailRes.messageId,
+      recipients: emailRes.recipients,
+      error: emailRes.error
+    });
+  } catch (err) {
+    console.error('[SERVER] Failed to send confirmed billing email:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const handleOrderPayment = async (req, res) => {
   try {
@@ -2153,50 +2613,97 @@ app.patch('/api/orders/:id/reconcile', async (req, res) => {
       reconciliationStatus = 'RECONCILED',
       reconciliationNotes = '',
       bankAccountRef = '',
-      reconciledBy = 'admin'
+      reconciledBy = 'admin',
+      gatewayFee,
+      netPayout,
+      depositBankRef
     } = req.body;
 
-    const existingRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
-    if (existingRes.rows.length === 0) {
+    const bankRefVal = depositBankRef || bankAccountRef || '';
+    const now = new Date();
+    const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
+    const isReconciled = reconciliationStatus === 'RECONCILED';
+    let reconciledAtVal = isReconciled ? now : (reconciliationStatus === 'UNRECONCILED' ? null : now);
+
+    let updatedOrder = null;
+
+    try {
+      const existingRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
+      if (existingRes.rows && existingRes.rows.length > 0) {
+        const currentOrder = existingRes.rows[0];
+        const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
+        const newTimelineEvent = {
+          status: `RECON_${reconciliationStatus}`,
+          timestamp: timestampStr,
+          note: `Transaction marked as ${reconciliationStatus} by ${reconciledBy}.${bankRefVal ? ` Bank/Batch Ref: ${bankRefVal}.` : ''}${reconciliationNotes ? ` Notes: ${reconciliationNotes}` : ''}`
+        };
+
+        const result = await query(`
+          UPDATE orders
+          SET reconciliation_status = $1,
+              reconciled_at = $2,
+              reconciled_by = $3,
+              reconciliation_notes = $4,
+              bank_account_ref = $5,
+              gateway_fee = COALESCE($6, gateway_fee),
+              net_payout = COALESCE($7, net_payout),
+              deposit_bank_ref = COALESCE($8, deposit_bank_ref, bank_account_ref),
+              timeline = $9,
+              updated_at = NOW()
+          WHERE id = $10
+          RETURNING *
+        `, [
+          reconciliationStatus,
+          reconciledAtVal,
+          reconciledBy,
+          reconciliationNotes,
+          bankRefVal,
+          gatewayFee !== undefined ? Number(gatewayFee) : null,
+          netPayout !== undefined ? Number(netPayout) : null,
+          bankRefVal,
+          JSON.stringify([...currentTimeline, newTimelineEvent]),
+          id
+        ]);
+        if (result.rows && result.rows.length > 0) {
+          updatedOrder = mapOrder(result.rows[0]);
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[SERVER] PostgreSQL reconcile query failed, falling back to localOrders:', dbErr.message);
+    }
+
+    // Always sync localOrders as well
+    const locIdx = localOrders.findIndex(o => o.id === id);
+    if (locIdx !== -1) {
+      const cur = localOrders[locIdx];
+      const curTl = Array.isArray(cur.timeline) ? cur.timeline : [];
+      const newTimelineEvent = {
+        status: `RECON_${reconciliationStatus}`,
+        timestamp: timestampStr,
+        note: `Transaction marked as ${reconciliationStatus} by ${reconciledBy}.${bankRefVal ? ` Bank/Batch Ref: ${bankRefVal}.` : ''}${reconciliationNotes ? ` Notes: ${reconciliationNotes}` : ''}`
+      };
+      localOrders[locIdx] = {
+        ...cur,
+        reconciliationStatus,
+        reconciledAt: reconciledAtVal ? reconciledAtVal.toISOString() : null,
+        reconciledBy,
+        reconciliationNotes,
+        bankAccountRef: bankRefVal || cur.bankAccountRef,
+        gatewayFee: gatewayFee !== undefined ? Number(gatewayFee) : cur.gatewayFee,
+        netPayout: netPayout !== undefined ? Number(netPayout) : cur.netPayout,
+        depositBankRef: bankRefVal || cur.depositBankRef,
+        timeline: [...curTl, newTimelineEvent],
+        updatedAt: now.toISOString()
+      };
+      saveLocalOrders(localOrders);
+      if (!updatedOrder) updatedOrder = localOrders[locIdx];
+    }
+
+    if (!updatedOrder) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    const currentOrder = existingRes.rows[0];
-    const now = new Date();
-    const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
-
-    const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
-    const newTimelineEvent = {
-      status: `RECON_${reconciliationStatus}`,
-      timestamp: timestampStr,
-      note: `Transaction marked as ${reconciliationStatus} by ${reconciledBy}.${bankAccountRef ? ` Bank/Batch Ref: ${bankAccountRef}.` : ''}${reconciliationNotes ? ` Notes: ${reconciliationNotes}` : ''}`
-    };
-
-    const isReconciled = reconciliationStatus === 'RECONCILED';
-    const reconciledAtVal = isReconciled ? now : (reconciliationStatus === 'UNRECONCILED' ? null : currentOrder.reconciled_at);
-
-    const result = await query(`
-      UPDATE orders
-      SET reconciliation_status = $1,
-          reconciled_at = $2,
-          reconciled_by = $3,
-          reconciliation_notes = $4,
-          bank_account_ref = $5,
-          timeline = $6,
-          updated_at = NOW()
-      WHERE id = $7
-      RETURNING *
-    `, [
-      reconciliationStatus,
-      reconciledAtVal,
-      reconciledBy,
-      reconciliationNotes,
-      bankAccountRef,
-      JSON.stringify([...currentTimeline, newTimelineEvent]),
-      id
-    ]);
-
-    res.json(mapOrder(result.rows[0]));
+    res.json(updatedOrder);
   } catch (err) {
     console.error('Error reconciling order:', err);
     res.status(500).json({ error: err.message });
@@ -2491,11 +2998,13 @@ app.post('/api/settings', requireAdminAuth, async (req, res) => {
 // 7. Customers API
 app.get('/api/customers', async (req, res) => {
   try {
-    const result = await query('SELECT * FROM customers ORDER BY created_at DESC');
-    res.json(result.rows.map(mapCustomer));
+    const result = await query('SELECT * FROM customers ORDER BY created_at DESC').catch(() => ({ rows: [] }));
+    const dbCustomers = (result?.rows || []).map(mapCustomer).filter(Boolean);
+    const combined = mergeCustomerLists(dbCustomers, localCustomers);
+    res.json(combined);
   } catch (err) {
-    console.error('Error fetching customers:', err);
-    res.status(500).json({ error: err.message });
+    console.warn('[SERVER] PostgreSQL query fallback for /api/customers:', err.message);
+    res.json(localCustomers);
   }
 });
 
@@ -2700,12 +3209,117 @@ app.get('/api/customers/:id/orders', async (req, res) => {
   }
 });
 
+// Check mobile number availability in real-time
+app.get('/api/customers/check-mobile', async (req, res) => {
+  try {
+    const rawPhone = req.query.phone || req.query.mobile || '';
+    const cleanDigits = rawPhone.replace(/\D/g, '');
+    if (!cleanDigits || cleanDigits.length < 8) {
+      return res.json({ exists: false });
+    }
+    const suffix = cleanDigits.slice(-9);
+
+    let found = null;
+    try {
+      const result = await query(`
+        SELECT * FROM customers 
+        WHERE regexp_replace(mobile_number, '[^0-9]', '', 'g') LIKE $1
+           OR regexp_replace(secondary_mobile, '[^0-9]', '', 'g') LIKE $1
+        LIMIT 1
+      `, [`%${suffix}`]);
+      if (result.rows.length > 0) {
+        found = mapCustomer(result.rows[0]);
+      }
+    } catch (pgErr) {
+      console.warn('[SERVER] Check mobile PG query fallback:', pgErr.message);
+    }
+
+    if (!found) {
+      const localCust = (localCustomers || []).find(c => {
+        const c1 = (c.mobileNumber || '').replace(/\D/g, '');
+        const c2 = (c.secondaryMobile || '').replace(/\D/g, '');
+        return (c1.length >= 8 && c1.slice(-9) === suffix) || (c2.length >= 8 && c2.slice(-9) === suffix);
+      });
+      if (localCust) {
+        found = localCust;
+      }
+    }
+
+    if (found) {
+      return res.json({
+        exists: true,
+        customer: {
+          id: found.id,
+          firstName: found.firstName || (found.fullName ? found.fullName.split(' ')[0] : ''),
+          lastName: found.lastName || (found.fullName ? found.fullName.split(' ').slice(1).join(' ') : ''),
+          fullName: found.fullName,
+          email: found.email,
+          mobileNumber: found.mobileNumber,
+          condoName: found.addresses?.[0]?.label || found.addresses?.[0]?.address || '',
+          roomNumber: found.addresses?.[0]?.roomNumber || '',
+          district: found.addresses?.[0]?.district || '',
+          addresses: found.addresses || []
+        }
+      });
+    }
+
+    return res.json({ exists: false });
+  } catch (err) {
+    console.error('Error in /api/customers/check-mobile:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Public Customer Registration (Syncs to TLS Cloud + Local DB)
 app.post('/api/customers/register', async (req, res) => {
   try {
     const data = req.body;
-    if (!data.fullName || !data.mobileNumber) {
-      return res.status(400).json({ error: 'Full name and mobile number are required.' });
+    const fName = (data.firstName || (data.fullName ? data.fullName.trim().split(' ')[0] : '')).trim();
+    const lName = (data.lastName || (data.fullName ? data.fullName.trim().split(' ').slice(1).join(' ') : '')).trim();
+    const fullNameCombined = (data.fullName || `${fName} ${lName}`).trim();
+
+    if (!fName || !lName) {
+      return res.status(400).json({ error: 'First Name and Last Name are required (กรุณากรอกทั้งชื่อและนามสกุล).' });
+    }
+    if (!data.mobileNumber) {
+      return res.status(400).json({ error: 'Mobile number is required.' });
+    }
+    if (!data.email || !data.email.trim() || !data.email.includes('@')) {
+      return res.status(400).json({ error: 'A valid email address is required for sending invoices, booking confirmations, and delivery updates.' });
+    }
+
+    const cleanDigits = (data.mobileNumber || '').replace(/\D/g, '');
+    if (cleanDigits.length < 8) {
+      return res.status(400).json({ error: 'Please enter a valid mobile number (at least 8 digits).' });
+    }
+    const suffix = cleanDigits.slice(-9);
+
+    // Uniqueness validation: Disallow registering the same mobile number again
+    let existingCust = null;
+    try {
+      const checkRes = await query(`
+        SELECT * FROM customers 
+        WHERE regexp_replace(mobile_number, '[^0-9]', '', 'g') LIKE $1
+           OR regexp_replace(secondary_mobile, '[^0-9]', '', 'g') LIKE $1
+        LIMIT 1
+      `, [`%${suffix}`]);
+      if (checkRes.rows.length > 0) {
+        existingCust = mapCustomer(checkRes.rows[0]);
+      }
+    } catch (pgErr) {}
+
+    if (!existingCust) {
+      existingCust = (localCustomers || []).find(c => {
+        const c1 = (c.mobileNumber || '').replace(/\D/g, '');
+        const c2 = (c.secondaryMobile || '').replace(/\D/g, '');
+        return (c1.length >= 8 && c1.slice(-9) === suffix) || (c2.length >= 8 && c2.slice(-9) === suffix);
+      });
+    }
+
+    if (existingCust) {
+      return res.status(409).json({
+        error: 'This mobile number is already registered in our system. Each customer may only register one account with a mobile number. Please log in or use a different phone number.'
+      });
     }
 
     let addresses = Array.isArray(data.addresses) ? data.addresses : [];
@@ -2730,11 +3344,11 @@ app.post('/api/customers/register', async (req, res) => {
     try {
       const cleanPhone = (data.mobileNumber || '').replace(/[^0-9]/g, '');
       const tlsPayload = {
-        name: data.fullName.trim(),
+        name: fullNameCombined,
         phone: cleanPhone,
         password: data.pinCode || '123456',
         email: data.email ? data.email.trim().toLowerCase() : undefined,
-        nickName: (data.nickName || '').trim() || undefined,
+        nickName: (data.nickName || fName).trim() || undefined,
         gender: data.gender || 'Rather not say',
         address: primaryAddress ? {
           label: primaryAddress.label || 'Home',
@@ -2770,25 +3384,30 @@ app.post('/api/customers/register', async (req, res) => {
     const now = new Date();
     const result = await query(`
       INSERT INTO customers (
-        id, full_name, nick_name, gender, date_of_birth,
+        id, first_name, last_name, full_name, nick_name, gender, date_of_birth,
         mobile_number, is_whatsapp, secondary_mobile, is_secondary_whatsapp,
         email, line_id, pin_code, is_verified, verified_via, tier,
         notes, company_tax, addresses, created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15,
-        $16, $17, $18, $19, $19
+        $1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, $11,
+        $12, $13, $14, $15, $16, $17,
+        $18, $19, $20, $21, $21
       )
       ON CONFLICT (id) DO UPDATE SET
+        first_name = EXCLUDED.first_name,
+        last_name = EXCLUDED.last_name,
         full_name = EXCLUDED.full_name,
+        email = EXCLUDED.email,
         addresses = EXCLUDED.addresses,
         updated_at = NOW()
       RETURNING *
     `, [
       registeredCustId,
-      data.fullName.trim(),
-      (data.nickName || '').trim(),
+      fName,
+      lName,
+      fullNameCombined,
+      (data.nickName || fName).trim(),
       data.gender || 'Rather not say',
       data.dateOfBirth || null,
       data.mobileNumber.trim(),
@@ -2808,6 +3427,9 @@ app.post('/api/customers/register', async (req, res) => {
     ]);
 
     const mapped = mapCustomer(result.rows[0]);
+    localCustomers = [mapped, ...(localCustomers || []).filter(c => c.id !== mapped.id)];
+    saveLocalCustomers(localCustomers);
+
     console.log(`[CUSTOMER REGISTERED] ID: ${mapped.id}, Name: ${mapped.fullName}, Mobile: ${mapped.mobileNumber}`);
     res.status(201).json({
       success: true,
@@ -2845,19 +3467,25 @@ app.post('/api/customers', async (req, res) => {
       }];
     }
 
+    const fName = (data.firstName || (data.fullName ? data.fullName.trim().split(' ')[0] : '')).trim();
+    const lName = (data.lastName || (data.fullName ? data.fullName.trim().split(' ').slice(1).join(' ') : '')).trim();
+    const fullNameCombined = (data.fullName || `${fName} ${lName}`).trim();
+
     const result = await query(`
       INSERT INTO customers (
-        id, full_name, nick_name, gender, date_of_birth,
+        id, first_name, last_name, full_name, nick_name, gender, date_of_birth,
         mobile_number, is_whatsapp, secondary_mobile, is_secondary_whatsapp,
         email, line_id, pin_code, is_verified, verified_via, tier,
         notes, company_tax, addresses, created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15,
-        $16, $17, $18, $19, $19
+        $1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, $11,
+        $12, $13, $14, $15, $16, $17,
+        $18, $19, $20, $21, $21
       )
       ON CONFLICT (id) DO UPDATE SET
+        first_name = EXCLUDED.first_name,
+        last_name = EXCLUDED.last_name,
         full_name = EXCLUDED.full_name,
         nick_name = EXCLUDED.nick_name,
         gender = EXCLUDED.gender,
@@ -2879,8 +3507,10 @@ app.post('/api/customers', async (req, res) => {
       RETURNING *
     `, [
       id,
-      data.fullName.trim(),
-      (data.nickName || '').trim(),
+      fName,
+      lName,
+      fullNameCombined,
+      (data.nickName || fName).trim(),
       data.gender || 'Rather not say',
       data.dateOfBirth || null,
       data.mobileNumber ? data.mobileNumber.trim() : '',
@@ -2899,7 +3529,11 @@ app.post('/api/customers', async (req, res) => {
       now
     ]);
 
-    res.status(201).json(mapCustomer(result.rows[0]));
+    const mapped = mapCustomer(result.rows[0]);
+    localCustomers = [mapped, ...(localCustomers || []).filter(c => c.id !== mapped.id)];
+    saveLocalCustomers(localCustomers);
+
+    res.status(201).json(mapped);
   } catch (err) {
     console.error('Error saving customer:', err);
     res.status(500).json({ error: err.message });

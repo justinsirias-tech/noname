@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { ORDER_STATUSES, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES, INITIAL_SERVICES } from '../data/servicesData.js';
+import { ORDER_STATUSES, TRACKING_STAGES, getTrackingStage, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES, INITIAL_SERVICES } from '../data/servicesData.js';
 import { CONTACT_CHANNELS, getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
 import { ImageUploadZone } from './IncidentImageAttachment.jsx';
 
@@ -120,14 +120,15 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
   };
 
   const getRateForSpeed = (srv, speed) => {
-    if (!srv) return 65;
+    if (!srv) return 70;
+    const baseStd = Number(srv.standardPricePerKg !== undefined ? srv.standardPricePerKg : (srv.pricePerKg || (srv.id === 'wash_fold' ? 70 : 70)));
     if (speed === 'same_day') {
-      return srv.sameDayPricePerKg !== undefined ? Number(srv.sameDayPricePerKg) : Math.round((srv.standardPricePerKg || srv.pricePerKg || 65) * 1.75);
+      return srv.sameDayPricePerKg !== undefined ? Number(srv.sameDayPricePerKg) : Math.round(baseStd * 1.75);
     }
     if (speed === 'next_day_24h' || speed === 'next_day') {
-      return srv.nextDayPricePerKg !== undefined ? Number(srv.nextDayPricePerKg) : Math.round((srv.standardPricePerKg || srv.pricePerKg || 65) * 1.3);
+      return srv.nextDayPricePerKg !== undefined ? Number(srv.nextDayPricePerKg) : Math.round(baseStd * 1.3);
     }
-    return Number(srv.standardPricePerKg !== undefined ? srv.standardPricePerKg : (srv.pricePerKg || 65));
+    return baseStd;
   };
 
   const calculateSuggestedDelivery = (order, speed) => {
@@ -210,23 +211,15 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
     }, 800);
   };
 
-  const statusMeta = ORDER_STATUSES[activeOrder?.status] || {
-    label: activeOrder?.status || 'Unknown',
-    color: 'bg-slate-100 text-slate-700 border-slate-300',
-    step: 1
+  const currentStage = getTrackingStage(activeOrder?.status);
+  const statusMeta = {
+    label: currentStage.label,
+    color: currentStage.color,
+    step: currentStage.step
   };
 
-  const progressSteps = [
-    { key: 'BOOKING_REQUESTED', label: 'Requested' },
-    { key: 'PICKED_UP', label: 'Picked Up' },
-    { key: 'WEIGHED_INSPECTED', label: 'Weighed' },
-    { key: 'IN_WASH', label: 'In Wash' },
-    { key: 'IRON_FOLD', label: 'Iron/Finishing' },
-    { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
-    { key: 'DELIVERED', label: 'Delivered' },
-  ];
-
-  const currentStepNumber = statusMeta.step;
+  const progressSteps = TRACKING_STAGES;
+  const currentStepNumber = currentStage.step;
 
   const lineMessage = activeOrder
     ? `Hi NoName Laundry, I am following up on Order ${activeOrder.id} (${activeOrder.customerName}).`
@@ -750,7 +743,6 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
                       🕒 Standard (48h)
                     </span>
                   )}
-                  <span>• Tag: <code>{activeOrder.tagNumber}</code></span>
                   {!isPaid && (
                     <button
                       type="button"
@@ -846,36 +838,64 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
               </div>
             )}
 
-            {/* Stepper Progress Bar */}
-            <div className="py-6">
-              <div className="hidden sm:grid grid-cols-7 gap-2 relative">
+            {/* 6-Stage Progress Stepper: TBA, Scheduled, Billing, In Process, Ready for Delivery, Delivered */}
+            <div className="py-6 overflow-x-auto">
+              <div className="min-w-[620px] grid grid-cols-6 gap-2 relative">
+                {/* Connecting Line between steps */}
+                <div className="absolute top-4 left-[8%] right-[8%] h-1 bg-slate-200 -z-0">
+                  <div 
+                    className="h-full bg-sky-600 transition-all duration-500"
+                    style={{
+                      width: `${Math.max(0, Math.min(100, ((currentStepNumber - 1) / (progressSteps.length - 1)) * 100))}%`
+                    }}
+                  />
+                </div>
+
                 {progressSteps.map((step, idx) => {
                   const isDone = currentStepNumber >= (idx + 1);
                   const isCurrent = currentStepNumber === (idx + 1);
                   return (
-                    <div key={step.key} className="flex flex-col items-center text-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+                    <div key={step.key} className="flex flex-col items-center text-center z-10 px-1">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-xs transition-all ${
                         isDone
                           ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                          : 'bg-slate-100 text-slate-400'
-                      } ${isCurrent ? 'ring-4 ring-sky-100' : ''}`}>
-                        {isDone ? <Icon name="check" className="w-4 h-4" /> : (idx + 1)}
+                          : 'bg-white text-slate-400 border-2 border-slate-300'
+                      } ${isCurrent ? 'ring-4 ring-sky-100 ring-offset-2' : ''}`}>
+                        {isDone ? <Icon name="check" className="w-5 h-5" /> : (idx + 1)}
                       </div>
-                      <span className={`text-[11px] font-bold mt-2 ${
-                        isCurrent ? 'text-sky-600' : isDone ? 'text-slate-800' : 'text-slate-400'
+                      <span className={`text-[11px] font-black mt-2 leading-tight ${
+                        isCurrent ? 'text-sky-600' : isDone ? 'text-slate-900' : 'text-slate-400'
                       }`}>
                         {step.label}
+                      </span>
+                      <span className="text-[9px] text-slate-500 hidden sm:block mt-0.5 leading-snug">
+                        {step.desc}
                       </span>
                     </div>
                   );
                 })}
               </div>
-
-              <div className="sm:hidden p-3 bg-sky-50 rounded-xl border border-sky-200 text-xs text-sky-900 flex items-center justify-between">
-                <span>Current Stage:</span>
-                <span className="font-extrabold">{statusMeta.label}</span>
-              </div>
             </div>
+
+            {/* Delivery Rider Dispatch Alert */}
+            {activeOrder.assignedRider && (
+              <div className="mb-6 p-4 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
+                    <Icon name="truck" className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-indigo-950 block">Express Delivery Courier Assigned</span>
+                    <span className="text-indigo-800/80 font-medium">
+                      Rider: <strong>{activeOrder.assignedRider}</strong>
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-indigo-100 border border-indigo-300 text-indigo-900 font-extrabold text-[10px]">
+                  🛵 On Dispatch Duty
+                </span>
+              </div>
+            )}
 
             {/* Weight / Quantity Audit Box */}
             {(() => {

@@ -38,7 +38,7 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
 
   const minWeight = Number(order.minWeightAppliedKg || (isPiece ? 1 : 4.0));
   const billableWeight = isPiece ? quantity : Math.max(certifiedWeight, minWeight);
-  const unitRate = Number(order.pricePerKg || 65);
+  const unitRate = Number(order.pricePerKg || 70);
   const serviceSubtotal = Number(order.serviceSubtotal !== undefined && order.serviceSubtotal !== null ? order.serviceSubtotal : Math.round((isPiece ? quantity : billableWeight) * unitRate));
   const deliveryFee = Number(order.deliveryFee !== undefined && order.deliveryFee !== null ? order.deliveryFee : 0);
   const totalPrice = Number(order.totalPrice || (serviceSubtotal + deliveryFee));
@@ -49,53 +49,51 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
   const invoiceNumber = `INV-${order.id}`;
   const issueDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB');
 
-  // Text message for WhatsApp, LINE & Email
+  // Nicer, cleaner layout with simple text & prominent gateway link
   const getInvoiceTextSummary = () => {
-    return `🧺 *NONAME LAUNDRY BANGKOK - OFFICIAL TAX INVOICE*
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-📄 *Invoice:* ${invoiceNumber}
-🔖 *Order Tracking ID:* #${order.id}
-🏷️ *Bag Tag:* ${order.tagNumber || 'TAG-PENDING'}
-📅 *Date:* ${issueDate}
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-👤 *Billed To:*
-Customer: *${order.customerName}*
-Residence: *${order.condoName || ((order.city || 'Bangkok') + ' Residence')}* (Unit ${order.roomNumber || 'Lobby'})
-Area: *${order.subdistrict ? order.subdistrict + ', ' : ''}${order.district || ''}, ${order.city || 'Bangkok'}* ${order.postalCode ? `(Postal Code: ${order.postalCode})` : ''}
-Contact: *${order.contactChannel.toUpperCase()}: ${order.contactValue}*
-${order.specialInstructions ? `Note: "${order.specialInstructions}"\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧼 *Service & Intake Breakdown:*
-• Service Plan: *${order.serviceName}*
-• Turnaround Speed: *${speedLabel}*
-${Array.isArray(order.items) && order.items.length > 0 
-  ? order.items.map(it => {
-      const isPc = it.pricingType === 'piece' || it.unit === 'piece';
-      const uLbl = it.unit || (isPc ? 'pc' : 'KG');
-      const qtyStr = isPc ? `${it.quantity} ${uLbl}` : `${it.billableAmount || it.estimatedWeightKg} KG`;
-      return `• ${it.serviceName}: ${qtyStr} × ฿${it.pricePerKg}/${uLbl} = *฿${it.subtotal} THB*`;
-    }).join('\n')
-  : (isPiece ? `• Quantity: *${quantity} ${unitLabel}(s)*
-• Rate per ${unitLabel}: *฿${unitRate} THB / ${unitLabel}*` : `• Intake Weight: *${certifiedWeight} KG* (Min ${minWeight} KG applied -> *${billableWeight} KG*)
-• Rate per KG: *฿${unitRate} THB / KG*`)}
-• Service Subtotal: *฿${serviceSubtotal} THB*
-• Pickup & Delivery Fee (${order.city || 'Bangkok'} · ${order.subdistrict || order.district || order.postalCode}): *${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE (฿0 THB)'}*
-• Pickup Window: *${order.pickupDate || 'Scheduled'} (${order.pickupTime || ''})*
-• Estimated Delivery: *${order.deliveryDate || 'Scheduled'} (${order.deliveryTime || ''})*
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-💵 *TOTAL AMOUNT DUE:* *฿${totalPrice} THB*
-💳 *Status:* ${isPaid ? '✅ PAID IN FULL via ' + (order.paymentMethod || 'Online Gateway') : '⏳ PENDING PAYMENT (100% Cashless)'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-${!isPaid ? `👉 *CLICK HERE TO PAY ONLINE VIA LOCAL BANK / GATEWAY:*
+    const itemsSummary = Array.isArray(order.items) && order.items.length > 0
+      ? order.items.map(it => {
+          const isPc = it.pricingType === 'piece' || it.unit === 'piece';
+          const uLbl = it.unit || (isPc ? 'pc' : 'KG');
+          const qtyStr = isPc ? `${it.quantity} ${uLbl}` : `${it.billableAmount || it.estimatedWeightKg || it.quantity} KG`;
+          return `• ${it.name || it.serviceName}: ${qtyStr} (฿${it.subtotal || Math.round((it.quantity || it.billableAmount || 1) * (it.rate || it.pricePerKg))} THB)`;
+        }).join('\n')
+      : `• ${order.serviceName}: ${isPiece ? `${quantity} ${unitLabel}` : `${billableWeight} KG`} (฿${serviceSubtotal} THB)`;
+
+    const addressText = [
+      order.condoName,
+      order.roomNumber ? `Unit ${order.roomNumber}` : '',
+      order.subdistrict || order.district,
+      order.city || 'Bangkok'
+    ].filter(Boolean).join(', ');
+
+    return `🧺 NoName Laundry Bangkok
+Order #${order.id} • Invoice ${invoiceNumber}
+
+Hello ${order.customerName},
+
+Thank you for choosing NoName Laundry! Here is your order & payment summary:
+
+📋 Order Details:
+${itemsSummary}
+• Turnaround: ${speedLabel}
+• Pickup: ${order.pickupDate || 'Scheduled'} (${order.pickupTime || ''})
+• Delivery: ${order.deliveryDate || 'Scheduled'} (${order.deliveryTime || ''})
+• Delivery Fee: ${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE'}
+• Address: ${addressText}
+• Handover: ${order.leaveWithJuristic ? '🏢 Leave at Juristic / Front Desk' : '🤝 Meet in person'}
+
+💰 Total Amount: ฿${totalPrice} THB
+💳 Payment Status: ${isPaid ? 'PAID ✅' : 'Pending Payment (100% Cashless)'}
+
+${!isPaid ? `👉 Pay Securely Online via Gateway:
 ${paymentUrl}
 
-🏦 *Local Bank Payment Methods Supported:*
-• PromptPay QR Code (Any Thai Banking App: K PLUS, SCB EASY, Krungthai NEXT, Bangkok Bank, TTB)
-• Credit / Debit Card (Visa, Mastercard, JCB with 3D-Secure)
+(PromptPay QR & Credit / Debit Cards accepted)` : '✨ Payment verified! Your clean laundry is on schedule for delivery.'}
 
-⚠️ *Cashless Notice:* Couriers do not handle cash. Please complete payment securely online before courier hand-off.` : '✨ Payment verified! Your laundry order is being processed for delivery.'}
-
-NoName Laundry Bangkok Co., Ltd.
-LINE OA: @nonamelaundry • support@nonamelaundry.com`;
+Need assistance? Contact our team:
+📞 Phone / WhatsApp: +66 80 888 9885
+💬 LINE: @nonamelaundry`;
   };
 
   // WhatsApp Action
@@ -132,11 +130,49 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
     recordDispatch('LINE');
   };
 
-  // Email Action
+  // Email Action with clean, structured text and prominent gateway link
   const handleSendEmail = () => {
-    const subject = encodeURIComponent(`Tax Invoice ${invoiceNumber} - NoName Laundry Bangkok (฿${totalPrice} THB)`);
-    const body = encodeURIComponent(getInvoiceTextSummary());
-    const mailtoUrl = `mailto:${order.email || ''}?subject=${subject}&body=${body}`;
+    const subject = encodeURIComponent(`NoName Laundry - Order #${order.id} Summary & Payment Link (฿${totalPrice} THB)`);
+    const emailBody = 
+`Hello ${order.customerName},
+
+Thank you for choosing NoName Laundry Bangkok!
+
+Here is your order summary and secure cashless payment link:
+
+ORDER DETAILS
+----------------------------------------
+Order ID: #${order.id}
+Invoice: ${invoiceNumber}
+Date: ${issueDate}
+Service: ${order.serviceName} (${speedLabel})
+${Array.isArray(order.items) && order.items.length > 0 
+  ? order.items.map(it => `• ${it.name || it.serviceName}: ฿${it.subtotal || 0} THB`).join('\n') 
+  : ''}
+Pickup: ${order.pickupDate || 'Scheduled'} (${order.pickupTime || ''})
+Delivery: ${order.deliveryDate || 'Scheduled'} (${order.deliveryTime || ''})
+Delivery Fee: ${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE'}
+Address: ${[order.condoName, order.roomNumber ? `Unit ${order.roomNumber}` : '', order.subdistrict || order.district, order.city || 'Bangkok'].filter(Boolean).join(', ')}
+
+TOTAL AMOUNT: ฿${totalPrice} THB
+PAYMENT STATUS: ${isPaid ? 'PAID' : 'Pending Payment (100% Cashless)'}
+
+----------------------------------------
+PAY ONLINE VIA SECURE CASHLESS GATEWAY:
+${paymentUrl}
+----------------------------------------
+(Accepts PromptPay QR from all Thai banking apps and Visa / Mastercard / JCB with 3D-Secure)
+
+If you have any questions or wish to modify pickup times, please contact us anytime:
+• Phone / WhatsApp: +66 80 888 9885
+• LINE Official: @nonamelaundry
+• Email: support@nonamelaundry.com
+
+Warm regards,
+NoName Laundry Bangkok
+https://apptest.thatlaundryshop.com`;
+
+    const mailtoUrl = `mailto:${order.email || ''}?subject=${subject}&body=${encodeURIComponent(emailBody)}`;
     window.location.href = mailtoUrl;
     recordDispatch('EMAIL');
   };
@@ -299,24 +335,16 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
             {/* INVOICE HEADER */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-200">
               <div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center font-black text-sm">
-                    NL
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black text-slate-900 tracking-tight leading-tight">
-                      NoName Laundry Bangkok
-                    </h2>
-                    <span className="text-[10px] text-slate-500 font-semibold block">
-                      บริษัท โนเนม ลอนดรี้ แบงค็อก จำกัด
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-slate-500 mt-2 space-y-0.5 leading-relaxed">
+                <img 
+                  src="/images/logo.png" 
+                  alt="NoName Laundry" 
+                  className="h-12 w-auto object-contain mb-2"
+                />
+                <div className="text-[11px] text-slate-500 space-y-0.5 leading-relaxed">
+                  <div className="font-bold text-slate-700">บริษัท โนเนม ลอนดรี้ แบงค็อก จำกัด (NoName Laundry Bangkok Co., Ltd.)</div>
                   <div>Watthana / Khlong Toei, Sukhumvit, Bangkok 10110</div>
                   <div>Tax ID: 0105567089123 • Commercial Garment Care</div>
-                  <div>LINE OA: <strong>@nonamelaundry</strong> • WhatsApp: <strong>+66 89 123 4567</strong></div>
+                  <div>LINE OA: <strong>@nonamelaundry</strong> • Phone / WhatsApp: <strong>+66 80 888 9885</strong></div>
                   <div>Email: support@nonamelaundry.com • 100% Cashless Facility</div>
                 </div>
               </div>
@@ -343,11 +371,6 @@ LINE OA: @nonamelaundry • support@nonamelaundry.com`;
                 <div className="text-xs text-slate-600">
                   Order Ref: <strong className="font-mono">{order.id}</strong>
                 </div>
-                {order.tagNumber && order.tagNumber !== 'TAG-PENDING' && (
-                  <div className="text-xs text-slate-600">
-                    Bag Tag: <strong className="font-mono">{order.tagNumber}</strong>
-                  </div>
-                )}
               </div>
             </div>
 

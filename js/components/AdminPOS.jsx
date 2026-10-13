@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { ORDER_STATUSES, BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
+import { ORDER_STATUSES, TRACKING_STAGES, getTrackingStage, BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
 import { CONTACT_CHANNELS, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
 import { OrderKanban } from './OrderKanban.jsx';
 import { OrderDetailsModal } from './OrderDetailsModal.jsx';
@@ -62,7 +62,7 @@ export function AdminPOS({
   const buildInitialDrafts = (srvList) =>
     (srvList || []).reduce((acc, s) => {
       const isPiece = s.pricingType === 'piece' || s.unit === 'piece';
-      const stdPrice = s.standardPricePerKg !== undefined ? s.standardPricePerKg : (s.pricePerKg !== undefined ? s.pricePerKg : 65);
+      const stdPrice = s.standardPricePerKg !== undefined ? s.standardPricePerKg : (s.pricePerKg !== undefined ? s.pricePerKg : (s.id === 'wash_fold' ? 70 : 70));
       const nextPrice = s.nextDayPricePerKg !== undefined ? s.nextDayPricePerKg : Math.round(stdPrice * 1.3);
       const samePrice = s.sameDayPricePerKg !== undefined ? s.sameDayPricePerKg : Math.round(stdPrice * 1.75);
       acc[s.id] = {
@@ -123,6 +123,11 @@ export function AdminPOS({
   const [promptpayEnabled, setPromptpayEnabled] = useState(laundryStore.settings?.paymentGateway?.promptpayEnabled ?? true);
   const [cardEnabled, setCardEnabled] = useState(laundryStore.settings?.paymentGateway?.creditCardEnabled ?? true);
   const [gatewayTestMode, setGatewayTestMode] = useState(laundryStore.settings?.paymentGateway?.testMode ?? true);
+  const [promptpayFeeRate, setPromptpayFeeRate] = useState(laundryStore.settings?.paymentGateway?.promptpayFeeRate ?? 0.0);
+  const [cardFeeRate, setCardFeeRate] = useState(laundryStore.settings?.paymentGateway?.cardFeeRate ?? 3.65);
+  const [settlementBank, setSettlementBank] = useState(laundryStore.settings?.paymentGateway?.settlementBank || 'Kasikorn Bank (KBANK)');
+  const [settlementAccountNo, setSettlementAccountNo] = useState(laundryStore.settings?.paymentGateway?.settlementAccountNo || '045-8-12345-6');
+  const [settlementAccountName, setSettlementAccountName] = useState(laundryStore.settings?.paymentGateway?.settlementAccountName || 'NoName Laundry Co., Ltd.');
   const [gatewaySuccessMsg, setGatewaySuccessMsg] = useState('');
   const [gatewayErrorMsg, setGatewayErrorMsg] = useState('');
   const [gatewaySaving, setGatewaySaving] = useState(false);
@@ -150,6 +155,11 @@ export function AdminPOS({
         if (settings.paymentGateway.promptpayEnabled !== undefined) setPromptpayEnabled(Boolean(settings.paymentGateway.promptpayEnabled));
         if (settings.paymentGateway.creditCardEnabled !== undefined) setCardEnabled(Boolean(settings.paymentGateway.creditCardEnabled));
         if (settings.paymentGateway.testMode !== undefined) setGatewayTestMode(Boolean(settings.paymentGateway.testMode));
+        if (settings.paymentGateway.promptpayFeeRate !== undefined) setPromptpayFeeRate(settings.paymentGateway.promptpayFeeRate);
+        if (settings.paymentGateway.cardFeeRate !== undefined) setCardFeeRate(settings.paymentGateway.cardFeeRate);
+        if (settings.paymentGateway.settlementBank !== undefined) setSettlementBank(settings.paymentGateway.settlementBank);
+        if (settings.paymentGateway.settlementAccountNo !== undefined) setSettlementAccountNo(settings.paymentGateway.settlementAccountNo);
+        if (settings.paymentGateway.settlementAccountName !== undefined) setSettlementAccountName(settings.paymentGateway.settlementAccountName);
       }
       if (settings.lineOaId) setAdminLineOa(settings.lineOaId);
       if (settings.whatsappNumber) setAdminWhatsapp(settings.whatsappNumber);
@@ -229,8 +239,12 @@ export function AdminPOS({
 
   // Manual POS Order Form State
   const [manualName, setManualName] = useState('');
+  const [manualFirstName, setManualFirstName] = useState('');
+  const [manualLastName, setManualLastName] = useState('');
   const [manualChannel, setManualChannel] = useState('line');
   const [manualContact, setManualContact] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
+  const [manualRoomNumber, setManualRoomNumber] = useState('');
   const [manualServiceId, setManualServiceId] = useState(services[0]?.id || 'wash_fold');
   const [manualCity, setManualCity] = useState('Bangkok');
   const [manualDistrict, setManualDistrict] = useState(BANGKOK_DISTRICTS[0]);
@@ -244,6 +258,29 @@ export function AdminPOS({
   const [manualWeight, setManualWeight] = useState('4.0');
   const [manualSpeed, setManualSpeed] = useState('standard_48h');
   const [manualSuccessMsg, setManualSuccessMsg] = useState('');
+
+  // Manual POS CRM Customer Lookup & Creation State
+  const [crmSearchQuery, setCrmSearchQuery] = useState('');
+  const [selectedCrmCustomer, setSelectedCrmCustomer] = useState(null);
+  const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
+
+  // Create Customer Modal State
+  const [newCustFirstName, setNewCustFirstName] = useState('');
+  const [newCustLastName, setNewCustLastName] = useState('');
+  const [newCustMobile, setNewCustMobile] = useState('+66 ');
+  const [newCustEmail, setNewCustEmail] = useState('');
+  const [newCustChannel, setNewCustChannel] = useState('whatsapp');
+  const [newCustCity, setNewCustCity] = useState('Bangkok');
+  const [newCustDistrict, setNewCustDistrict] = useState(BANGKOK_DISTRICTS[0]);
+  const [newCustSubdistrict, setNewCustSubdistrict] = useState(
+    BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.name || 'Khlong Toei Nuea'
+  );
+  const [newCustPostalCode, setNewCustPostalCode] = useState(
+    BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.code || '10110'
+  );
+  const [newCustCondo, setNewCustCondo] = useState('');
+  const [newCustRoom, setNewCustRoom] = useState('');
+  const [newCustPhoneError, setNewCustPhoneError] = useState('');
 
   const applyManualLocationUpdate = (loc) => {
     if (!loc) return;
@@ -351,10 +388,10 @@ export function AdminPOS({
   const isManualPiece = selManualSrv?.pricingType === 'piece' || selManualSrv?.unit === 'piece';
   const manualEstQty = parseFloat(manualWeight) || (isManualPiece ? 1 : 4.0);
   const manualRate = manualSpeed === 'same_day'
-    ? (selManualSrv?.sameDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || 65) * 1.75))
+    ? (selManualSrv?.sameDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || selManualSrv?.pricePerKg || 70) * 1.75))
     : (manualSpeed === 'next_day_24h'
-      ? (selManualSrv?.nextDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || 65) * 1.3))
-      : (selManualSrv?.standardPricePerKg || selManualSrv?.pricePerKg || 65));
+      ? (selManualSrv?.nextDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || selManualSrv?.pricePerKg || 70) * 1.3))
+      : (selManualSrv?.standardPricePerKg || selManualSrv?.pricePerKg || 70));
   const manualSubtotal = isManualPiece
     ? Math.round(manualEstQty * manualRate)
     : Math.round(Math.max(manualEstQty, selManualSrv?.minWeightKg || 4.0) * manualRate);
@@ -524,7 +561,7 @@ export function AdminPOS({
     try {
       const isPiece = draft.pricingType === 'piece' || draft.unit === 'piece';
       const cleanFeatures = (draft.features || []).map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
-      const stdPrice = parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 65;
+      const stdPrice = parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 70;
       const nextPrice = parseFloat(draft.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
       const samePrice = parseFloat(draft.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
       const payload = {
@@ -566,7 +603,7 @@ export function AdminPOS({
         const draft = serviceDrafts[srvId];
         const isPiece = draft.pricingType === 'piece' || draft.unit === 'piece';
         const cleanFeatures = (draft.features || []).map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
-        const stdPrice = parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 65;
+        const stdPrice = parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 70;
         const nextPrice = parseFloat(draft.nextDayPricePerKg) || Math.round(stdPrice * 1.3);
         const samePrice = parseFloat(draft.sameDayPricePerKg) || Math.round(stdPrice * 1.75);
         return {
@@ -623,7 +660,7 @@ export function AdminPOS({
 
     const isPiece = newServicePricingType === 'piece';
     const cleanFeatures = newServiceFeatures.map(f => typeof f === 'string' ? f.trim() : '').filter(Boolean);
-    const stdPrice = parseFloat(newServicePrice) || 65;
+    const stdPrice = parseFloat(newServicePrice) || 70;
     const nextPrice = parseFloat(newServiceNextDayPrice) || Math.round(stdPrice * 1.3);
     const samePrice = parseFloat(newServiceSameDayPrice) || Math.round(stdPrice * 1.75);
 
@@ -689,9 +726,14 @@ export function AdminPOS({
         merchantName: merchantName.trim(),
         promptpayEnabled,
         creditCardEnabled: cardEnabled,
-        testMode: gatewayTestMode
+        testMode: gatewayTestMode,
+        promptpayFeeRate: Number(promptpayFeeRate) || 0,
+        cardFeeRate: Number(cardFeeRate) || 3.65,
+        settlementBank: settlementBank.trim(),
+        settlementAccountNo: settlementAccountNo.trim(),
+        settlementAccountName: settlementAccountName.trim()
       });
-      setGatewaySuccessMsg('Cashless payment gateway settings saved to Google Cloud PostgreSQL successfully!');
+      setGatewaySuccessMsg('Cashless payment gateway settings & bank deposit routing saved successfully!');
       setTimeout(() => setGatewaySuccessMsg(''), 4000);
     } catch (err) {
       console.error('Error saving gateway settings:', err);
@@ -701,15 +743,129 @@ export function AdminPOS({
     }
   };
 
+  // Handle Selecting Existing Customer from CRM Search Dropdown
+  const handleSelectCrmCustomer = (cust) => {
+    if (!cust) return;
+    setSelectedCrmCustomer(cust);
+    setCrmSearchQuery('');
+    const fName = cust.firstName || (cust.fullName ? cust.fullName.trim().split(' ')[0] : '');
+    const lName = cust.lastName || (cust.fullName ? cust.fullName.trim().split(' ').slice(1).join(' ') : '');
+    const full = cust.fullName || `${fName} ${lName}`.trim();
+    setManualName(full);
+    setManualFirstName(fName);
+    setManualLastName(lName);
+    setManualContact(cust.mobileNumber || cust.lineId || cust.email || '');
+    setManualEmail(cust.email || '');
+    if (cust.isWhatsApp) {
+      setManualChannel('whatsapp');
+    } else if (cust.lineId) {
+      setManualChannel('line');
+    } else {
+      setManualChannel('phone');
+    }
+    const primAddr = (cust.addresses && cust.addresses.find(a => a.isPrimary)) || cust.addresses?.[0];
+    if (primAddr) {
+      setManualCondo(primAddr.address || '');
+      setManualRoomNumber(primAddr.roomNumber || '');
+      if (primAddr.district) {
+        setManualDistrict(primAddr.district);
+        const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[primAddr.district] || [];
+        if (subList.length > 0) {
+          setManualSubdistrict(subList[0].name);
+          setManualPostalCode(subList[0].code);
+        }
+      }
+    }
+  };
+
+  // Handle Unlinking / Clearing Selected CRM Customer
+  const handleUnlinkCrmCustomer = () => {
+    setSelectedCrmCustomer(null);
+    setCrmSearchQuery('');
+    setManualName('');
+    setManualFirstName('');
+    setManualLastName('');
+    setManualContact('');
+    setManualEmail('');
+    setManualCondo('');
+    setManualRoomNumber('');
+  };
+
+  // Live Phone Duplicate Validation for Modal
+  const handleValidateNewCustMobile = (mobileVal) => {
+    setNewCustMobile(mobileVal);
+    const existing = laundryStore.findCustomerByPhone(mobileVal);
+    if (existing) {
+      setNewCustPhoneError(`This mobile number is already registered to ${existing.fullName || `${existing.firstName} ${existing.lastName}`} (${existing.id}). Please select their existing profile or enter a unique mobile number.`);
+    } else {
+      setNewCustPhoneError('');
+    }
+  };
+
+  // Handle Creating New Customer Profile in CRM
+  const handleSaveNewCrmCustomer = (e) => {
+    e.preventDefault();
+    if (!newCustFirstName.trim() || !newCustLastName.trim()) {
+      alert('First Name and Last Name are required.');
+      return;
+    }
+    if (!newCustMobile.trim() || newCustMobile.trim() === '+66') {
+      alert('Mobile number is required.');
+      return;
+    }
+    const existing = laundryStore.findCustomerByPhone(newCustMobile);
+    if (existing) {
+      setNewCustPhoneError(`This mobile number is already registered to ${existing.fullName || `${existing.firstName} ${existing.lastName}`}.`);
+      return;
+    }
+    if (!newCustEmail.trim() || !newCustEmail.includes('@')) {
+      alert('Valid email address is required for sending invoices and confirmations.');
+      return;
+    }
+    if (!newCustCondo.trim()) {
+      alert('Building / Condominium / Address is required.');
+      return;
+    }
+
+    const created = laundryStore.createCustomer({
+      firstName: newCustFirstName.trim(),
+      lastName: newCustLastName.trim(),
+      fullName: `${newCustFirstName.trim()} ${newCustLastName.trim()}`,
+      mobileNumber: newCustMobile.trim(),
+      isWhatsApp: newCustChannel === 'whatsapp',
+      email: newCustEmail.trim().toLowerCase(),
+      lineId: newCustChannel === 'line' ? newCustMobile.trim() : '',
+      city: newCustCity,
+      district: newCustDistrict,
+      address: newCustCondo.trim(),
+      roomNumber: newCustRoom.trim(),
+      tier: 'Regular',
+      notes: 'Profile created manually via Manual POS workstation'
+    });
+
+    handleSelectCrmCustomer(created);
+    setShowCreateCustomerModal(false);
+    setNewCustFirstName('');
+    setNewCustLastName('');
+    setNewCustMobile('+66 ');
+    setNewCustEmail('');
+    setNewCustCondo('');
+    setNewCustRoom('');
+    setNewCustPhoneError('');
+  };
+
   const handleCreateManualOrder = (e) => {
     e.preventDefault();
     if (!manualName.trim() || !manualContact.trim() || !manualCondo.trim()) return;
 
     onCreateManualOrder({
+      customerId: selectedCrmCustomer?.id || undefined,
       customerName: manualName.trim(),
+      firstName: manualFirstName || manualName.trim().split(' ')[0],
+      lastName: manualLastName || manualName.trim().split(' ').slice(1).join(' '),
       contactChannel: manualChannel,
       contactValue: manualContact.trim(),
-      email: `${manualName.toLowerCase().replace(/\s+/g, '')}@chat.local`,
+      email: manualEmail.trim() || `${manualName.toLowerCase().replace(/\s+/g, '')}@chat.local`,
       serviceId: manualServiceId,
       city: manualCity,
       district: manualDistrict,
@@ -717,7 +873,7 @@ export function AdminPOS({
       postalCode: manualPostalCode,
       deliveryFee: manualDeliveryFeeResult.fee,
       condoName: manualCondo.trim(),
-      roomNumber: 'Lobby Juristic',
+      roomNumber: manualRoomNumber.trim() || 'Lobby Juristic',
       leaveWithJuristic: true,
       quantity: isManualPiece ? (parseInt(manualWeight) || 1) : null,
       unit: isManualPiece ? (selManualSrv?.unit || 'piece') : 'KG',
@@ -725,21 +881,34 @@ export function AdminPOS({
       turnaroundSpeed: manualSpeed,
       pickupDate: new Date().toISOString().split('T')[0],
       pickupTime: TIME_SLOTS[0],
-      specialInstructions: 'Staff entered from direct chat inquiry.'
+      specialInstructions: selectedCrmCustomer ? `Linked to CRM profile ${selectedCrmCustomer.id} (${selectedCrmCustomer.fullName}).` : 'Staff entered from direct chat inquiry.'
     });
 
-    setManualSuccessMsg('Order logged successfully into POS!');
+    setManualSuccessMsg(`Order logged successfully into POS${selectedCrmCustomer ? ` for ${selectedCrmCustomer.fullName}` : ''}!`);
     setManualName('');
+    setManualFirstName('');
+    setManualLastName('');
     setManualContact('');
+    setManualEmail('');
     setManualCondo('');
-    setTimeout(() => setManualSuccessMsg(''), 3000);
+    setManualRoomNumber('');
+    setSelectedCrmCustomer(null);
+    setTimeout(() => setManualSuccessMsg(''), 3500);
   };
 
   const filteredOrders = orders.filter(order => {
     if (!order) return false;
     const orderStatusNorm = (order.status || '').toUpperCase().trim();
     const filterStatusNorm = (statusFilter || '').toUpperCase().trim();
-    const matchesStatus = filterStatusNorm === 'ALL' || orderStatusNorm === filterStatusNorm;
+    const matchesStatus = filterStatusNorm === 'ALL' || 
+      orderStatusNorm === filterStatusNorm ||
+      (filterStatusNorm === 'TBA' && (orderStatusNorm === 'TBA' || orderStatusNorm === 'BOOKING_REQUESTED' || orderStatusNorm === 'PENDING' || orderStatusNorm === 'PENDING_CONFIRMATION')) ||
+      (filterStatusNorm === 'SCHEDULED' && (orderStatusNorm === 'SCHEDULED' || orderStatusNorm === 'PICKUP_SCHEDULED' || orderStatusNorm === 'PICKED_UP')) ||
+      (filterStatusNorm === 'BILLING' && (orderStatusNorm === 'BILLING' || orderStatusNorm === 'BILLING_PENDING' || orderStatusNorm === 'AWAITING_PAYMENT' || orderStatusNorm === 'WEIGHED_INSPECTED')) ||
+      (filterStatusNorm === 'IN_PROCESS' && (orderStatusNorm === 'IN_PROCESS' || orderStatusNorm === 'IN_WASH' || orderStatusNorm === 'IRON_FOLD' || orderStatusNorm === 'PROCESSING')) ||
+      (filterStatusNorm === 'READY_FOR_DELIVERY' && (orderStatusNorm === 'READY_FOR_DELIVERY' || orderStatusNorm === 'OUT_FOR_DELIVERY')) ||
+      (filterStatusNorm === 'DELIVERED' && (orderStatusNorm === 'DELIVERED' || orderStatusNorm === 'COMPLETED')) ||
+      (filterStatusNorm === 'CANCELLED' && orderStatusNorm === 'CANCELLED');
     const search = searchFilter.trim().toLowerCase();
     const matchesSearch = !search ||
       (order.id && order.id.toLowerCase().includes(search)) ||
@@ -787,15 +956,20 @@ export function AdminPOS({
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Bangkok Operations Active
             </span>
-            <span className="text-xs text-sky-700 font-bold bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
-              100% Cashless System
-            </span>
-            <span className="text-xs text-indigo-700 font-bold bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Google Cloud PostgreSQL (noname_web)
-            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
+          <div className="flex flex-wrap items-center gap-3 mt-3">
+            <img src="/images/logo.png" alt="NoName Laundry" className="h-12 sm:h-14 w-auto object-contain" />
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-sky-700 font-bold bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                100% Cashless System
+              </span>
+              <span className="text-xs text-indigo-700 font-bold bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Google Cloud PostgreSQL (noname_web)
+              </span>
+            </div>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-2">
             NoName Laundry Admin Back-Office
           </h1>
           <p className="text-xs text-slate-500 mt-1">
@@ -809,12 +983,12 @@ export function AdminPOS({
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span><strong>{adminUser.fullName || adminUser.username}</strong></span>
               <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
-                adminUser.role === 'super_admin' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                adminUser.role === 'super_admin' || (adminUser.email && adminUser.email.toLowerCase() === 'justin.sirias@gmail.com') || (adminUser.username && adminUser.username.toLowerCase() === 'test@nonamelaundry.com') ? 'bg-amber-100 text-amber-800 border border-amber-300' :
                 adminUser.role === 'manager' ? 'bg-indigo-100 text-indigo-800 border border-indigo-300' :
                 adminUser.role === 'rider' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
                 'bg-sky-100 text-sky-800 border border-sky-300'
               }`}>
-                {adminUser.role === 'super_admin' ? '👑 Super Admin' : adminUser.role === 'manager' ? '🏬 Store Manager' : adminUser.role === 'rider' ? '🛵 Rider' : (adminUser.roleName || '👔 ' + adminUser.role)}
+                {(adminUser.role === 'super_admin' || (adminUser.email && adminUser.email.toLowerCase() === 'justin.sirias@gmail.com') || (adminUser.username && adminUser.username.toLowerCase() === 'test@nonamelaundry.com')) ? '👑 Super Admin' : adminUser.role === 'manager' ? '🏬 Store Manager' : adminUser.role === 'rider' ? '🛵 Rider' : (adminUser.roleName || '👔 ' + adminUser.role)}
               </span>
               <span className="text-[10px] text-slate-400 font-mono hidden sm:inline" title="Accessible back-office modules">
                 ({accessibleTabs.length}/11)
@@ -983,9 +1157,13 @@ export function AdminPOS({
                   className="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold bg-white"
                 >
                   <option value="ALL">All Statuses ({orders.length})</option>
-                  {Object.keys(ORDER_STATUSES).map((k) => (
-                    <option key={k} value={k}>{ORDER_STATUSES[k].label}</option>
-                  ))}
+                  <option value="TBA">1. 💬 TBA (Confirm Details)</option>
+                  <option value="SCHEDULED">2. 📅 Scheduled</option>
+                  <option value="BILLING">3. 📄 Billing</option>
+                  <option value="IN_PROCESS">4. ⚙️ In Process</option>
+                  <option value="READY_FOR_DELIVERY">5. 🛵 Ready For Delivery</option>
+                  <option value="DELIVERED">6. ✅ Delivered</option>
+                  <option value="CANCELLED">❌ Cancelled</option>
                 </select>
               </div>
             </div>
@@ -1047,7 +1225,6 @@ export function AdminPOS({
                             <td className="py-3.5 px-4">
                               <div className="font-mono font-bold text-slate-900 hover:text-sky-600 transition">{order.id}</div>
                               <div className="text-[10px] text-slate-400">{order.pickupDate}</div>
-                              <div className="text-[10px] text-sky-600 font-mono font-semibold">{order.tagNumber}</div>
                             </td>
 
                             <td className="py-3.5 px-4">
@@ -1166,6 +1343,7 @@ export function AdminPOS({
         <SalesReconciliation
           orders={orders}
           services={services}
+          settings={settings}
           adminUser={adminUser}
           onReconcileOrder={(orderId, reconData) => laundryStore.reconcileOrder(orderId, reconData)}
           onBatchReconcileOrders={(orderIds, reconData) => laundryStore.batchReconcileOrders(orderIds, reconData)}
@@ -1441,7 +1619,7 @@ export function AdminPOS({
                               min="1"
                               max="5000"
                               required
-                              value={draft.nextDayPricePerKg !== undefined ? draft.nextDayPricePerKg : Math.round((draft.pricePerKg || 65) * 1.3)}
+                              value={draft.nextDayPricePerKg !== undefined ? draft.nextDayPricePerKg : Math.round((draft.pricePerKg || 70) * 1.3)}
                               onChange={(e) => handleDraftFieldChange(service.id, 'nextDayPricePerKg', e.target.value)}
                               className="w-full pl-7 pr-3 py-2 rounded-xl border border-sky-300 text-sm font-bold text-sky-950 bg-sky-50/40 focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                             />
@@ -1461,7 +1639,7 @@ export function AdminPOS({
                               min="1"
                               max="5000"
                               required
-                              value={draft.sameDayPricePerKg !== undefined ? draft.sameDayPricePerKg : Math.round((draft.pricePerKg || 65) * 1.75)}
+                              value={draft.sameDayPricePerKg !== undefined ? draft.sameDayPricePerKg : Math.round((draft.pricePerKg || 70) * 1.75)}
                               onChange={(e) => handleDraftFieldChange(service.id, 'sameDayPricePerKg', e.target.value)}
                               className="w-full pl-7 pr-3 py-2 rounded-xl border border-amber-300 text-sm font-bold text-amber-950 bg-amber-50/40 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                             />
@@ -1521,7 +1699,7 @@ export function AdminPOS({
                           />
                           <div>
                             <span className="font-bold text-amber-950 block">🚀 Offer Same Day Express Speed (Delivered Before 18:00 hrs)</span>
-                            <span className="text-[11px] text-amber-800/80">When enabled, customers can select Same Day Express in the booking wizard at ฿{draft.sameDayPricePerKg || Math.round((draft.pricePerKg || 65) * 1.75)}/{unitLabel}.</span>
+                            <span className="text-[11px] text-amber-800/80">When enabled, customers can select Same Day Express in the booking wizard at ฿{draft.sameDayPricePerKg || Math.round((draft.pricePerKg || 70) * 1.75)}/{unitLabel}.</span>
                           </div>
                         </label>
                       </div>
@@ -1717,6 +1895,104 @@ export function AdminPOS({
                   <span className="text-[11px] text-slate-500">Secure 3D-Secure 2.0 gateway processing with tokenization.</span>
                 </div>
               </label>
+            </div>
+
+            {/* Gateway MDR Service Fee Rates */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800 text-xs uppercase tracking-wide">
+                  Gateway Processing Fee Rates (MDR):
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold">Used for Net Bank Payout Reconciliation</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    PromptPay QR Fee Rate (%)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="10"
+                      value={promptpayFeeRate}
+                      onChange={(e) => setPromptpayFeeRate(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold bg-white text-slate-900"
+                    />
+                    <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Default 0.00% for Thai PromptPay QR transactions.</p>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Credit / Debit Card MDR Fee Rate (%)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="15"
+                      value={cardFeeRate}
+                      onChange={(e) => setCardFeeRate(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold bg-white text-slate-900"
+                    />
+                    <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Standard 3.65% for Thai Visa/Mastercard/JCB.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Deposit Destination for Auditing */}
+            <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-emerald-900 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                  <Icon name="landmark" className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Settlement Bank Account (For Auditor Cross-Check)</span>
+                </span>
+                <span className="text-[10px] text-emerald-700 font-semibold">Bank Statement Match</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Settlement Bank *
+                  </label>
+                  <input
+                    type="text"
+                    value={settlementBank}
+                    onChange={(e) => setSettlementBank(e.target.value)}
+                    placeholder="e.g. Kasikorn Bank (KBANK)"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold bg-white text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Account Number *
+                  </label>
+                  <input
+                    type="text"
+                    value={settlementAccountNo}
+                    onChange={(e) => setSettlementAccountNo(e.target.value)}
+                    placeholder="e.g. 045-8-12345-6"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Account Holder Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={settlementAccountName}
+                    onChange={(e) => setSettlementAccountName(e.target.value)}
+                    placeholder="e.g. NoName Laundry Co., Ltd."
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold bg-white text-slate-900"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Strict Cashless Policy Enforcer */}
@@ -2221,16 +2497,221 @@ export function AdminPOS({
             </div>
           )}
 
+          {/* CRM CUSTOMER LOOKUP & PROFILE LINKING */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black uppercase text-slate-800 tracking-wide flex items-center gap-1.5">
+                <Icon name="users" className="w-3.5 h-3.5 text-sky-600" />
+                <span>Search Customer in CRM</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewCustFirstName('');
+                  setNewCustLastName('');
+                  setNewCustMobile('+66 ');
+                  setNewCustEmail('');
+                  setNewCustCondo('');
+                  setNewCustRoom('');
+                  setNewCustPhoneError('');
+                  setShowCreateCustomerModal(true);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold shadow-2xs transition active:scale-95"
+              >
+                <Icon name="plus" className="w-3 h-3" />
+                <span>+ Create New Customer Profile</span>
+              </button>
+            </div>
+
+            {selectedCrmCustomer ? (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-xs">
+                    {selectedCrmCustomer.firstName?.[0] || 'C'}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-slate-900 text-xs sm:text-sm truncate">
+                        {selectedCrmCustomer.fullName || `${selectedCrmCustomer.firstName || ''} ${selectedCrmCustomer.lastName || ''}`.trim()}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-200/80 text-emerald-900 font-mono text-[10px] font-bold shrink-0">
+                        {selectedCrmCustomer.id}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-white text-slate-700 text-[10px] font-bold shrink-0 border border-slate-200">
+                        {selectedCrmCustomer.tier || 'Regular'}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 flex flex-wrap items-center gap-2 mt-0.5">
+                      <span>📞 {selectedCrmCustomer.mobileNumber || 'No phone'}</span>
+                      <span>•</span>
+                      <span>✉️ {selectedCrmCustomer.email || 'No email'}</span>
+                      {selectedCrmCustomer.addresses?.[0]?.address && (
+                        <>
+                          <span>•</span>
+                          <span className="truncate max-w-[200px]">🏢 {selectedCrmCustomer.addresses[0].address}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleUnlinkCrmCustomer}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 shrink-0"
+                >
+                  Change / Unlink
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 relative">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={crmSearchQuery}
+                    onChange={(e) => setCrmSearchQuery(e.target.value)}
+                    placeholder="Search by customer name, mobile phone, or email..."
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 font-semibold bg-white text-slate-900 text-xs shadow-2xs focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                  />
+                  <Icon name="search" className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  {crmSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setCrmSearchQuery('')}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Dropdown Results */}
+                {crmSearchQuery.trim() && (
+                  <div className="border border-slate-200 rounded-2xl bg-white shadow-lg overflow-hidden max-h-64 overflow-y-auto divide-y divide-slate-100">
+                    {(() => {
+                      const q = crmSearchQuery.toLowerCase().trim();
+                      const cleanQPhone = q.replace(/\D/g, '');
+                      const allCusts = laundryStore.getEnrichedCustomers() || [];
+                      const matches = allCusts.filter(c => {
+                        const name = (c.fullName || `${c.firstName || ''} ${c.lastName || ''}`).toLowerCase();
+                        const phone = (c.mobileNumber || '').replace(/\D/g, '');
+                        const email = (c.email || '').toLowerCase();
+                        const condo = (c.addresses?.[0]?.address || '').toLowerCase();
+                        return name.includes(q) || (cleanQPhone.length >= 3 && phone.includes(cleanQPhone)) || email.includes(q) || condo.includes(q);
+                      });
+
+                      if (matches.length === 0) {
+                        return (
+                          <div className="p-4 text-center space-y-2">
+                            <div className="text-slate-500 text-xs font-medium">
+                              No customer profile found in CRM for "<strong>{crmSearchQuery}</strong>".
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const parts = crmSearchQuery.trim().split(' ');
+                                setNewCustFirstName(parts[0] || '');
+                                setNewCustLastName(parts.slice(1).join(' ') || '');
+                                if (/^\+?\d{6,}$/.test(crmSearchQuery.trim())) {
+                                  setNewCustMobile(crmSearchQuery.trim());
+                                } else if (crmSearchQuery.includes('@')) {
+                                  setNewCustEmail(crmSearchQuery.trim());
+                                }
+                                setNewCustPhoneError('');
+                                setShowCreateCustomerModal(true);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs inline-flex items-center gap-1.5"
+                            >
+                              <Icon name="userPlus" className="w-3.5 h-3.5 text-sky-400" />
+                              <span>+ Create Profile for "{crmSearchQuery}" in CRM</span>
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      return matches.map(cust => (
+                        <div
+                          key={cust.id}
+                          onClick={() => handleSelectCrmCustomer(cust)}
+                          className="p-3 hover:bg-sky-50/70 transition cursor-pointer flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0">
+                              {cust.firstName?.[0] || 'C'}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                <span>{cust.fullName || `${cust.firstName || ''} ${cust.lastName || ''}`.trim()}</span>
+                                <span className="font-mono text-[10px] text-slate-400">({cust.id})</span>
+                              </div>
+                              <div className="text-[11px] text-slate-500 truncate">
+                                📞 {cust.mobileNumber || 'No phone'} • ✉️ {cust.email || 'No email'} • 🏢 {cust.addresses?.[0]?.address || 'Bangkok'}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800 text-[11px] font-bold shrink-0 hover:bg-sky-200"
+                          >
+                            Select & Link
+                          </button>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <form onSubmit={handleCreateManualOrder} className="space-y-4 text-xs">
+            {/* Customer First Name and Last Name (Separated) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Customer First Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={manualFirstName}
+                  onChange={(e) => {
+                    const fn = e.target.value;
+                    setManualFirstName(fn);
+                    setManualName(`${fn} ${manualLastName}`.trim());
+                  }}
+                  placeholder="First Name (e.g. Lucas)"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Customer Last Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={manualLastName}
+                  onChange={(e) => {
+                    const ln = e.target.value;
+                    setManualLastName(ln);
+                    setManualName(`${manualFirstName} ${ln}`.trim());
+                  }}
+                  placeholder="Last Name (e.g. Vance)"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Email Address (Mandatory for Invoices and Notifications) */}
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Customer Name *</label>
+              <label className="block font-bold text-slate-700 mb-1">
+                Customer Email Address * <span className="text-[10px] text-slate-400 font-normal">(Required for booking confirmation & payment link)</span>
+              </label>
               <input
-                type="text"
+                type="email"
                 required
-                value={manualName}
-                onChange={(e) => setManualName(e.target.value)}
-                placeholder="Customer Full Name"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300"
+                value={manualEmail}
+                onChange={(e) => setManualEmail(e.target.value)}
+                placeholder="e.g. lucas.vance@gmail.com"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-medium"
               />
             </div>
 
@@ -2245,6 +2726,7 @@ export function AdminPOS({
                   <option value="line">LINE</option>
                   <option value="whatsapp">WhatsApp</option>
                   <option value="email">Email</option>
+                  <option value="phone">Phone Call</option>
                 </select>
               </div>
 
@@ -2286,7 +2768,7 @@ export function AdminPOS({
                     const selSrv = services.find(s => s.id === manualServiceId) || services[0];
                     const isPiece = selSrv?.pricingType === 'piece' || selSrv?.unit === 'piece';
                     const unitLbl = isPiece ? (selSrv?.unit || 'piece') : 'KG';
-                    const stdP = selSrv?.standardPricePerKg || selSrv?.pricePerKg || 65;
+                    const stdP = selSrv?.standardPricePerKg || selSrv?.pricePerKg || 70;
                     const nextP = selSrv?.nextDayPricePerKg || Math.round(stdP * 1.3);
                     const sameP = selSrv?.sameDayPricePerKg || Math.round(stdP * 1.75);
                     return (
@@ -2498,6 +2980,19 @@ export function AdminPOS({
                 />
               </div>
 
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Room / Unit Number / Juristic Instructions
+                </label>
+                <input
+                  type="text"
+                  value={manualRoomNumber}
+                  onChange={(e) => setManualRoomNumber(e.target.value)}
+                  placeholder="e.g. Unit 1902 or Room 2801 / Leave with Juristic"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-medium"
+                />
+              </div>
+
               {/* Order Cost Preview */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
@@ -2523,6 +3018,197 @@ export function AdminPOS({
               Generate POS Order
             </button>
           </form>
+
+          {/* MODAL: CREATE NEW CUSTOMER PROFILE IN CRM */}
+          {showCreateCustomerModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+              <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-black uppercase">
+                      <Icon name="userPlus" className="w-3 h-3" />
+                      <span>CRM Customer Directory</span>
+                    </div>
+                    <h3 className="text-lg font-black text-slate-900 mt-1">Create New Customer Profile</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateCustomerModal(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-800"
+                  >
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveNewCrmCustomer} className="space-y-3.5 text-xs">
+                  {/* First and Last Name (Mandatory) */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">First Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newCustFirstName}
+                        onChange={(e) => setNewCustFirstName(e.target.value)}
+                        placeholder="e.g. Lucas"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Last Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newCustLastName}
+                        onChange={(e) => setNewCustLastName(e.target.value)}
+                        placeholder="e.g. Vance"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Mobile Number with Real-Time Duplicate Validation */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Mobile Phone Number *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={newCustMobile}
+                      onChange={(e) => handleValidateNewCustMobile(e.target.value)}
+                      placeholder="+66 84 555 7788"
+                      className={`w-full px-3 py-2 rounded-xl border font-mono font-bold text-xs ${
+                        newCustPhoneError ? 'border-rose-400 bg-rose-50 text-rose-900' : 'border-slate-300'
+                      }`}
+                    />
+                    {newCustPhoneError ? (
+                      <p className="text-[11px] text-rose-600 font-bold mt-1 flex items-center gap-1">
+                        <Icon name="alertCircle" className="w-3.5 h-3.5 shrink-0" />
+                        <span>{newCustPhoneError}</span>
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Mobile number must be unique across all CRM customer records.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Email Address (Mandatory) */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      value={newCustEmail}
+                      onChange={(e) => setNewCustEmail(e.target.value)}
+                      placeholder="e.g. lucas.vance@gmail.com"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-0.5">Required for digital billing confirmations & payment receipts.</p>
+                  </div>
+
+                  {/* Preferred Channel */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Preferred Channel</label>
+                    <select
+                      value={newCustChannel}
+                      onChange={(e) => setNewCustChannel(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="line">LINE</option>
+                      <option value="phone">Mobile Phone Call / SMS</option>
+                      <option value="email">Email</option>
+                    </select>
+                  </div>
+
+                  {/* Service City */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Service City *</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewCustCity('Bangkok');
+                          setNewCustDistrict(BANGKOK_DISTRICTS[0]);
+                          setNewCustSubdistrict(BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.name || 'Khlong Toei Nuea');
+                          setNewCustPostalCode(BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.code || '10110');
+                        }}
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          newCustCity === 'Bangkok' ? 'border-sky-500 bg-sky-50 text-sky-900' : 'border-slate-200 bg-white text-slate-600'
+                        }`}
+                      >
+                        <span>🏙️ Bangkok</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewCustCity('Pattaya');
+                          const firstPty = PATTAYA_SUBDISTRICTS_LIST[0];
+                          setNewCustDistrict(firstPty.district);
+                          setNewCustSubdistrict(firstPty.name);
+                          setNewCustPostalCode(firstPty.code);
+                        }}
+                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          newCustCity === 'Pattaya' ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-slate-200 bg-white text-slate-600'
+                        }`}
+                      >
+                        <span>🏖️ Pattaya</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Condo / Building Address */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-bold text-slate-700">Building / Condominium / Address *</label>
+                      <span className="text-[10px] font-semibold text-sky-600">Google Maps Autocomplete</span>
+                    </div>
+                    <GoogleMapsCondoAutocomplete
+                      value={newCustCondo}
+                      city={newCustCity}
+                      onChange={(val) => setNewCustCondo(val)}
+                      onSelectPlace={(place) => {
+                        setNewCustCondo(place.name || place.formatted_address || '');
+                        if (place.district) setNewCustDistrict(place.district);
+                      }}
+                      apiKey={googleMapsApiKey}
+                      placeholder="e.g. The Diplomat 39 or Ashton Asoke..."
+                      required
+                    />
+                  </div>
+
+                  {/* Room Number */}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Room / Unit Number</label>
+                    <input
+                      type="text"
+                      value={newCustRoom}
+                      onChange={(e) => setNewCustRoom(e.target.value)}
+                      placeholder="e.g. Unit 1902"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateCustomerModal(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={Boolean(newCustPhoneError)}
+                      className="px-5 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-md disabled:opacity-50"
+                    >
+                      Save Profile & Link to POS Order
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

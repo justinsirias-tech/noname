@@ -88,7 +88,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
     if (!srv) return null;
     const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
     const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
-    const rate = Number(srv.standardPricePerKg || srv.pricePerKg || 65);
+    const rate = Number(srv.standardPricePerKg || srv.pricePerKg || (srv.id === 'wash_fold' ? 70 : 70));
     const minWeight = Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
     const qty = selectedServicesMap[id]?.quantity || 1;
     const weight = selectedServicesMap[id]?.weightKg || minWeight;
@@ -111,11 +111,8 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
   const totalWeightKg = selectedEntries.filter(i => !i.isPiece).reduce((sum, i) => sum + i.billable, 0);
   const totalPieces = selectedEntries.filter(i => i.isPiece).reduce((sum, i) => sum + i.qty, 0);
 
-  // Filtered catalog by category tab
-  const filteredServices = services.filter(s => {
-    const catId = s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight');
-    return catId === activeCategory;
-  });
+  // All catalog services available without restrictive tabs
+  const filteredServices = services;
 
   return (
     <section className="relative overflow-hidden pt-8 pb-16 lg:pt-16 lg:pb-24 bg-gradient-to-b from-sky-50/60 via-white to-slate-50">
@@ -220,33 +217,6 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
             </div>
           </div>
 
-          {/* Category Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4 scrollbar-none w-full max-w-full min-w-0">
-            {categories.map((cat) => {
-              const count = services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === cat.id).length;
-              const isActive = activeCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setCalcCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-sky-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  <Icon name={cat.icon || 'layers'} className="w-3 h-3" />
-                  <span>{cat.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-w-0">
             

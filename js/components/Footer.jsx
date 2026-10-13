@@ -13,13 +13,8 @@ export function Footer({ setView }) {
           
           {/* Col 1: Brand & Digital Policy */}
           <div className="space-y-4 md:col-span-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-400 flex items-center justify-center text-white font-bold text-lg">
-                🧺
-              </div>
-              <span className="text-xl font-black tracking-tight text-white">
-                NoName<span className="text-sky-500">Laundry</span>
-              </span>
+            <div className="bg-white p-3 rounded-2xl inline-block shadow-md border border-slate-700">
+              <img src="/images/logo.png" alt="NoName Laundry" className="h-12 sm:h-14 w-auto object-contain" />
             </div>
 
             <p className="text-slate-400 text-xs leading-relaxed">

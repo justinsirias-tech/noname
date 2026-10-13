@@ -46,13 +46,74 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   });
   const [turnaroundSpeed, setTurnaroundSpeed] = useState('standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
-  // Customer Info
+  // Customer Info (First Name & Last Name required)
   const primaryAddr = initialCustomer?.addresses?.[0];
-  const [customerName, setCustomerName] = useState(initialCustomer?.fullName || '');
+  const initFirst = initialCustomer?.firstName || (initialCustomer?.fullName ? initialCustomer.fullName.trim().split(' ')[0] : '');
+  const initLast = initialCustomer?.lastName || (initialCustomer?.fullName ? initialCustomer.fullName.trim().split(' ').slice(1).join(' ') : '');
+  const [firstName, setFirstName] = useState(initFirst);
+  const [lastName, setLastName] = useState(initLast);
+  const [customerName, setCustomerName] = useState(initialCustomer?.fullName || `${initFirst} ${initLast}`.trim());
   const [nickName, setNickName] = useState(initialCustomer?.nickName || '');
-  const [contactChannel, setContactChannel] = useState(initialCustomer?.lineId ? 'line' : (initialCustomer?.mobileNumber ? 'whatsapp' : 'line'));
-  const [contactValue, setContactValue] = useState(initialCustomer?.lineId || initialCustomer?.mobileNumber || '');
+  const [mobileNumber, setMobileNumber] = useState(initialCustomer?.mobileNumber || '+66 ');
+  const [contactChannel, setContactChannel] = useState(initialCustomer?.lineId ? 'line' : 'whatsapp');
+  const [contactValue, setContactValue] = useState(initialCustomer?.lineId || initialCustomer?.mobileNumber || '+66 ');
   const [email, setEmail] = useState(initialCustomer?.email || '');
+
+  // Real-time Mobile Number Check & Profile Autocomplete
+  const [detectedCustomer, setDetectedCustomer] = useState(initialCustomer || null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+
+  // Automatically check mobile number against CRM while customer is filling details
+  React.useEffect(() => {
+    const cleanDigits = (mobileNumber || '').replace(/\D/g, '');
+    if (cleanDigits.length < 8) {
+      if (!initialCustomer) setDetectedCustomer(null);
+      return;
+    }
+
+    // 1. Instant check in client-side laundryStore
+    const localMatch = laundryStore.findCustomerByPhone ? laundryStore.findCustomerByPhone(mobileNumber) : null;
+    if (localMatch) {
+      setDetectedCustomer(localMatch);
+      if (!firstName && localMatch.firstName) setFirstName(localMatch.firstName);
+      if (!lastName && localMatch.lastName) setLastName(localMatch.lastName);
+      if (!email && localMatch.email && !localMatch.email.includes('@customer.local')) setEmail(localMatch.email);
+      if (!condoName && localMatch.addresses?.[0]?.label) {
+        setCondoName(localMatch.addresses[0].label);
+        if (localMatch.addresses[0].roomNumber) setRoomNumber(localMatch.addresses[0].roomNumber);
+      }
+      return;
+    }
+
+    // 2. Debounced API check against backend database
+    setIsCheckingPhone(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/customers/check-mobile?phone=${encodeURIComponent(mobileNumber)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists && data.customer) {
+            setDetectedCustomer(data.customer);
+            if (!firstName && data.customer.firstName) setFirstName(data.customer.firstName);
+            if (!lastName && data.customer.lastName) setLastName(data.customer.lastName);
+            if (!email && data.customer.email && !data.customer.email.includes('@customer.local')) setEmail(data.customer.email);
+            if (!condoName && data.customer.condoName) {
+              setCondoName(data.customer.condoName);
+              if (data.customer.roomNumber) setRoomNumber(data.customer.roomNumber);
+            }
+          } else {
+            if (!initialCustomer) setDetectedCustomer(null);
+          }
+        }
+      } catch (err) {
+        console.warn('BookingWizard phone check error:', err);
+      } finally {
+        setIsCheckingPhone(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [mobileNumber]);
 
   // Thai Company Tax Info
   const [isCompanyTax, setIsCompanyTax] = useState(Boolean(initialCustomer?.companyTax?.required));
@@ -211,6 +272,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const [completedOrder, setCompletedOrder] = useState(null);
   const [showQrCode, setShowQrCode] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(false);
+  const [copiedSummaryText, setCopiedSummaryText] = useState(false);
 
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
   const storeCategories = laundryStore.getCategories ? laundryStore.getCategories() : [];
@@ -348,7 +410,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
     const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
     const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
     const minWeight = Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
-    const stdRate = Number(srv.standardPricePerKg || srv.pricePerKg || 65);
+    const stdRate = Number(srv.standardPricePerKg || srv.pricePerKg || (srv.id === 'wash_fold' ? 70 : 70));
     const nextRate = Number(srv.nextDayPricePerKg || Math.round(stdRate * 1.3));
     const sameRate = Number(srv.sameDayPricePerKg || Math.round(stdRate * 1.75));
 
@@ -393,8 +455,24 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
     e.preventDefault();
     setErrorMessage('');
 
-    if (!customerName.trim()) {
-      setErrorMessage('Please enter your full name.');
+    if (!firstName.trim()) {
+      setErrorMessage('Please enter your First Name (กรุณากรอกชื่อจริง).');
+      return;
+    }
+
+    if (!lastName.trim()) {
+      setErrorMessage('Please enter your Last Name (กรุณากรอกนามสกุล).');
+      return;
+    }
+
+    const cleanMobile = (mobileNumber || '').replace(/[^0-9]/g, '');
+    if (cleanMobile.length < 8) {
+      setErrorMessage('Please enter a valid primary mobile number (กรุณากรอกเบอร์โทรศัพท์).');
+      return;
+    }
+
+    if (!email.trim() || !email.includes('@')) {
+      setErrorMessage('A valid email address is required for sending invoices, booking confirmations, and delivery updates (กรุณากรอกอีเมล).');
       return;
     }
 
@@ -428,13 +506,19 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
       subtotal: item.subtotal
     }));
 
+    const combinedCustomerName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const effectiveContactValue = contactChannel === 'whatsapp' ? (contactValue.trim() || mobileNumber.trim()) : contactValue.trim();
+
     const bookingPayload = {
-      customerName: customerName.trim(),
-      customerId: initialCustomer?.id || null,
-      nickName: nickName.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      customerName: combinedCustomerName,
+      customerId: detectedCustomer?.id || initialCustomer?.id || null,
+      nickName: (nickName || firstName).trim(),
+      mobileNumber: mobileNumber.trim(),
       contactChannel,
-      contactValue: contactValue.trim(),
-      email: email.trim() || `${customerName.toLowerCase().replace(/\s+/g, '')}@customer.local`,
+      contactValue: effectiveContactValue,
+      email: email.trim().toLowerCase(),
       serviceId: primaryService.id,
       serviceName: selectedEntries.map(i => i.name).join(' + '),
       items,
@@ -737,7 +821,17 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                 </a>
 
                 <a
-                  href={`https://wa.me/66808889885?text=${encodeURIComponent(`Hello NoName Laundry Bangkok, I have submitted booking #${completedOrder.id} for ${completedOrder.customerName}.`)}`}
+                  href={`https://wa.me/66808889885?text=${encodeURIComponent(
+`🧺 NoName Laundry Bangkok
+Booking Confirmation #${completedOrder.id}
+
+Hello, I have submitted booking #${completedOrder.id} for ${completedOrder.customerName}.
+• Service: ${completedOrder.serviceName}
+• Pickup: ${completedOrder.pickupDate} (${completedOrder.pickupTime})
+• Address: ${completedOrder.condoName || ''}${completedOrder.roomNumber ? `, Room ${completedOrder.roomNumber}` : ''}
+
+Please confirm our pickup schedule. Thank you!`
+                  )}`}
                   target="_blank"
                   rel="noreferrer"
                   className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 text-center"
@@ -745,6 +839,25 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                   <Icon name="messageCircle" className="w-4 h-4" />
                   <span>WhatsApp (+66 80 888 9885)</span>
                 </a>
+              </div>
+
+              {/* Copy Booking Summary Button */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `🧺 NoName Laundry Bangkok\nBooking Confirmation #${completedOrder.id}\n\nHello ${completedOrder.customerName},\nYour laundry pickup has been scheduled!\n\n• Order ID: #${completedOrder.id}\n• Service: ${completedOrder.serviceName}\n• Pickup Schedule: ${completedOrder.pickupDate} (${completedOrder.pickupTime})\n• Address: ${completedOrder.condoName || ''}${completedOrder.roomNumber ? `, Room ${completedOrder.roomNumber}` : ''}\n• Handover: ${completedOrder.leaveWithJuristic ? 'Leave with Juristic' : 'Meet in Person'}\n\nOur rider will collect your laundry bag as scheduled. Once weighed on our digital scale at our facility, we will send your confirmed billing & cashless payment link.\n\nNeed assistance? Phone / WhatsApp: +66 80 888 9885 • LINE: @nonamelaundry`;
+                    if (navigator?.clipboard?.writeText) {
+                      navigator.clipboard.writeText(text);
+                      setCopiedSummaryText(true);
+                      setTimeout(() => setCopiedSummaryText(false), 2500);
+                    }
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs shadow-2xs transition flex items-center justify-center gap-2 text-center"
+                >
+                  <Icon name="copy" className="w-4 h-4 text-slate-500" />
+                  <span>{copiedSummaryText ? 'Copied Booking Summary! ✓' : '📋 Copy Booking Summary'}</span>
+                </button>
               </div>
 
               {/* QR Code Toggle for Desktop Users */}
@@ -839,108 +952,106 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
             </div>
           </div>
 
-          {/* Category Tabs Filter */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {/* All Services Catalog Grouped Cleanly (No Hidden Tabs) */}
+          <div className="space-y-6">
             {categories.map((cat) => {
-              const count = services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === cat.id).length;
-              const isCatActive = currentCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 border cursor-pointer ${
-                    isCatActive
-                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <Icon name={cat.icon || 'folder'} className="w-3.5 h-3.5" />
-                  <span>{cat.name}</span>
-                  {count > 0 && (
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isCatActive ? 'bg-sky-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+              const catServices = services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === cat.id);
+              if (catServices.length === 0) return null;
 
-          {/* Service Cards (Multi-Selectable) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === currentCategory).map((srv) => {
-              const srvStd = srv.standardPricePerKg || srv.pricePerKg || 65;
-              const srvNext = srv.nextDayPricePerKg || Math.round(srvStd * 1.3);
-              const srvSame = srv.sameDayPricePerKg || Math.round(srvStd * 1.75);
-              const isSelected = Boolean(selectedServicesMap[srv.id]);
-              const srvIsPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
-              const unitLabel = srvIsPiece ? (srv.unit || 'piece') : 'KG';
+              const getCatEmoji = (cid) => {
+                switch (cid) {
+                  case 'bedding_linens': return '🛏️';
+                  case 'household_curtains': return '🛋️';
+                  case 'delicate_dryclean': return '✨';
+                  default: return '🧺';
+                }
+              };
 
               return (
-                <div
-                  key={srv.id}
-                  onClick={() => handleToggleService(srv.id)}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between ${
-                    isSelected
-                      ? 'border-sky-600 bg-sky-50/70 shadow-sm ring-2 ring-sky-500/20'
-                      : 'border-slate-200 hover:border-slate-300 bg-white'
-                  }`}
-                >
-                  <div>
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-extrabold text-sm text-slate-900">{srv.name}</span>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                            srvIsPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
-                          }`}>
-                            {srvIsPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-medium">{srv.nameTh}</div>
-                      </div>
-                      
-                      <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border transition ${
-                        isSelected 
-                          ? 'bg-sky-600 border-sky-600 text-white' 
-                          : 'border-slate-300 text-transparent bg-white hover:border-sky-400'
-                      }`}>
-                        <Icon name="check" className="w-3.5 h-3.5 stroke-[3]" />
-                      </div>
-                    </div>
-
-                    <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                      {srv.description}
-                    </p>
+                <div key={cat.id} className="space-y-3">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                    <span className="text-base">{getCatEmoji(cat.id)}</span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{cat.name}</h3>
+                    <span className="text-[11px] text-slate-400 font-mono">({catServices.length})</span>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-200/70 space-y-1">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-600 font-medium">Standard (48h):</span>
-                      <span className="font-extrabold text-slate-800">฿{srvStd} / {unitLabel}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-sky-700 font-medium">Next Day (24h):</span>
-                      <span className="font-extrabold text-sky-700">฿{srvNext} / {unitLabel}</span>
-                    </div>
-                    {srv.sameDayAvailable !== false ? (
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-amber-800 font-medium flex items-center gap-0.5">
-                          <span>🚀 Same Day (&lt;18h):</span>
-                        </span>
-                        <span className="font-extrabold text-amber-700">฿{srvSame} / {unitLabel}</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span>🚀 Same Day:</span>
-                        <span>N/A</span>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {catServices.map((srv) => {
+                      const srvStd = srv.standardPricePerKg || srv.pricePerKg || (srv.id === 'wash_fold' ? 70 : 70);
+                      const srvNext = srv.nextDayPricePerKg || Math.round(srvStd * 1.3);
+                      const srvSame = srv.sameDayPricePerKg || Math.round(srvStd * 1.75);
+                      const isSelected = Boolean(selectedServicesMap[srv.id]);
+                      const srvIsPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+                      const unitLabel = srvIsPiece ? (srv.unit || 'piece') : 'KG';
 
-                    <div className="text-[10px] text-slate-400 pt-1 font-mono">
-                      {srvIsPiece ? `Min quantity: ${srv.minWeightKg || 1} ${unitLabel}` : `Min billable: ${srv.minWeightKg || 4.0} KG`}
-                    </div>
+                      return (
+                        <div
+                          key={srv.id}
+                          onClick={() => handleToggleService(srv.id)}
+                          className={`p-4 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between ${
+                            isSelected
+                              ? 'border-sky-600 bg-sky-50/70 shadow-sm ring-2 ring-sky-500/20'
+                              : 'border-slate-200 hover:border-slate-300 bg-white'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex justify-between items-start gap-2">
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-extrabold text-sm text-slate-900">{srv.name}</span>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                                    srvIsPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+                                  }`}>
+                                    {srvIsPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-slate-500 font-medium">{srv.nameTh}</div>
+                              </div>
+                              
+                              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border transition ${
+                                isSelected 
+                                  ? 'bg-sky-600 border-sky-600 text-white' 
+                                  : 'border-slate-300 text-transparent bg-white hover:border-sky-400'
+                              }`}>
+                                <Icon name="check" className="w-3.5 h-3.5 stroke-[3]" />
+                              </div>
+                            </div>
+
+                            <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                              {srv.description}
+                            </p>
+                          </div>
+
+                          <div className="mt-3 pt-2.5 border-t border-slate-200/70 space-y-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-slate-600 font-medium">Standard (48h):</span>
+                              <span className="font-extrabold text-slate-800">฿{srvStd} / {unitLabel}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-sky-700 font-medium">Next Day (24h):</span>
+                              <span className="font-extrabold text-sky-700">฿{srvNext} / {unitLabel}</span>
+                            </div>
+                            {srv.sameDayAvailable !== false ? (
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-amber-800 font-medium flex items-center gap-0.5">
+                                  <span>🚀 Same Day (&lt;18h):</span>
+                                </span>
+                                <span className="font-extrabold text-amber-700">฿{srvSame} / {unitLabel}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                                <span>🚀 Same Day:</span>
+                                <span>N/A</span>
+                              </div>
+                            )}
+
+                            <div className="text-[10px] text-slate-400 pt-1 font-mono">
+                              {srvIsPiece ? `Min quantity: ${srv.minWeightKg || 1} ${unitLabel}` : `Min billable: ${srv.minWeightKg || 4.0} KG`}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -1237,49 +1348,140 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
           </p>
 
           <div className="space-y-4">
+            {/* First Name & Last Name (Strictly Required) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Full Name <span className="text-red-500">*</span>
+                  First Name (ชื่อจริง) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Alex Thorne / Somchai Prasert"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="e.g. Alex / กิตติพัฒน์"
+                  value={firstName}
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                    setCustomerName(`${e.target.value.trim()} ${lastName.trim()}`.trim());
+                  }}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Last Name (นามสกุล) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Thorne / วงศ์สุวรรณ"
+                  value={lastName}
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+                    setCustomerName(`${firstName.trim()} ${e.target.value.trim()}`.trim());
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Nickname & Required Email */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Nickname / Preferred Name (ชื่อเล่น)
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Alex / Som"
+                  placeholder="e.g. Alex / บอย"
                   value={nickName}
                   onChange={(e) => setNickName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Email Address (อีเมล) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="alex.thorne@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                />
+                <p className="text-[10px] text-sky-700 font-semibold mt-1">
+                  * Required for sending invoices, booking confirmations, and delivery updates.
+                </p>
+              </div>
             </div>
 
+            {/* Primary Mobile Number with Live CRM Detection */}
             <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Primary Mobile Number (เบอร์โทรศัพท์หลัก) <span className="text-red-500">*</span></span>
+                {isCheckingPhone && (
+                  <span className="text-[10px] text-sky-600 font-semibold animate-pulse">Checking CRM profile...</span>
+                )}
+              </label>
+              <CountryPhoneInput
+                defaultCountryCode="TH"
+                value={mobileNumber}
+                onChange={(val) => {
+                  setMobileNumber(val);
+                  if (contactChannel === 'whatsapp' || !contactValue || contactValue === mobileNumber) {
+                    setContactValue(val);
+                  }
+                }}
+                placeholder="08x-xxx-xxxx"
+                required
+              />
+
+              {detectedCustomer ? (
+                <div className="mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs flex items-center justify-between animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">👋</span>
+                    <div>
+                      <span className="font-extrabold text-emerald-900">Welcome back, {detectedCustomer.firstName || detectedCustomer.fullName}!</span>
+                      <span className="block text-[11px] text-emerald-700">Existing CRM member profile found. Details and primary condo address loaded automatically.</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] uppercase font-mono font-bold bg-emerald-200/70 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-400">
+                    {detectedCustomer.id}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5">
+                  <span>✨</span>
+                  <span>New customer profile will be automatically saved to our CRM upon booking.</span>
+                </p>
+              )}
+            </div>
+
+            {/* Preferred Online Communication Channel */}
+            <div className="pt-2">
               <label className="block text-xs font-bold text-slate-700 mb-2">
-                Preferred Online Channel <span className="text-red-500">*</span>
+                Preferred Online Notification Channel <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { id: 'line', label: 'LINE OA', icon: 'line', color: 'green' },
                   { id: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp', color: 'emerald' },
+                  { id: 'line', label: 'LINE OA', icon: 'line', color: 'green' },
                   { id: 'email', label: 'Email', icon: 'mail', color: 'sky' }
                 ].map((ch) => (
                   <button
                     key={ch.id}
                     type="button"
-                    onClick={() => setContactChannel(ch.id)}
+                    onClick={() => {
+                      setContactChannel(ch.id);
+                      if (ch.id === 'whatsapp') {
+                        setContactValue(mobileNumber);
+                      } else if (ch.id === 'email') {
+                        setContactValue(email);
+                      }
+                    }}
                     className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
                       contactChannel === ch.id
                         ? 'border-green-600 bg-green-50 text-green-950 shadow-sm ring-1 ring-green-500'
@@ -1293,52 +1495,27 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               </div>
 
               {contactChannel === 'line' && (
-                <div className="mt-3 p-3 bg-green-50/70 border border-green-200 rounded-xl text-xs text-green-900 flex items-start gap-2">
-                  <Icon name="line" className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
-                  <span>
-                    <strong>LINE OA Notice:</strong> Businesses cannot add private LINE users directly. After submitting this booking, you will be prompted with a 1-click button to add <strong>{lineOaId}</strong> and send your Booking ID.
-                  </span>
+                <div className="mt-3 p-3 bg-green-50/70 border border-green-200 rounded-xl text-xs text-green-900 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Icon name="line" className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>LINE OA Notice:</strong> After booking, you can add <strong>{lineOaId}</strong> in 1 click to receive immediate driver alerts.
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-green-950 mb-1">
+                      Your LINE ID (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="@yourlineid"
+                      value={contactValue && contactValue !== mobileNumber ? contactValue : ''}
+                      onChange={(e) => setContactValue(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-green-300 bg-white text-xs outline-none focus:ring-1 focus:ring-green-500"
+                    />
+                  </div>
                 </div>
               )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  {contactChannel === 'whatsapp' ? 'WhatsApp Phone Number' : contactChannel === 'line' ? 'Your LINE ID or Phone Number' : 'Email Address'} <span className="text-red-500">*</span>
-                </label>
-                {contactChannel === 'whatsapp' ? (
-                  <CountryPhoneInput
-                    defaultCountryCode="TH"
-                    value={contactValue}
-                    onChange={(val) => setContactValue(val)}
-                    placeholder="08x-xxx-xxxx"
-                    required
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    required
-                    placeholder={contactChannel === 'line' ? '@yourlineid or 0812345678' : 'user@example.com'}
-                    value={contactValue}
-                    onChange={(e) => setContactValue(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Email (Optional for e-Receipt)
-                </label>
-                <input
-                  type="email"
-                  placeholder="receipt@domain.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
-                />
-              </div>
             </div>
 
             {/* Thai Company Tax Invoice Section */}

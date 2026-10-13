@@ -178,22 +178,7 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
             </button>
           </form>
 
-          {/* Default Credentials Callout */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <div className="bg-sky-50/60 border border-sky-100 rounded-2xl p-3.5 text-xs text-sky-900">
-              <div className="font-bold flex items-center gap-1.5 text-sky-800 mb-1">
-                <span>🔐</span>
-                <span>Default Initial Credentials:</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] font-mono mt-1 text-slate-700 bg-white/80 px-2.5 py-1.5 rounded-lg border border-sky-100">
-                <span>User: <strong className="text-slate-900">admin</strong></span>
-                <span>Pass: <strong className="text-slate-900">admin1234</strong></span>
-              </div>
-              <p className="text-[10px] text-slate-500 mt-2">
-                * You can change your password anytime in the Admin Settings tab after logging in.
-              </p>
-            </div>
-          </div>
+
 
           {/* Cancel button */}
           {onCancel && (

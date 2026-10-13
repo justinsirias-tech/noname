@@ -126,25 +126,24 @@ export function Navbar({
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-2">
+        <div className="flex items-center justify-between min-h-[4.5rem] sm:min-h-[5.5rem] py-2 gap-3">
           
           {/* Brand Logo */}
           <div 
             onClick={() => setView('home')} 
             className="flex items-center gap-3 cursor-pointer group shrink-0"
           >
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-sky-600 via-sky-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform shrink-0">
-              <span className="text-xl sm:text-2xl">🧺</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-slate-900">
-                  NoName
-                </span>
-                <span className="text-sky-600 font-extrabold text-xl sm:text-2xl">Laundry</span>
-              </div>
-              <p className="hidden sm:block text-[11px] text-slate-500 font-medium tracking-wide uppercase">
+            <img 
+              src="/images/logo.png" 
+              alt="NoName Laundry" 
+              className="h-14 sm:h-16 md:h-20 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
+            <div className="hidden lg:block border-l-2 border-slate-200 pl-3.5 py-1">
+              <p className="text-xs text-slate-600 font-extrabold tracking-wider uppercase">
                 {currentCity === 'Pattaya' ? (t('brandSubtitlePattaya') || 'Pattaya Door-to-Door By KG') : (t('brandSubtitleBangkok') || 'Bangkok Door-to-Door By KG')}
+              </p>
+              <p className="text-[10px] text-sky-600 font-bold">
+                100% Cashless • Digital Laundry
               </p>
             </div>
           </div>

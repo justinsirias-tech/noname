@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { laundryStore, getLineOaMessageUrl, CONTACT_CHANNELS } from '../store.js';
+import { getTrackingStage } from '../data/servicesData.js';
 import { LocationPicker } from './LocationPicker.jsx';
 
 export function CustomerPortal({
@@ -168,26 +169,14 @@ export function CustomerPortal({
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'BOOKING_REQUESTED':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">⏳ รอเข้ารับผ้า (Pending Pickup)</span>;
-      case 'PICKUP_SCHEDULED':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-200">🛵 กำลังไปรับผ้า (Driver En Route)</span>;
-      case 'PICKED_UP':
-      case 'WEIGHED_INSPECTED':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">🧺 รับผ้าแล้ว / ชั่งน้ำหนัก</span>;
-      case 'IN_WASH':
-      case 'IRON_FOLD':
-      case 'READY_FOR_DELIVERY':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-100 text-teal-800 border border-teal-200">✨ กำลังซักอบรีด (In Facility)</span>;
-      case 'OUT_FOR_DELIVERY':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">🚚 กำลังจัดส่งคืน (Out for Delivery)</span>;
-      case 'DELIVERED':
-      case 'COMPLETED':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">✅ ส่งคืนเรียบร้อย (Delivered)</span>;
-      default:
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-200">{status}</span>;
+    const stage = getTrackingStage(status);
+    if (stage.key === 'delivered') {
+      return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">✅ Delivered (ส่งคืนแล้ว)</span>;
     }
+    if (stage.key === 'in_process') {
+      return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">⚙️ In Process (กำลังดำเนินการ)</span>;
+    }
+    return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-300">📅 Scheduled (นัดหมายแล้ว)</span>;
   };
 
   return (

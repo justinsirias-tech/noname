@@ -49,9 +49,9 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
         <div className="text-center space-y-2">
           <div 
             onClick={onNavigateHome}
-            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-600 via-sky-500 to-teal-400 text-white shadow-lg shadow-sky-500/25 cursor-pointer transform hover:scale-105 transition mb-2"
+            className="cursor-pointer transform hover:scale-105 transition mb-3 inline-block"
           >
-            <span className="text-2xl">🧺</span>
+            <img src="/images/logo.png" alt="NoName Laundry" className="h-16 w-auto object-contain mx-auto" />
           </div>
           <span className="text-xs font-extrabold uppercase tracking-widest text-sky-600 bg-sky-50 border border-sky-100 px-3 py-1 rounded-full inline-block">
             Customer Member Portal

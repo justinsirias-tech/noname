@@ -7,8 +7,9 @@ import { LocationPicker } from './LocationPicker.jsx';
 import { laundryStore, getLineOaAddFriendUrl, getLineOaMessageUrl } from '../store.js';
 
 export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNavigateHome }) {
-  // Form States - Personal Info
-  const [fullName, setFullName] = useState('');
+  // Form States - Personal Info (First & Last Name required)
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [nickName, setNickName] = useState('');
   const [gender, setGender] = useState('Rather not say');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -21,6 +22,11 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
   const [isSecondaryWhatsApp, setIsSecondaryWhatsApp] = useState(false);
   const [email, setEmail] = useState('');
   const [lineId, setLineId] = useState('');
+
+  // Duplicate Mobile Real-Time Validation
+  const [mobileError, setMobileError] = useState('');
+  const [existingCustFound, setExistingCustFound] = useState(null);
+  const [isCheckingMobile, setIsCheckingMobile] = useState(false);
 
   // Form States - Address Info
   const [condoName, setCondoName] = useState('');
@@ -46,18 +52,72 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
 
+  // Automatically check for duplicate mobile number while filling up details
+  React.useEffect(() => {
+    const cleanDigits = (mobileNumber || '').replace(/\D/g, '');
+    if (cleanDigits.length < 8) {
+      setMobileError('');
+      setExistingCustFound(null);
+      return;
+    }
+
+    // 1. Instant check in client-side laundryStore
+    const localMatch = laundryStore.findCustomerByPhone ? laundryStore.findCustomerByPhone(mobileNumber) : null;
+    if (localMatch) {
+      setMobileError('This mobile number is already registered in our system.');
+      setExistingCustFound(localMatch);
+      return;
+    }
+
+    // 2. Debounced API check against PostgreSQL database
+    setIsCheckingMobile(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/customers/check-mobile?phone=${encodeURIComponent(mobileNumber)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists && data.customer) {
+            setMobileError('This mobile number is already registered in our system.');
+            setExistingCustFound(data.customer);
+          } else {
+            setMobileError('');
+            setExistingCustFound(null);
+          }
+        }
+      } catch (err) {
+        console.warn('Mobile availability check error:', err);
+      } finally {
+        setIsCheckingMobile(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [mobileNumber]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
     // Validation
-    if (!fullName.trim()) {
-      setErrorMessage('Please enter your full name (กรุณากรอกชื่อ-นามสกุล).');
+    if (!firstName.trim()) {
+      setErrorMessage('Please enter your First Name (กรุณากรอกชื่อจริง).');
+      return;
+    }
+    if (!lastName.trim()) {
+      setErrorMessage('Please enter your Last Name (กรุณากรอกนามสกุล).');
       return;
     }
     const cleanMobile = mobileNumber.replace(/[^0-9]/g, '');
     if (cleanMobile.length < 8) {
       setErrorMessage('Please enter a valid primary mobile number (กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง).');
+      return;
+    }
+    if (mobileError || existingCustFound) {
+      setErrorMessage('This mobile number is already registered. The system does not allow duplicate registrations for the same number. Please log in or use a different phone number.');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setErrorMessage('Email address is required for sending invoices, booking confirmations and delivery updates (กรุณาระบุอีเมลที่ถูกต้อง).');
       return;
     }
     if (!condoName.trim()) {
@@ -76,9 +136,12 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
     setIsSubmitting(true);
 
     try {
+      const combinedFullName = `${firstName.trim()} ${lastName.trim()}`;
       const customerPayload = {
-        fullName: fullName.trim(),
-        nickName: (nickName || fullName.split(' ')[0]).trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        fullName: combinedFullName,
+        nickName: (nickName || firstName).trim(),
         gender,
         dateOfBirth,
         mobileNumber: mobileNumber.trim(),
@@ -115,11 +178,18 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
       const created = laundryStore.createCustomer(customerPayload);
       
       // Also invoke API endpoint directly for real-time backend persistence
-      fetch('/api/customers/register', {
+      const registerRes = await fetch('/api/customers/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerPayload)
-      }).catch(err => console.warn('API customer register fallback:', err));
+      });
+
+      if (!registerRes.ok && registerRes.status === 409) {
+        const errData = await registerRes.json();
+        setErrorMessage(errData.error || 'This mobile number is already registered in our system.');
+        setIsSubmitting(false);
+        return;
+      }
 
       setRegisteredCustomer(created);
       if (onRegisterSuccess) {
@@ -272,13 +342,13 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Full Name (ชื่อ-นามสกุลจริง) <span className="text-rose-500">*</span>
+                First Name (ชื่อจริง) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Alex Thorne / กิตติพัฒน์ วงศ์สุวรรณ"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="e.g. Alex / กิตติพัฒน์"
                 required
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
               />
@@ -286,14 +356,27 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Nickname / Preferred Name (ชื่อเล่น) <span className="text-rose-500">*</span>
+                Last Name (นามสกุล) <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="e.g. Thorne / วงศ์สุวรรณ"
+                required
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Nickname / Preferred Name (ชื่อเล่น)
               </label>
               <input
                 type="text"
                 value={nickName}
                 onChange={(e) => setNickName(e.target.value)}
                 placeholder="e.g. Alex / บอย"
-                required
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
               />
             </div>
@@ -325,7 +408,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               />
             </div>
 
-            <div className="sm:col-span-2">
+            <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Security PIN Code (รหัส PIN 6 หลัก)
               </label>
@@ -336,10 +419,10 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                   value={pinCode}
                   onChange={(e) => setPinCode(e.target.value.replace(/[^0-9]/g, ''))}
                   placeholder="123456"
-                  className="w-40 px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-mono tracking-widest text-center font-bold focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                  className="w-36 px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-mono tracking-widest text-center font-bold focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
                 />
-                <span className="text-xs text-slate-400">
-                  Used for quick account verification and order tracking identification.
+                <span className="text-[11px] text-slate-400">
+                  Used for account verification and quick tracking.
                 </span>
               </div>
             </div>
@@ -360,8 +443,11 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Primary Mobile Number (เบอร์โทรหลัก) <span className="text-rose-500">*</span>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>Primary Mobile Number (เบอร์โทรหลัก) <span className="text-rose-500">*</span></span>
+                {isCheckingMobile && (
+                  <span className="text-[10px] text-sky-600 font-semibold animate-pulse">Checking number...</span>
+                )}
               </label>
               <CountryPhoneInput
                 value={mobileNumber}
@@ -370,6 +456,29 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 placeholder="e.g. 082 455 9182"
                 required
               />
+
+              {/* Automatic Duplicate Mobile Detection Alert */}
+              {existingCustFound && (
+                <div className="mt-2.5 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs animate-fadeIn">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-800">
+                    <Icon name="alertCircle" className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Mobile Number Already Registered</span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-amber-700 leading-relaxed">
+                    This phone number is already registered under <strong>{existingCustFound.fullName || `${existingCustFound.firstName || ''} ${existingCustFound.lastName || ''}`.trim()}</strong>. Each mobile number can only be registered once.
+                  </p>
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onNavigateToBook && onNavigateToBook(existingCustFound)}
+                      className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] transition shadow-xs"
+                    >
+                      Book With This Profile →
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <label className="mt-2.5 inline-flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -382,6 +491,28 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                   This number is registered on WhatsApp
                 </span>
               </label>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Email Address (อีเมล) <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Icon name="mail" className="w-4 h-4" />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. alex.thorne@gmail.com"
+                  required
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                />
+              </div>
+              <p className="text-[11px] text-sky-700 font-semibold mt-1">
+                Required for sending invoices, booking confirmations, and delivery updates.
+              </p>
             </div>
 
             <div>
@@ -402,27 +533,6 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
                 We send order milestone updates directly to your LINE.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Email Address (อีเมล)
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Icon name="mail" className="w-4 h-4" />
-                </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. alex.thorne@gmail.com"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
-                />
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1">
-                Used to deliver official digital VAT receipts & invoices.
               </p>
             </div>
 
@@ -659,9 +769,9 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
           <button
             type="submit"
-            disabled={isSubmitting || !agreedTerms}
+            disabled={isSubmitting || !agreedTerms || Boolean(existingCustFound) || Boolean(mobileError)}
             className={`w-full py-4 px-6 text-white font-extrabold rounded-2xl shadow-xl transition transform active:scale-[0.99] flex items-center justify-center gap-2 ${
-              isSubmitting || !agreedTerms
+              isSubmitting || !agreedTerms || Boolean(existingCustFound) || Boolean(mobileError)
                 ? 'bg-slate-300 cursor-not-allowed shadow-none'
                 : 'bg-gradient-to-r from-sky-600 via-sky-500 to-teal-500 hover:from-sky-500 hover:to-teal-400 shadow-sky-600/25 hover:shadow-2xl'
             }`}
