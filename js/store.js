@@ -437,11 +437,18 @@ export class LaundryStore {
       } else {
         parsedRates = DEFAULT_ALL_DELIVERY_ZONES;
       }
-      this.postalCodeRates = parsedRates;
+      this.postalCodeRates = parsedRates.map(r => ({
+        ...r,
+        freeDeliveryAbove: [600, 700, 800].includes(Number(r.freeDeliveryAbove)) ? 500 : (Number(r.freeDeliveryAbove) || 500)
+      }));
       this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
 
       const savedDeliveryConfig = localStorage.getItem(STORAGE_KEYS.DELIVERY_CONFIG);
-      this.deliveryConfig = savedDeliveryConfig ? JSON.parse(savedDeliveryConfig) : DEFAULT_DELIVERY_CONFIG;
+      const parsedConfig = savedDeliveryConfig ? JSON.parse(savedDeliveryConfig) : DEFAULT_DELIVERY_CONFIG;
+      if ([600, 700, 800].includes(Number(parsedConfig.storeWideFreeDeliveryThreshold))) {
+        parsedConfig.storeWideFreeDeliveryThreshold = 500;
+      }
+      this.deliveryConfig = parsedConfig;
     } catch (e) {
       console.error('Error loading state from localStorage:', e);
       this.categories = INITIAL_CATEGORIES;
@@ -503,13 +510,21 @@ export class LaundryStore {
           const remoteCodes = data.settings.postalCodeRates.filter(r => Boolean(r.subdistrict) && Boolean(r.id || r.subdistrictTh));
           const existingKeys = new Set(remoteCodes.map(r => r.id || `${r.city || 'Bangkok'}-${r.subdistrict || r.district}-${r.code}`));
           const missingDefaults = DEFAULT_ALL_DELIVERY_ZONES.filter(d => !existingKeys.has(d.id || `${d.city}-${d.subdistrict}-${d.code}`));
-          this.postalCodeRates = missingDefaults.length > 0
+          const combined = missingDefaults.length > 0
             ? [...remoteCodes, ...missingDefaults].sort((a, b) => (a.city || '').localeCompare(b.city || '') || a.code.localeCompare(b.code))
             : remoteCodes;
+          this.postalCodeRates = combined.map(r => ({
+            ...r,
+            freeDeliveryAbove: [600, 700, 800].includes(Number(r.freeDeliveryAbove)) ? 500 : (Number(r.freeDeliveryAbove) || 500)
+          }));
           this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
         }
         if (data.settings.deliveryConfig) {
-          this.deliveryConfig = data.settings.deliveryConfig;
+          const cfg = { ...data.settings.deliveryConfig };
+          if ([600, 700, 800].includes(Number(cfg.storeWideFreeDeliveryThreshold))) {
+            cfg.storeWideFreeDeliveryThreshold = 500;
+          }
+          this.deliveryConfig = cfg;
           this.persist(STORAGE_KEYS.DELIVERY_CONFIG, this.deliveryConfig);
         }
         this.persist(STORAGE_KEYS.SETTINGS, this.settings);
@@ -965,13 +980,13 @@ export class LaundryStore {
       : deliveryCalc.fee;
     const grandTotal = calculatedTotal + deliveryFee;
 
-    let defaultDeliveryDate = 'Scheduled in 48 Hours (~2 Days)';
+    let defaultDeliveryDate = 'Scheduled in 2 Days (Standard)';
     let defaultDeliveryTime = '16:00 - 18:00 (Early Evening)';
     if (speed === 'same_day') {
-      defaultDeliveryDate = `${orderInput.pickupDate} (Same Day Before 18:00)`;
-      defaultDeliveryTime = 'Anytime before 18:00 hrs';
-    } else if (speed === 'next_day_24h') {
-      defaultDeliveryDate = 'Scheduled Next Day (~24 Hours)';
+      defaultDeliveryDate = 'Same Day (Delivered before 18:00)';
+      defaultDeliveryTime = 'Before 18:00 hrs';
+    } else if (speed === 'next_day_24h' || speed === 'next_day') {
+      defaultDeliveryDate = 'Scheduled Next Day';
       defaultDeliveryTime = '18:00 - 20:30 (Evening Rush)';
     }
 
@@ -2023,7 +2038,7 @@ export class LaundryStore {
         areas: updatedFields.areas || '',
         fee: Math.max(0, Number(updatedFields.fee || 50)),
         isActive: updatedFields.isActive !== undefined ? Boolean(updatedFields.isActive) : true,
-        freeDeliveryAbove: Number(updatedFields.freeDeliveryAbove || 600)
+        freeDeliveryAbove: Number(updatedFields.freeDeliveryAbove || 500)
       });
     }
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
@@ -2055,7 +2070,7 @@ export class LaundryStore {
       areas: (rateData.areas || '').trim(),
       fee: Math.max(0, Number(rateData.fee) || 50),
       isActive: rateData.isActive !== false,
-      freeDeliveryAbove: Number(rateData.freeDeliveryAbove) || 600
+      freeDeliveryAbove: Number(rateData.freeDeliveryAbove) || 500
     };
     this.postalCodeRates.push(newEntry);
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);

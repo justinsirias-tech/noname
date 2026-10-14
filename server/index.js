@@ -1976,6 +1976,7 @@ app.put('/api/services/:id', requireAdminAuth, async (req, res) => {
     const stdPrice = s.standardPricePerKg !== undefined ? Number(s.standardPricePerKg) : (s.pricePerKg !== undefined ? Number(s.pricePerKg) : null);
     const nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : null;
     const samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : null;
+    const sameAvail = s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : null;
     const categoryId = s.categoryId || s.category || null;
     const pricingType = s.pricingType || (s.unit === 'piece' ? 'piece' : (s.pricingType ? s.pricingType : null));
     const unit = s.unit || (pricingType === 'piece' ? 'piece' : (s.unit ? s.unit : null));
@@ -2120,7 +2121,7 @@ app.post('/api/orders', async (req, res) => {
     tagNumber: o.tagNumber || 'TAG-PENDING',
     pickupDate: o.pickupDate || now.toISOString().split('T')[0],
     pickupTime: o.pickupTime || '09:00 - 11:00 (Morning)',
-    deliveryDate: o.deliveryDate || 'Scheduled in 48 Hours (~2 Days)',
+    deliveryDate: o.deliveryDate || 'Scheduled in 2 Days (Standard)',
     deliveryTime: o.deliveryTime || '16:00 - 18:00 (Early Evening)',
     specialInstructions: o.specialInstructions || '',
     agreedTerms: Boolean(o.agreedTerms),

@@ -1,12 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from './Icons.jsx';
 import { useTranslation } from '../i18n.jsx';
-import { INITIAL_CATEGORIES } from '../data/servicesData.js';
+import { INITIAL_CATEGORIES, BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
+import { laundryStore } from '../store.js';
+
+const FREE_DELIVERY_MIN_SPEND = 500;
+const BASE_DELIVERY_FEE = 50;
 
 export function ServicesSection({
   services = [],
   categories = [],
-  onSelectServiceForBooking
+  onSelectServiceForBooking,
+  onBookingSuccess
 }) {
   const { t, language } = useTranslation();
 
@@ -18,11 +23,256 @@ export function ServicesSection({
     return INITIAL_CATEGORIES;
   }, [categories]);
 
-  const [selectedCategory, setSelectedCategory] = useState(() => activeCategories[0]?.id || 'laundry_by_weight');
-  const currentCategory = (selectedCategory && selectedCategory !== 'all' && activeCategories.some(c => c.id === selectedCategory))
-    ? selectedCategory
-    : (activeCategories[0]?.id || 'laundry_by_weight');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileCalcOpen, setIsMobileCalcOpen] = useState(false);
+
+  // Selected services start EMPTY! Customer adds the services they need.
+  // { [serviceId]: { weightKg: number, quantity: number } }
+  const [selectedServicesMap, setSelectedServicesMap] = useState({});
+
+  // Turnaround Speed: 'standard_48h' (Standard 2 Days), 'next_day_24h' (Next Day), 'same_day' (Same Day)
+  const [turnaroundSpeed, setTurnaroundSpeed] = useState('standard_48h');
+
+  // Inline Quick Booking Form State (so the right-side panel is a booking section right away)
+  const tomorrow = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  const [customerName, setCustomerName] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [contactChannel, setContactChannel] = useState('whatsapp');
+  const [condoName, setCondoName] = useState('');
+  const [roomNumber, setRoomNumber] = useState('');
+  const [district, setDistrict] = useState(BANGKOK_DISTRICTS[0] || 'Watthana');
+  const [pickupDate, setPickupDate] = useState(tomorrow);
+  const [pickupTime, setPickupTime] = useState(TIME_SLOTS[0] || '09:00 - 11:00 (Morning)');
+  const [leaveWithJuristic, setLeaveWithJuristic] = useState(true);
+  const [bookingError, setBookingError] = useState('');
+  const [quickBookedOrder, setQuickBookedOrder] = useState(null);
+
+  const handleToggleService = (srv) => {
+    if (!srv || !srv.id) return;
+    setSelectedServicesMap(prev => {
+      const isSelected = Boolean(prev[srv.id]);
+      if (isSelected) {
+        const next = { ...prev };
+        delete next[srv.id];
+        return next;
+      } else {
+        const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+        return {
+          ...prev,
+          [srv.id]: {
+            weightKg: isPiece ? 1.0 : (Number(srv.minWeightKg) || 4.0),
+            quantity: 1
+          }
+        };
+      }
+    });
+    setBookingError('');
+  };
+
+  const handleAddServiceById = (srvId) => {
+    if (!srvId) return;
+    const srv = services.find(s => s.id === srvId);
+    if (!srv) return;
+    const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+    setSelectedServicesMap(prev => ({
+      ...prev,
+      [srv.id]: prev[srv.id] || {
+        weightKg: isPiece ? 1.0 : (Number(srv.minWeightKg) || 4.0),
+        quantity: 1
+      }
+    }));
+    setBookingError('');
+  };
+
+  const handleUpdateWeight = (srvId, newWeight) => {
+    setSelectedServicesMap(prev => ({
+      ...prev,
+      [srvId]: {
+        ...(prev[srvId] || { quantity: 1 }),
+        weightKg: Math.max(1, parseFloat(newWeight) || 4.0)
+      }
+    }));
+  };
+
+  const handleUpdateQuantity = (srvId, delta) => {
+    setSelectedServicesMap(prev => {
+      const current = prev[srvId]?.quantity || 1;
+      const nextQty = Math.max(1, current + delta);
+      return {
+        ...prev,
+        [srvId]: {
+          ...(prev[srvId] || { weightKg: 1.0 }),
+          quantity: nextQty
+        }
+      };
+    });
+  };
+
+  const handleRemoveService = (srvId) => {
+    setSelectedServicesMap(prev => {
+      const next = { ...prev };
+      delete next[srvId];
+      return next;
+    });
+  };
+
+  const handleClearAllServices = () => {
+    setSelectedServicesMap({});
+  };
+
+  // Calculated entries for all selected services using active turnaroundSpeed
+  const selectedEntries = useMemo(() => {
+    return Object.keys(selectedServicesMap).map(id => {
+      const srv = services.find(s => s.id === id);
+      if (!srv) return null;
+      const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+      const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
+      const stdRate = Number(srv.standardPricePerKg || srv.pricePerKg || 70);
+      const nextRate = Number(srv.nextDayPricePerKg || Math.round(stdRate * 1.3));
+      const sameRate = Number(srv.sameDayPricePerKg || Math.round(stdRate * 1.75));
+
+      let rate = stdRate;
+      if (turnaroundSpeed === 'next_day_24h') rate = nextRate;
+      else if (turnaroundSpeed === 'same_day') rate = sameRate;
+
+      const minWeight = Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
+      const qty = selectedServicesMap[id]?.quantity || 1;
+      const weight = selectedServicesMap[id]?.weightKg || minWeight;
+      const billable = isPiece ? qty : Math.max(weight, minWeight);
+      const subtotal = Math.round(billable * rate);
+      return {
+        ...srv,
+        isPiece,
+        unitLabel,
+        stdRate,
+        nextRate,
+        sameRate,
+        rate,
+        minWeight,
+        qty,
+        weight,
+        billable,
+        subtotal
+      };
+    }).filter(Boolean);
+  }, [selectedServicesMap, services, turnaroundSpeed]);
+
+  const servicesSubtotal = useMemo(
+    () => selectedEntries.reduce((sum, item) => sum + item.subtotal, 0),
+    [selectedEntries]
+  );
+
+  const isFreeDelivery = servicesSubtotal >= FREE_DELIVERY_MIN_SPEND;
+  const amountToFreeDelivery = Math.max(0, FREE_DELIVERY_MIN_SPEND - servicesSubtotal);
+  const freeDeliveryProgressPct = Math.min(100, Math.round((servicesSubtotal / FREE_DELIVERY_MIN_SPEND) * 100));
+  const deliveryFee = selectedEntries.length === 0 ? 0 : (isFreeDelivery ? 0 : BASE_DELIVERY_FEE);
+  const totalEstimatedCost = servicesSubtotal + deliveryFee;
+
+  const totalWeightKg = useMemo(
+    () => selectedEntries.filter(i => !i.isPiece).reduce((sum, i) => sum + i.billable, 0),
+    [selectedEntries]
+  );
+  const totalPieces = useMemo(
+    () => selectedEntries.filter(i => i.isPiece).reduce((sum, i) => sum + i.qty, 0),
+    [selectedEntries]
+  );
+
+  // Quick instant booking submission from the right-side Booking Section
+  const handleQuickBookSubmit = (e) => {
+    if (e) e.preventDefault();
+    setBookingError('');
+
+    if (selectedEntries.length === 0) {
+      setBookingError(language === 'th' ? 'กรุณาเพิ่มบริการอย่างน้อย 1 รายการก่อนทำการจอง' : 'Please add at least 1 service before booking.');
+      return;
+    }
+
+    // If customer hasn't filled inline contact/address fields yet, take them to the full booking wizard with their selected services & turnaround speed
+    if (!customerName.trim() && !mobileNumber.trim() && !condoName.trim()) {
+      setIsMobileCalcOpen(false);
+      onSelectServiceForBooking(
+        selectedEntries[0]?.id,
+        selectedEntries[0]?.weight,
+        selectedEntries,
+        turnaroundSpeed
+      );
+      return;
+    }
+
+    if (!customerName.trim()) {
+      setBookingError(language === 'th' ? 'กรุณากรอกชื่อ-นามสกุลของคุณ' : 'Please enter your name.');
+      return;
+    }
+    const cleanPhone = (mobileNumber || '').replace(/\D/g, '');
+    if (cleanPhone.length < 8) {
+      setBookingError(language === 'th' ? 'กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง' : 'Please enter a valid phone / WhatsApp number.');
+      return;
+    }
+    if (!condoName.trim()) {
+      setBookingError(language === 'th' ? 'กรุณาระบุชื่อคอนโด อาคาร หรือที่อยู่รับ-ส่งผ้า' : 'Please enter your condo, building, or pickup address.');
+      return;
+    }
+
+    const primaryService = selectedEntries[0];
+    const itemsPayload = selectedEntries.map(item => ({
+      serviceId: item.id,
+      serviceName: item.name,
+      name: item.name,
+      pricingType: item.isPiece ? 'piece' : 'weight',
+      unit: item.unitLabel,
+      rate: item.rate,
+      pricePerKg: item.rate,
+      quantity: item.qty,
+      estimatedWeightKg: item.isPiece ? null : item.weight,
+      billableAmount: item.billable,
+      subtotal: item.subtotal
+    }));
+
+    const nameParts = customerName.trim().split(' ');
+    const firstName = nameParts[0] || customerName.trim();
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const newOrder = laundryStore.createOrder({
+      firstName,
+      lastName,
+      customerName: customerName.trim(),
+      mobileNumber: mobileNumber.trim(),
+      contactChannel,
+      contactValue: mobileNumber.trim(),
+      email: email.trim() || 'customer@nonamelaundry.com',
+      serviceId: primaryService.id,
+      serviceName: selectedEntries.map(i => i.name).join(' + '),
+      items: itemsPayload,
+      turnaroundSpeed,
+      district,
+      condoName: condoName.trim(),
+      roomNumber: roomNumber.trim(),
+      leaveWithJuristic,
+      estimatedWeightKg: totalWeightKg > 0 ? totalWeightKg : null,
+      quantity: totalPieces > 0 ? totalPieces : (totalWeightKg || 1),
+      unit: selectedEntries.length === 1 ? primaryService.unitLabel : 'bundle',
+      categoryId: primaryService.categoryId || 'laundry_by_weight',
+      pricePerKg: primaryService.rate,
+      serviceSubtotal: servicesSubtotal,
+      deliveryFee,
+      totalPrice: totalEstimatedCost,
+      pickupDate,
+      pickupTime
+    });
+
+    setQuickBookedOrder(newOrder);
+    setIsMobileCalcOpen(false);
+    if (onBookingSuccess) {
+      onBookingSuccess(newOrder);
+    }
+  };
 
   // Group services by categoryId
   const categoryServicesMap = useMemo(() => {
@@ -108,344 +358,1139 @@ export function ServicesSection({
     }
   };
 
-  // Filtered categories to display (renders all services smoothly without hiding behind tabs)
+  // Filtered categories to display
   const categoriesToRender = useMemo(() => {
-    return activeCategories.map(cat => {
-      const allInCat = categoryServicesMap.get(cat.id) || [];
-      const filtered = allInCat.filter(matchesSearch);
-      return {
-        ...cat,
-        services: filtered,
-        totalInCat: allInCat.length
-      };
-    }).filter(cat => cat.services.length > 0);
-  }, [activeCategories, categoryServicesMap, searchQuery]);
+    return activeCategories
+      .filter(cat => selectedCategory === 'all' || cat.id === selectedCategory)
+      .map(cat => {
+        const allInCat = categoryServicesMap.get(cat.id) || [];
+        const filtered = allInCat.filter(matchesSearch);
+        return {
+          ...cat,
+          services: filtered,
+          totalInCat: allInCat.length
+        };
+      })
+      .filter(cat => cat.services.length > 0);
+  }, [activeCategories, categoryServicesMap, searchQuery, selectedCategory]);
 
   const totalFilteredCount = useMemo(() => {
     return categoriesToRender.reduce((sum, c) => sum + c.services.length, 0);
   }, [categoriesToRender]);
 
-  return (
-    <section id="services" className="py-12 sm:py-20 bg-slate-50/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  // Shared Booking Section UI block (used in Desktop Sticky Right Sidebar & Mobile Slide-Up Sheet)
+  const renderBookingSectionBody = (isMobileDrawer = false) => (
+    <>
+      {/* Scrollable Booking Body */}
+      <div className="px-4 py-3.5 sm:px-5 sm:py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
         
-        {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold uppercase tracking-wider mb-3 shadow-2xs">
-            <Icon name="layers" className="w-3.5 h-3.5" />
-            <span>{language === 'th' ? 'รายการบริการทั้งหมด' : 'Full Service & Pricing Catalog'}</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            {t('servicesTitle')}
-          </h2>
-          <p className="mt-2.5 text-sm sm:text-base text-slate-600 leading-relaxed">
-            {language === 'th'
-              ? 'บริการครบวงจรในที่เดียว ทั้งซักตามน้ำหนักจริงบนตาชั่งดิจิทัล และบริการซักเครื่องนอน ผ้าม่าน และชุดพิเศษคิดเป็นชิ้น'
-              : 'Complete door-to-door laundry in one simple menu: everyday clothes billed by digital scale weight, plus specialized per-piece care for bedding, linens, curtains, and suits.'}
-          </p>
-        </div>
-
-        {/* Clean Live Search Bar */}
-        <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 shadow-sm mb-10 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:max-w-md">
-            <Icon name="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'th' ? 'ค้นหาบริการ เช่น ซักอบพับ, ผ้านวม, สูท, ม่าน...' : 'Quick search services (e.g. wash & fold, duvet, suits)...'}
-              className="w-full pl-9 pr-9 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 bg-slate-50/50"
-            />
-            {searchQuery && (
+        {/* 1. SELECTED SERVICES (Starts Empty until customer adds services) */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+              <span>1. {language === 'th' ? 'บริการที่เลือก' : 'Selected Services'}</span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                selectedEntries.length > 0
+                  ? 'text-sky-700 bg-sky-100'
+                  : 'text-slate-500 bg-slate-100'
+              }`}>
+                {selectedEntries.length} {language === 'th' ? 'รายการ' : 'Selected'}
+              </span>
+            </label>
+            {selectedEntries.length > 0 && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                title="Clear search"
+                onClick={handleClearAllServices}
+                className="text-[11px] font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
               >
-                <Icon name="x" className="w-3.5 h-3.5" />
+                {language === 'th' ? 'ล้างทั้งหมด' : 'Clear all'}
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500 self-end sm:self-center">
-            <span className="font-semibold">
-              {language === 'th' ? 'พบทั้งหมด:' : 'Available:'}
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-mono font-bold border border-slate-200">
-              {totalFilteredCount} {language === 'th' ? 'รายการ' : (totalFilteredCount === 1 ? 'Service' : 'Services')}
-            </span>
+          {selectedEntries.length === 0 ? (
+            /* Empty State — Customer needs to add the service they need */
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-4 text-center space-y-2.5">
+              <div className="w-10 h-10 rounded-full bg-sky-100/80 text-sky-600 flex items-center justify-center mx-auto text-lg">
+                🧺
+              </div>
+              <div>
+                <div className="text-xs font-extrabold text-slate-800">
+                  {language === 'th' ? 'ยังไม่มีบริการที่เลือก' : 'No services added yet'}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  {language === 'th'
+                    ? 'กดปุ่ม "+ เพิ่มในรายการจอง" จากการ์ดบริการด้านซ้าย หรือเลือกเพิ่มด่วนด้านล่างเพื่อคำนวณราคารวม'
+                    : 'Click "+ Add to Booking" on any service card on the left, or select a service below to see your estimated total.'}
+                </p>
+              </div>
+
+              {/* Quick Add Service Dropdown */}
+              <div className="pt-1">
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) handleAddServiceById(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-sky-300 bg-white text-xs font-bold text-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer shadow-2xs"
+                >
+                  <option value="">
+                    {language === 'th' ? '+ เลือกเพิ่มบริการที่ต้องการ...' : '+ Quick add a service you need...'}
+                  </option>
+                  {services.map(srv => {
+                    const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+                    const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
+                    const stdPrice = srv.standardPricePerKg || srv.pricePerKg || 70;
+                    return (
+                      <option key={srv.id} value={srv.id}>
+                        {srv.name} — ฿{stdPrice}/{unitLabel}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+          ) : (
+            /* Added Services List with Quantity / Weight Steppers */
+            <div className="space-y-2">
+              {selectedEntries.map((item) => (
+                <div key={item.id} className="bg-slate-50/90 p-3 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
+                        <span className="truncate">{item.name}</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          item.isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+                        }`}>
+                          {item.isPiece ? '🛏️ Piece' : '🧺 Weight'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-medium tabular-nums">
+                        ฿{item.rate}/{item.unitLabel} ({
+                          turnaroundSpeed === 'same_day'
+                            ? (language === 'th' ? 'ส่งในวันเดียว' : 'Same Day')
+                            : turnaroundSpeed === 'next_day_24h'
+                              ? (language === 'th' ? 'วันถัดไป' : 'Next Day')
+                              : (language === 'th' ? 'มาตรฐาน 2 วัน' : 'Standard 2 Days')
+                        })
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveService(item.id)}
+                      className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition cursor-pointer shrink-0"
+                      title="Remove service"
+                    >
+                      <Icon name="x" className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {item.isPiece ? (
+                    /* Piece Quantity Counter */
+                    <div className="flex items-center justify-between pt-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQuantity(item.id, -1)}
+                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm cursor-pointer shadow-2xs"
+                        >
+                          -
+                        </button>
+                        <span className="min-w-[64px] px-1 text-center font-extrabold text-xs text-slate-900 tabular-nums">
+                          {item.qty} {item.unitLabel}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQuantity(item.id, 1)}
+                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm cursor-pointer shadow-2xs"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <div className="text-right tabular-nums">
+                        <span className="text-xs font-extrabold text-sky-700">฿{item.subtotal}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Weight Stepper & Slider */
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateWeight(item.id, Math.max(1, (item.weight - 0.5).toFixed(1)))}
+                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm cursor-pointer shadow-2xs"
+                          >
+                            -
+                          </button>
+                          <span className="min-w-[68px] text-center font-extrabold text-xs text-sky-700 bg-white px-2 py-1 rounded border border-sky-200 tabular-nums">
+                            {item.weight} KG
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateWeight(item.id, (item.weight + 0.5).toFixed(1))}
+                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm cursor-pointer shadow-2xs"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <div className="text-right tabular-nums">
+                          <span className="text-xs font-extrabold text-sky-700">฿{item.subtotal}</span>
+                        </div>
+                      </div>
+
+                      <input
+                        type="range"
+                        min="1.0"
+                        max="20.0"
+                        step="0.5"
+                        value={item.weight}
+                        onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                      />
+                      {Number(item.weight) < Number(item.minWeight) && (
+                        <div className="text-[10px] text-amber-700 bg-amber-50 p-1 rounded border border-amber-200">
+                          Min {item.minWeight} KG applied (฿{item.subtotal} THB)
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Add Another Service Dropdown */}
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) handleAddServiceById(e.target.value);
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-dashed border-sky-300 bg-sky-50/50 hover:bg-sky-50 text-xs font-bold text-sky-700 focus:outline-none cursor-pointer"
+              >
+                <option value="">
+                  {language === 'th' ? '+ เพิ่มบริการอื่นเพิ่มเติม...' : '+ Add another service...'}
+                </option>
+                {services.filter(s => !selectedServicesMap[s.id]).map(srv => {
+                  const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+                  const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
+                  const stdPrice = srv.standardPricePerKg || srv.pricePerKg || 70;
+                  return (
+                    <option key={srv.id} value={srv.id}>
+                      {srv.name} — ฿{stdPrice}/{unitLabel}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* 2. TURNAROUND SPEED (Standard 2 Days, Next Day, Same Day) */}
+        <div className="space-y-2 pt-1 border-t border-slate-100">
+          <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wide block">
+            2. {language === 'th' ? 'เลือกระยะเวลารับ-ส่งผ้า' : 'Turnaround Speed'}
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTurnaroundSpeed('standard_48h')}
+              className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                turnaroundSpeed === 'standard_48h'
+                  ? 'border-slate-900 bg-slate-900 text-white shadow-2xs'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="text-[11px] font-extrabold leading-tight">
+                🕒 {language === 'th' ? 'มาตรฐาน' : 'Standard'}
+              </div>
+              <div className={`text-[10px] font-semibold mt-0.5 ${
+                turnaroundSpeed === 'standard_48h' ? 'text-slate-300' : 'text-slate-500'
+              }`}>
+                {language === 'th' ? '2 วัน (2 Days)' : '2 Days'}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTurnaroundSpeed('next_day_24h')}
+              className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                turnaroundSpeed === 'next_day_24h'
+                  ? 'border-sky-600 bg-sky-600 text-white shadow-2xs'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="text-[11px] font-extrabold leading-tight">
+                ⚡ {language === 'th' ? 'วันถัดไป' : 'Next Day'}
+              </div>
+              <div className={`text-[10px] font-semibold mt-0.5 ${
+                turnaroundSpeed === 'next_day_24h' ? 'text-sky-100' : 'text-sky-600'
+              }`}>
+                {language === 'th' ? 'ส่งวันถัดไป' : 'Next Day'}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTurnaroundSpeed('same_day')}
+              className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                turnaroundSpeed === 'same_day'
+                  ? 'border-amber-500 bg-amber-500 text-white shadow-2xs'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="text-[11px] font-extrabold leading-tight">
+                🚀 {language === 'th' ? 'วันเดียว' : 'Same Day'}
+              </div>
+              <div className={`text-[10px] font-semibold mt-0.5 ${
+                turnaroundSpeed === 'same_day' ? 'text-amber-100' : 'text-amber-600'
+              }`}>
+                {language === 'th' ? 'ส่งในวันเดียว' : 'Same Day'}
+              </div>
+            </button>
           </div>
         </div>
 
-        {/* Categorized Services Groups */}
-        {categoriesToRender.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm max-w-lg mx-auto">
-            <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl mb-4">
-              🔍
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">
-              {language === 'th' ? 'ไม่พบรายการบริการที่ค้นหา' : 'No services found'}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              {language === 'th'
-                ? `ไม่พบบริการที่ตรงกับคำค้นหา "${searchQuery}"`
-                : `No services match your search query "${searchQuery}"`}
-            </p>
-            <button
-              type="button"
-              onClick={() => { setSearchQuery(''); setSelectedCategory(activeCategories[0]?.id || 'laundry_by_weight'); }}
-              className="mt-4 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm transition cursor-pointer"
-            >
-              {language === 'th' ? 'ล้างการค้นหา' : 'Clear Search'}
-            </button>
+        {/* 3. QUICK PICKUP & CONTACT DETAILS (Booking Section Right Away) */}
+        <div className="space-y-2.5 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
+              3. {language === 'th' ? 'ข้อมูลนัดรับ-ส่งผ้า (จองทันที)' : 'Pickup Details (Book Right Away)'}
+            </label>
+            <span className="text-[10px] font-semibold text-sky-600">
+              {language === 'th' ? 'รับ-ส่งถึงคอนโด/บ้าน' : 'Door-to-Door'}
+            </span>
           </div>
-        ) : (
-          <div className="space-y-16">
-            {categoriesToRender.map((cat) => {
-              if (cat.services.length === 0 && searchQuery) return null;
-              const theme = getCategoryTheme(cat.id);
-              const displayName = language === 'th' && cat.nameTh ? cat.nameTh : cat.name;
-              const isPiece = cat.pricingType === 'piece';
 
-              return (
-                <div key={cat.id} className="space-y-6">
-                  
-                  {/* Category Header Banner with Number of Services */}
-                  <div className={`p-5 sm:p-6 rounded-3xl border ${theme.border} ${theme.bgLight} shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4`}>
-                    
-                    <div className="flex items-start gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-white shadow-xs flex items-center justify-center text-2xl shrink-0 border border-slate-200/80">
-                        {theme.emoji}
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                            {displayName}
-                          </h3>
-                          
-                          {/* Number of Service Badge in Category Header */}
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-black border ${theme.badgeBg}`}>
-                            {cat.services.length} {language === 'th' ? 'รายการบริการ' : (cat.services.length === 1 ? 'Service' : 'Services')}
-                          </span>
-
-                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white text-slate-700 border border-slate-200 shadow-2xs">
-                            {isPiece
-                              ? (language === 'th' ? '🛏️ คิดราคาเป็นชิ้น' : '🛏️ Billed per Piece / Item')
-                              : (language === 'th' ? '🧺 คิดตามน้ำหนัก (กิโลกรัม)' : '🧺 Billed by Weight (KG)')
-                            }
-                          </span>
-                        </div>
-
-                        <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-                          {cat.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Services Grid for This Category */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-                    {cat.services.map((service) => {
-                      const isPopular = Boolean(service.popular);
-                      const unitLabel = service.unit || (service.pricingType === 'piece' ? 'piece' : 'KG');
-                      const unitDisplay = isPiece ? (language === 'th' ? 'ชิ้น' : 'piece') : (language === 'th' ? 'กก.' : 'KG');
-                      const stdPrice = service.standardPricePerKg || service.pricePerKg || (service.id === 'wash_fold' ? 70 : 70);
-                      const nextPrice = service.nextDayPricePerKg || Math.round(stdPrice * 1.3);
-                      const samePrice = service.sameDayPricePerKg || Math.round(stdPrice * 1.75);
-                      const minWeight = Number(service.minWeightKg) || (isPiece ? 1.0 : 4.0);
-
-                      return (
-                        <div
-                          key={service.id}
-                          className={`relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-200 bg-white border ${
-                            isPopular
-                              ? 'border-2 border-sky-500 shadow-xl shadow-sky-500/10 hover:shadow-2xl hover:border-sky-600'
-                              : 'border-slate-200/90 shadow-sm hover:border-slate-300 hover:shadow-md'
-                          }`}
-                        >
-                          {/* Popular Choice Ribbon */}
-                          {isPopular && (
-                            <div className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-sky-600 to-teal-500 text-white text-[11px] font-black px-4 py-1 rounded-full shadow-md uppercase tracking-wide">
-                              ⭐ {language === 'th' ? 'บริการยอดนิยม' : 'Most Popular Choice'}
-                            </div>
-                          )}
-
-                          <div>
-                            {/* Service Title & Icon Header */}
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <h4 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug">
-                                  {service.name}
-                                </h4>
-                                {service.nameTh && (
-                                  <div className="text-xs text-sky-600 font-bold mt-0.5">
-                                    {service.nameTh}
-                                  </div>
-                                )}
-                              </div>
-                              <span className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-lg shrink-0 border border-slate-200/60 shadow-2xs">
-                                {theme.emoji}
-                              </span>
-                            </div>
-
-                            {/* Service Description */}
-                            <p className="mt-3 text-xs text-slate-600 leading-relaxed min-h-[42px]">
-                              {service.description}
-                            </p>
-
-                            {/* 3-Tier Turnaround Pricing Badges */}
-                            <div className="mt-5 p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
-                              
-                              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                                
-                                {/* Tier 1: Standard 48h */}
-                                <div className="p-2 sm:p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs text-center">
-                                  <div className="text-[9px] uppercase font-bold text-slate-500 flex items-center justify-center gap-0.5">
-                                    <span>🕒 48h</span>
-                                  </div>
-                                  <div className="flex items-baseline justify-center gap-0.5 mt-0.5">
-                                    <span className="text-base sm:text-lg font-black text-slate-900">
-                                      ฿{stdPrice}
-                                    </span>
-                                  </div>
-                                  <div className="text-[9px] text-slate-400 font-semibold uppercase">
-                                    /{unitDisplay}
-                                  </div>
-                                  <div className="text-[9px] text-slate-500 font-medium mt-0.5 hidden sm:block">
-                                    {language === 'th' ? 'มาตรฐาน' : 'Standard'}
-                                  </div>
-                                </div>
-
-                                {/* Tier 2: Next Day 24h */}
-                                <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50/70 border border-sky-200 shadow-2xs text-center">
-                                  <div className="text-[9px] uppercase font-bold text-sky-700 flex items-center justify-center gap-0.5">
-                                    <span>⚡ 24h</span>
-                                  </div>
-                                  <div className="flex items-baseline justify-center gap-0.5 mt-0.5">
-                                    <span className="text-base sm:text-lg font-black text-sky-950">
-                                      ฿{nextPrice}
-                                    </span>
-                                  </div>
-                                  <div className="text-[9px] text-sky-700/70 font-semibold uppercase">
-                                    /{unitDisplay}
-                                  </div>
-                                  <div className="text-[9px] text-sky-700 font-medium mt-0.5 hidden sm:block">
-                                    {language === 'th' ? 'ด่วน 1 วัน' : 'Next Day'}
-                                  </div>
-                                </div>
-
-                                {/* Tier 3: Same Day */}
-                                <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 shadow-2xs text-center">
-                                  <div className="text-[9px] uppercase font-bold text-amber-800 flex items-center justify-center gap-0.5">
-                                    <span>🚀 Express</span>
-                                  </div>
-                                  <div className="flex items-baseline justify-center gap-0.5 mt-0.5">
-                                    {service.sameDayAvailable !== false ? (
-                                      <span className="text-base sm:text-lg font-black text-amber-950">
-                                        ฿{samePrice}
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs font-bold text-slate-400 mt-1 block">N/A</span>
-                                    )}
-                                  </div>
-                                  <div className="text-[9px] text-amber-800/70 font-semibold uppercase">
-                                    {service.sameDayAvailable !== false ? `/${unitDisplay}` : '-'}
-                                  </div>
-                                  <div className="text-[9px] text-amber-800/80 font-medium mt-0.5 hidden sm:block">
-                                    {service.sameDayAvailable !== false ? (language === 'th' ? 'วันเดียว' : '<18h Today') : 'N/A'}
-                                  </div>
-                                </div>
-
-                              </div>
-
-                              {/* Minimum Threshold Row */}
-                              <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/70">
-                                <span className="text-slate-500 font-medium">
-                                  {language === 'th' ? 'เกณฑ์ขั้นต่ำ:' : 'Minimum Order:'}
-                                </span>
-                                <span className="font-extrabold text-slate-800 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-[11px]">
-                                  {isPiece
-                                    ? `${minWeight} ${language === 'th' ? 'ชิ้นขึ้นไป' : 'Piece min.'}`
-                                    : `${minWeight} KG (${language === 'th' ? 'แยกถังซักเฉพาะคุณ' : 'Dedicated Drum'})`
-                                  }
-                                </span>
-                              </div>
-
-                            </div>
-
-                            {/* Feature Checklist */}
-                            <div className="mt-5 space-y-2">
-                              <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                                {language === 'th' ? 'สิ่งที่รวมในบริการ:' : 'Included in Service:'}
-                              </div>
-                              {(service.features || []).map((feat, fIdx) => (
-                                <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700">
-                                  <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                                    <Icon name="check" className="w-2.5 h-2.5" />
-                                  </div>
-                                  <span className="leading-tight">{feat}</span>
-                                </div>
-                              ))}
-                            </div>
-
-                          </div>
-
-                          {/* Booking Action Button */}
-                          <div className="mt-7 pt-4 border-t border-slate-100">
-                            <button
-                              type="button"
-                              onClick={() => onSelectServiceForBooking(service.id, minWeight)}
-                              className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                                isPopular
-                                  ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-600/25'
-                                  : 'bg-slate-900 hover:bg-slate-800 text-white'
-                              }`}
-                            >
-                              <span>{language === 'th' ? `จอง ${service.name}` : `Book ${service.name}`}</span>
-                              <Icon name="chevronRight" className="w-4 h-4" />
-                            </button>
-                            <p className="text-[11px] text-center text-slate-400 mt-2 font-mono">
-                              {language === 'th'
-                                ? `เริ่มต้นประมาณ ฿${Math.round(stdPrice * minWeight)} THB`
-                                : `Min. order ~฿${Math.round(stdPrice * minWeight)} THB`}
-                            </p>
-                          </div>
-
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Bangkok & Pattaya Delivery Note Footer */}
-        <div className="mt-14 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl shrink-0">
-              🏢
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                {language === 'th' ? 'วันที่รับผ้า' : 'Pickup Date'}
+              </label>
+              <input
+                type="date"
+                value={pickupDate}
+                onChange={(e) => setPickupDate(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-sky-500"
+              />
             </div>
             <div>
-              <strong className="text-slate-900 block font-bold text-sm">
-                {language === 'th' ? 'สะดวกสำหรับชาวคอนโดและที่พักอาศัย' : 'Condominium & Residence Friendly'}
-              </strong>
-              <p className="text-slate-500 mt-0.5">
-                {language === 'th'
-                  ? 'สามารถฝากถุงผ้าไว้กับนิติบุคคลหรือเคาน์เตอร์ต้อนรับ คนขับรถของเราจะติดแท็กบาร์โค้ดและส่งรูปยืนยันให้ท่านทันทีผ่าน LINE OA / WhatsApp'
-                  : 'Leave bags with your building juristic office or reception desk. Couriers tag and verify weight with digital scale receipts sent via WhatsApp & LINE.'}
-              </p>
+              <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                {language === 'th' ? 'ช่วงเวลารับผ้า' : 'Time Window'}
+              </label>
+              <select
+                value={pickupTime}
+                onChange={(e) => setPickupTime(e.target.value)}
+                className="w-full px-2 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-sky-500"
+              >
+                {TIME_SLOTS.map((slot, idx) => (
+                  <option key={idx} value={slot}>{slot}</option>
+                ))}
+              </select>
             </div>
           </div>
-          <span className="font-bold text-sky-700 whitespace-nowrap bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200">
-            {language === 'th' ? 'ให้บริการครอบคลุมทั่วกรุงเทพฯ และพัทยา' : 'Bangkok (All 50 Districts) & Pattaya'}
-          </span>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2">
+              <input
+                type="text"
+                value={condoName}
+                onChange={(e) => setCondoName(e.target.value)}
+                placeholder={language === 'th' ? 'ชื่อคอนโด / อาคาร / โรงแรม *' : 'Condo / Building / Hotel *'}
+                className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
+              />
+            </div>
+            <div>
+              <input
+                type="text"
+                value={roomNumber}
+                onChange={(e) => setRoomNumber(e.target.value)}
+                placeholder={language === 'th' ? 'เลขห้อง' : 'Room #'}
+                className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder={language === 'th' ? 'ชื่อ-นามสกุลของคุณ *' : 'Your Full Name *'}
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
+            />
+            <input
+              type="tel"
+              value={mobileNumber}
+              onChange={(e) => setMobileNumber(e.target.value)}
+              placeholder={language === 'th' ? 'เบอร์โทร / WhatsApp *' : 'Phone / WhatsApp *'}
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer select-none pt-0.5">
+            <input
+              type="checkbox"
+              checked={leaveWithJuristic}
+              onChange={(e) => setLeaveWithJuristic(e.target.checked)}
+              className="w-3.5 h-3.5 rounded text-sky-600 focus:ring-sky-500"
+            />
+            <span>
+              {language === 'th'
+                ? '🏢 ฝาก-รับถุงผ้าที่นิติบุคคลคอนโด / ล็อบบี้'
+                : '🏢 Leave & collect bag at Condo Juristic / Lobby'}
+            </span>
+          </label>
+
+          {bookingError && (
+            <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700">
+              {bookingError}
+            </div>
+          )}
         </div>
 
       </div>
+
+      {/* Pinned ESTIMATED TOTAL & FREE DELIVERY (Min ฿500) Dark Card */}
+      <div className="p-4 sm:px-5 sm:pb-5 pt-2 bg-white border-t border-slate-100 shrink-0">
+        
+        {/* Free Delivery Minimum Spend ฿500 Progress Banner */}
+        <div className={`mb-2.5 px-3 py-2 rounded-xl border text-[11px] ${
+          isFreeDelivery
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            : 'bg-sky-50/80 border-sky-200 text-sky-900'
+        }`}>
+          <div className="flex items-center justify-between gap-2 font-bold">
+            <span>
+              {isFreeDelivery
+                ? (language === 'th' ? '🎉 ได้รับสิทธิ์รับ-ส่งผ้าฟรี! (ครบขั้นต่ำ ฿500)' : '🎉 FREE Pickup & Delivery Unlocked! (Min. ฿500)')
+                : selectedEntries.length === 0
+                  ? (language === 'th' ? '🚚 ส่งฟรีเมื่อมียอดใช้จ่ายขั้นต่ำ ฿500' : '🚚 Free Delivery on minimum spend of ฿500')
+                  : (language === 'th'
+                      ? `🚚 เพิ่มอีก ฿${amountToFreeDelivery} เพื่อรับสิทธิ์ส่งฟรี (ขั้นต่ำ ฿500)`
+                      : `🚚 Add ฿${amountToFreeDelivery} more for FREE Delivery (Min. ฿500)`)}
+            </span>
+            <span className="tabular-nums font-extrabold shrink-0">
+              ฿{servicesSubtotal}/฿{FREE_DELIVERY_MIN_SPEND}
+            </span>
+          </div>
+          <div className="w-full h-1.5 bg-white/90 rounded-full overflow-hidden mt-1 border border-slate-200/60">
+            <div
+              className={`h-full transition-all duration-300 ${isFreeDelivery ? 'bg-emerald-500' : 'bg-sky-500'}`}
+              style={{ width: `${freeDeliveryProgressPct}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-2xl flex flex-col justify-between shadow-lg space-y-3">
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                {language === 'th' ? 'ยอดประเมินรวม (Estimated Total)' : 'Estimated Total'}
+              </div>
+              <span className="text-[10px] bg-sky-500/20 text-sky-300 px-2.5 py-0.5 rounded-full font-bold border border-sky-400/30">
+                {selectedEntries.length} {selectedEntries.length === 1 ? 'Service' : 'Services'}
+              </span>
+            </div>
+
+            <div className="mt-1 flex items-baseline justify-between gap-2 tabular-nums">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl sm:text-4xl font-black text-sky-400 tracking-tight">
+                  ฿{totalEstimatedCost}
+                </span>
+                <span className="text-xs text-slate-300 font-bold">THB</span>
+              </div>
+              <span className="text-[11px] font-bold text-slate-300">
+                {turnaroundSpeed === 'same_day'
+                  ? '🚀 Same Day'
+                  : turnaroundSpeed === 'next_day_24h'
+                    ? '⚡ Next Day'
+                    : '🕒 Standard (2 Days)'}
+              </span>
+            </div>
+
+            {/* Itemized Mini Summary */}
+            {selectedEntries.length > 0 ? (
+              <div className="mt-2 pt-2 border-t border-slate-700/80 space-y-1 text-xs text-slate-300 max-h-24 overflow-y-auto">
+                {selectedEntries.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-2 text-[11px]">
+                    <span className="truncate text-slate-300">
+                      {item.name} ({item.isPiece ? `${item.qty} ${item.unitLabel}` : `${item.billable} KG`})
+                    </span>
+                    <span className="font-bold text-white tabular-nums shrink-0 pl-2">
+                      ฿{item.subtotal}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between gap-2 text-[11px] pt-1 border-t border-slate-700/50">
+                  <span className="text-slate-400">
+                    {language === 'th' ? 'ค่ารับ-ส่งผ้า (ส่งฟรีเมื่อครบ ฿500):' : 'Pickup & Delivery (Free at ฿500+):'}
+                  </span>
+                  <span className={`font-bold tabular-nums ${isFreeDelivery ? 'text-emerald-400' : 'text-slate-200'}`}>
+                    {isFreeDelivery ? 'FREE (฿0)' : `฿${deliveryFee}`}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 pt-2 border-t border-slate-700/80 text-[11px] text-slate-400">
+                {language === 'th'
+                  ? 'กรุณาเพิ่มบริการที่ต้องการเพื่อแสดงยอดประเมินรวม'
+                  : 'Add the services you need to calculate your estimated total.'}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isMobileDrawer && (
+              <button
+                type="button"
+                onClick={() => setIsMobileCalcOpen(false)}
+                className="px-3 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer shrink-0"
+              >
+                {language === 'th' ? 'ดูบริการต่อ' : 'Add Services'}
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={selectedEntries.length === 0}
+              onClick={handleQuickBookSubmit}
+              className={`flex-1 inline-flex items-center justify-center gap-2 font-bold text-sm py-2.5 px-4 rounded-xl transition shadow-md ${
+                selectedEntries.length === 0
+                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  : 'bg-sky-500 hover:bg-sky-400 text-white shadow-sky-950/40 cursor-pointer'
+              }`}
+            >
+              <span>
+                {selectedEntries.length === 0
+                  ? (language === 'th' ? 'เลือกบริการเพื่อทำการจอง' : 'Add Services to Book')
+                  : (customerName.trim() || mobileNumber.trim() || condoName.trim())
+                    ? (language === 'th' ? `ยืนยันการจองทันที (฿${totalEstimatedCost})` : `Confirm Booking Now (฿${totalEstimatedCost})`)
+                    : (language === 'th' ? 'ดำเนินการจองบริการที่เลือก' : 'Book Selected Services')}
+              </span>
+              <Icon name="chevronRight" className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <section id="services" className="py-8 sm:py-16 pb-28 lg:pb-16 bg-slate-50/60 relative">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Section Heading */}
+        <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold uppercase tracking-wider mb-3 shadow-2xs">
+            <Icon name="layers" className="w-3.5 h-3.5" />
+            <span>
+              {language === 'th'
+                ? 'รายการบริการ & จองรถรับ-ส่งผ้า (ส่งฟรีเมื่อครบ ฿500)'
+                : 'Services & Instant Booking • Free Delivery from ฿500'}
+            </span>
+          </div>
+          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            {t('servicesTitle')}
+          </h2>
+          <p className="mt-2 text-xs sm:text-base text-slate-600 leading-relaxed">
+            {language === 'th'
+              ? 'เลือกเพิ่มบริการที่คุณต้องการลงในกล่องจองด้านขวา ระบบจะคำนวณราคารวมทันที พร้อมส่งฟรีเมื่อมียอดขั้นต่ำ ฿500'
+              : 'Add the services you need to your booking panel on the right — see your live estimated total and enjoy FREE pickup & delivery on orders from ฿500.'}
+          </p>
+        </div>
+
+        {/* Instant Booking Confirmation Modal if booked directly from the right-side Booking Section */}
+        {quickBookedOrder && (
+          <div
+            className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-4"
+            onClick={() => setQuickBookedOrder(null)}
+          >
+            <div
+              className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-center space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                <Icon name="check" className="w-7 h-7" />
+              </div>
+              <div>
+                <span className="px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                  Booking Confirmed
+                </span>
+                <h3 className="text-xl font-black text-slate-900 mt-1">
+                  Order #{quickBookedOrder.id}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Thank you, {quickBookedOrder.customerName}! Your pickup is scheduled for {quickBookedOrder.pickupDate} ({quickBookedOrder.pickupTime}).
+                </p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Services:</span>
+                  <span className="font-bold text-slate-900">{quickBookedOrder.serviceName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Turnaround:</span>
+                  <span className="font-bold text-sky-700">
+                    {quickBookedOrder.turnaroundSpeed === 'same_day'
+                      ? 'Same Day'
+                      : quickBookedOrder.turnaroundSpeed === 'next_day_24h'
+                        ? 'Next Day'
+                        : 'Standard (2 Days)'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Delivery Fee:</span>
+                  <span className="font-bold text-emerald-600">
+                    {Number(quickBookedOrder.deliveryFee) === 0 ? 'FREE (฿0)' : `฿${quickBookedOrder.deliveryFee}`}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-slate-200 text-sm font-black text-slate-900">
+                  <span>Estimated Total:</span>
+                  <span className="text-sky-600">฿{quickBookedOrder.totalPrice} THB</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickBookedOrder(null)}
+                className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Quick Booking Summary Banner (Visible on phones & tablets < lg) */}
+        <div className="lg:hidden mb-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-4 shadow-lg border border-slate-700/80 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-sky-400">
+                {language === 'th' ? 'รายการจองของคุณ' : 'Your Booking'}
+              </span>
+              <span className="text-[10px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full font-bold border border-sky-400/30">
+                {selectedEntries.length} {selectedEntries.length === 1 ? 'Service' : 'Services'}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5 mt-0.5 tabular-nums">
+              <span className="text-2xl font-black text-white">฿{totalEstimatedCost}</span>
+              <span className="text-xs text-slate-300 font-bold">THB</span>
+              <span className="text-[10px] text-emerald-400 font-semibold ml-1">
+                {isFreeDelivery ? '• Free Delivery!' : '• Free Delivery ฿500+'}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsMobileCalcOpen(true)}
+            className="inline-flex items-center gap-1.5 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-md transition shrink-0 cursor-pointer"
+          >
+            <Icon name="layers" className="w-3.5 h-3.5" />
+            <span>{language === 'th' ? 'เปิดหน้าจองบริการ' : 'Open Booking'}</span>
+          </button>
+        </div>
+
+        {/* Two-Column Layout: Left = Main Services Catalog, Right = Sticky Booking Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT COLUMN: Main Services Provided */}
+          <div className="lg:col-span-7 xl:col-span-8 min-w-0 space-y-6 sm:space-y-8">
+            
+            {/* Clean Live Search Bar + Mobile-Friendly Category Filter Pills */}
+            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 shadow-sm space-y-3">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="relative w-full sm:max-w-md">
+                  <Icon name="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={language === 'th' ? 'ค้นหาบริการ เช่น ซักอบพับ, ผ้านวม, สูท, ม่าน...' : 'Quick search services (e.g. wash & fold, duvet, suits)...'}
+                    className="w-full pl-9 pr-9 py-2.5 sm:py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 bg-slate-50/50"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      title="Clear search"
+                    >
+                      <Icon name="x" className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2 text-xs text-slate-500">
+                  <span className="font-semibold">
+                    {language === 'th' ? 'พบทั้งหมด:' : 'Available:'}
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-bold border border-slate-200 tabular-nums">
+                    {totalFilteredCount} {language === 'th' ? 'รายการ' : (totalFilteredCount === 1 ? 'Service' : 'Services')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Touch-Friendly Horizontal Category Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition shrink-0 cursor-pointer border ${
+                    selectedCategory === 'all'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {language === 'th' ? 'ทั้งหมด' : 'All Categories'}
+                </button>
+                {activeCategories.map(cat => {
+                  const theme = getCategoryTheme(cat.id);
+                  const isCatActive = selectedCategory === cat.id;
+                  const catLabel = language === 'th' && cat.nameTh ? cat.nameTh : cat.name;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+                        isCatActive
+                          ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{theme.emoji}</span>
+                      <span>{catLabel}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Categorized Services Groups */}
+            {categoriesToRender.length === 0 ? (
+              <div className="bg-white rounded-3xl p-10 sm:p-12 text-center border border-slate-200 shadow-sm max-w-lg mx-auto">
+                <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl mb-4">
+                  🔍
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {language === 'th' ? 'ไม่พบรายการบริการที่ค้นหา' : 'No services found'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  {language === 'th'
+                    ? `ไม่พบบริการที่ตรงกับคำค้นหา "${searchQuery}"`
+                    : `No services match your search query "${searchQuery}"`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
+                  className="mt-4 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm transition cursor-pointer"
+                >
+                  {language === 'th' ? 'ล้างการค้นหา' : 'Clear Search'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-10 sm:space-y-12">
+                {categoriesToRender.map((cat) => {
+                  if (cat.services.length === 0 && searchQuery) return null;
+                  const theme = getCategoryTheme(cat.id);
+                  const displayName = language === 'th' && cat.nameTh ? cat.nameTh : cat.name;
+                  const isPiece = cat.pricingType === 'piece';
+
+                  return (
+                    <div key={cat.id} className="space-y-4 sm:space-y-5">
+                      
+                      {/* Category Header Banner with Number of Services */}
+                      <div className={`p-4 sm:p-6 rounded-3xl border ${theme.border} ${theme.bgLight} shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4`}>
+                        <div className="flex items-start gap-3 sm:gap-3.5">
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white shadow-xs flex items-center justify-center text-2xl shrink-0 border border-slate-200/80">
+                            {theme.emoji}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
+                                {displayName}
+                              </h3>
+                              
+                              {/* Number of Service Badge in Category Header */}
+                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border tabular-nums ${theme.badgeBg}`}>
+                                {cat.services.length} {language === 'th' ? 'รายการบริการ' : (cat.services.length === 1 ? 'Service' : 'Services')}
+                              </span>
+
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white text-slate-700 border border-slate-200 shadow-2xs">
+                                {isPiece
+                                  ? (language === 'th' ? '🛏️ คิดราคาเป็นชิ้น' : '🛏️ Billed per Piece / Item')
+                                  : (language === 'th' ? '🧺 คิดตามน้ำหนัก (กิโลกรัม)' : '🧺 Billed by Weight (KG)')
+                                }
+                              </span>
+                            </div>
+
+                            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
+                              {cat.description}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Services Grid for This Category (2 columns alongside the right Booking Section) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                        {cat.services.map((service) => {
+                          const isPopular = Boolean(service.popular);
+                          const isSelectedInCalc = Boolean(selectedServicesMap[service.id]);
+                          const selectedEntry = selectedEntries.find(e => e.id === service.id);
+                          const serviceIsPiece = service.pricingType === 'piece' || service.unit === 'piece';
+                          const unitDisplay = serviceIsPiece ? (language === 'th' ? 'ชิ้น' : 'piece') : (language === 'th' ? 'กก.' : 'KG');
+                          const stdPrice = service.standardPricePerKg || service.pricePerKg || (service.id === 'wash_fold' ? 70 : 70);
+                          const nextPrice = service.nextDayPricePerKg || Math.round(stdPrice * 1.3);
+                          const samePrice = service.sameDayPricePerKg || Math.round(stdPrice * 1.75);
+                          const minWeight = Number(service.minWeightKg) || (serviceIsPiece ? 1.0 : 4.0);
+
+                          return (
+                            <div
+                              key={service.id}
+                              className={`relative rounded-3xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-200 bg-white border ${
+                                isSelectedInCalc
+                                  ? 'border-2 border-sky-500 ring-2 ring-sky-500/15 shadow-lg shadow-sky-500/10'
+                                  : isPopular
+                                    ? 'border-2 border-sky-400 shadow-md hover:shadow-xl hover:border-sky-500'
+                                    : 'border-slate-200/90 shadow-sm hover:border-slate-300 hover:shadow-md'
+                              }`}
+                            >
+                              {/* Popular Choice Ribbon */}
+                              {isPopular && (
+                                <div className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-sky-600 to-teal-500 text-white text-[11px] font-black px-4 py-1 rounded-full shadow-md uppercase tracking-wide whitespace-nowrap">
+                                  ⭐ {language === 'th' ? 'บริการยอดนิยม' : 'Most Popular Choice'}
+                                </div>
+                              )}
+
+                              <div>
+                                {/* Service Title & Icon Header */}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <h4 className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug">
+                                      {service.name}
+                                    </h4>
+                                    {service.nameTh && (
+                                      <div className="text-xs text-sky-600 font-bold mt-0.5">
+                                        {service.nameTh}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-lg shrink-0 border border-slate-200/60 shadow-2xs">
+                                    {theme.emoji}
+                                  </span>
+                                </div>
+
+                                {/* Service Description */}
+                                <p className="mt-2.5 text-xs text-slate-600 leading-relaxed min-h-[36px]">
+                                  {service.description}
+                                </p>
+
+                                {/* 3-Tier Turnaround Pricing Badges (Standard 2 Days, Next Day, Same Day) */}
+                                <div className="mt-4 p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2.5">
+                                  <div className="grid grid-cols-3 gap-2">
+                                    
+                                    {/* Tier 1: Standard (2 Days) */}
+                                    <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs text-center">
+                                      <div className="text-[9px] uppercase font-bold text-slate-500">
+                                        {language === 'th' ? 'มาตรฐาน (2 วัน)' : '2 Days'}
+                                      </div>
+                                      <div className="mt-0.5 tabular-nums">
+                                        <span className="text-base font-black text-slate-900">
+                                          ฿{stdPrice}
+                                        </span>
+                                        <span className="text-[9px] text-slate-500 block font-semibold uppercase">
+                                          /{unitDisplay}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Tier 2: Next Day */}
+                                    <div className="p-2 rounded-xl bg-sky-50/70 border border-sky-200 shadow-2xs text-center">
+                                      <div className="text-[9px] uppercase font-bold text-sky-700">
+                                        ⚡ {language === 'th' ? 'วันถัดไป' : 'Next Day'}
+                                      </div>
+                                      <div className="mt-0.5 tabular-nums">
+                                        <span className="text-base font-black text-sky-950">
+                                          ฿{nextPrice}
+                                        </span>
+                                        <span className="text-[9px] text-sky-700/70 block font-semibold uppercase">
+                                          /{unitDisplay}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Tier 3: Same Day */}
+                                    <div className="p-2 rounded-xl bg-amber-50/80 border border-amber-200 shadow-2xs text-center">
+                                      <div className="text-[9px] uppercase font-bold text-amber-800">
+                                        🚀 {language === 'th' ? 'วันเดียว' : 'Same Day'}
+                                      </div>
+                                      <div className="mt-0.5 tabular-nums">
+                                        {service.sameDayAvailable !== false ? (
+                                          <>
+                                            <span className="text-base font-black text-amber-950">
+                                              ฿{samePrice}
+                                            </span>
+                                            <span className="text-[9px] text-amber-800/70 block font-semibold uppercase">
+                                              /{unitDisplay}
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="text-[10px] font-bold text-slate-400 block py-1">
+                                            N/A
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                  </div>
+
+                                  {/* Minimum Threshold Row */}
+                                  <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/70">
+                                    <span className="text-slate-500 font-medium">
+                                      {language === 'th' ? 'เกณฑ์ขั้นต่ำ:' : 'Minimum Order:'}
+                                    </span>
+                                    <span className="font-extrabold text-slate-800 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-[11px]">
+                                      {serviceIsPiece
+                                        ? `${minWeight} ${language === 'th' ? 'ชิ้นขึ้นไป' : 'Piece min.'}`
+                                        : `${minWeight} KG (${language === 'th' ? 'แยกถังซัก' : 'Dedicated Drum'})`
+                                      }
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Feature Checklist */}
+                                <div className="mt-4 space-y-1.5">
+                                  <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                                    {language === 'th' ? 'สิ่งที่รวมในบริการ:' : 'Included in Service:'}
+                                  </div>
+                                  {(service.features || []).map((feat, fIdx) => (
+                                    <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700">
+                                      <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                                        <Icon name="check" className="w-2.5 h-2.5" />
+                                      </div>
+                                      <span className="leading-tight">{feat}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Interactive Booking Toggle + Inline Quantity/Weight Control */}
+                              <div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5">
+                                
+                                {/* When added to booking, show convenient inline -/+ adjuster right on the card */}
+                                {isSelectedInCalc && selectedEntry && (
+                                  <div className="flex items-center justify-between bg-sky-50/80 border border-sky-200 rounded-xl px-3 py-2">
+                                    <span className="text-[11px] font-bold text-sky-900">
+                                      {serviceIsPiece
+                                        ? (language === 'th' ? 'จำนวนชิ้น:' : 'Quantity:')
+                                        : (language === 'th' ? 'น้ำหนักประเมิน:' : 'Est. Weight:')}
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => serviceIsPiece
+                                          ? handleUpdateQuantity(service.id, -1)
+                                          : handleUpdateWeight(service.id, Math.max(1, (selectedEntry.weight - 0.5).toFixed(1)))
+                                        }
+                                        className="w-7 h-7 rounded-lg bg-white border border-sky-200 text-sky-900 font-bold flex items-center justify-center text-sm shadow-2xs active:bg-sky-100 cursor-pointer"
+                                      >
+                                        -
+                                      </button>
+                                      <span className="min-w-[60px] text-center font-extrabold text-xs text-sky-950 tabular-nums">
+                                        {serviceIsPiece ? `${selectedEntry.qty} ${unitDisplay}` : `${selectedEntry.weight} KG`}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => serviceIsPiece
+                                          ? handleUpdateQuantity(service.id, 1)
+                                          : handleUpdateWeight(service.id, (selectedEntry.weight + 0.5).toFixed(1))
+                                        }
+                                        className="w-7 h-7 rounded-lg bg-white border border-sky-200 text-sky-900 font-bold flex items-center justify-center text-sm shadow-2xs active:bg-sky-100 cursor-pointer"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleService(service)}
+                                    className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 border cursor-pointer ${
+                                      isSelectedInCalc
+                                        ? 'bg-sky-600 border-sky-600 text-white shadow-xs'
+                                        : 'bg-slate-900 border-slate-900 text-white hover:bg-slate-800'
+                                    }`}
+                                  >
+                                    <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
+                                      isSelectedInCalc ? 'bg-white text-sky-600' : 'bg-white/20 text-white'
+                                    }`}>
+                                      {isSelectedInCalc ? <Icon name="check" className="w-3 h-3" /> : <span className="text-xs leading-none">+</span>}
+                                    </div>
+                                    <span className="tabular-nums">
+                                      {isSelectedInCalc
+                                        ? (language === 'th' ? `เพิ่มในรายการจองแล้ว (฿${selectedEntry?.subtotal})` : `Added to Booking (฿${selectedEntry?.subtotal})`)
+                                        : (language === 'th' ? 'เพิ่มบริการนี้ในรายการจอง' : 'Add to Booking')}
+                                    </span>
+                                  </button>
+                                </div>
+                              </div>
+
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Bangkok & Pattaya Delivery Note Footer */}
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-700">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl shrink-0">
+                  🏢
+                </div>
+                <div>
+                  <strong className="text-slate-900 block font-bold text-sm">
+                    {language === 'th' ? 'สะดวกสำหรับชาวคอนโดและที่พักอาศัย (ส่งฟรีเมื่อครบ ฿500)' : 'Condominium & Residence Friendly (Free Delivery on ฿500+ Spend)'}
+                  </strong>
+                  <p className="text-slate-500 mt-0.5">
+                    {language === 'th'
+                      ? 'สามารถฝากถุงผ้าไว้กับนิติบุคคลหรือเคาน์เตอร์ต้อนรับ คนขับรถของเราจะติดแท็กบาร์โค้ดและส่งรูปยืนยันให้ท่านทันทีผ่าน LINE OA / WhatsApp'
+                      : 'Leave bags with your building juristic office or reception desk. Couriers tag and verify weight with digital scale receipts sent via WhatsApp & LINE.'}
+                  </p>
+                </div>
+              </div>
+              <span className="font-bold text-sky-700 whitespace-nowrap bg-sky-50 px-3 py-1.5 rounded-xl border border-sky-200">
+                {language === 'th' ? 'ให้บริการครอบคลุมทั่วกรุงเทพฯ และพัทยา' : 'Bangkok (All 50 Districts) & Pattaya'}
+              </span>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: Sticky Instant Booking Section (Follows user while scrolling down) */}
+          <div
+            className="lg:col-span-5 xl:col-span-4 lg:sticky self-start z-20"
+            style={{ top: '144px' }}
+          >
+            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-200/90 overflow-hidden flex flex-col lg:max-h-[calc(100vh-160px)]">
+              
+              {/* Booking Section Header */}
+              <div className="px-4 py-3.5 sm:px-5 sm:py-4 border-b border-slate-100 bg-white shrink-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] uppercase tracking-wider font-extrabold text-sky-600 flex items-center gap-1.5">
+                    <Icon name="truck" className="w-3.5 h-3.5 shrink-0" />
+                    <span>{language === 'th' ? 'จองบริการรับ-ส่งผ้าออนไลน์' : 'Instant Laundry Booking'}</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {language === 'th' ? 'ส่งฟรีเมื่อครบ ฿500' : 'Free Delivery ฿500+'}
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 leading-snug">
+                  {language === 'th' ? 'รายการจองและประเมินราคาของคุณ' : 'Your Booking & Estimated Total'}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  {language === 'th'
+                    ? 'เพิ่มบริการที่คุณต้องการจากรายการด้านซ้าย ระบบจะแสดงยอดประเมินรวมและสามารถทำการจองได้ทันที'
+                    : 'Add the services you need from the catalog to see your estimated total and book right away.'}
+                </p>
+              </div>
+
+              {renderBookingSectionBody(false)}
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* MOBILE STICKY BOTTOM BOOKING BAR (Always follows mobile user while scrolling on screens < lg) */}
+      <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-slate-900/95 backdrop-blur-md border-t border-slate-700/80 px-4 py-3 shadow-2xl">
+        <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+          {/* Tap Left Area to Open Full Mobile Booking Sheet */}
+          <button
+            type="button"
+            onClick={() => setIsMobileCalcOpen(true)}
+            className="flex-1 text-left min-w-0 cursor-pointer group"
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                {language === 'th' ? 'ยอดประเมินรวม' : 'Estimated Total'}
+              </span>
+              <span className="text-[10px] bg-sky-500/25 text-sky-300 px-2 py-0.5 rounded-full font-bold border border-sky-400/30">
+                {selectedEntries.length} {selectedEntries.length === 1 ? 'Service' : 'Services'}
+              </span>
+              <span className="text-[10px] text-sky-400 font-bold underline ml-1">
+                {language === 'th' ? 'เปิดดู ▲' : 'Open ▲'}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5 mt-0.5 tabular-nums">
+              <span className="text-2xl font-black text-sky-400 leading-none">
+                ฿{totalEstimatedCost}
+              </span>
+              <span className="text-[11px] text-slate-300 font-bold">THB</span>
+              <span className="text-[10px] text-emerald-400 font-semibold ml-1">
+                {isFreeDelivery ? '• Free Delivery!' : '• Free Delivery ฿500+'}
+              </span>
+            </div>
+          </button>
+
+          {/* Direct Open / Book Button on Mobile Bottom Bar */}
+          <button
+            type="button"
+            onClick={() => setIsMobileCalcOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-white font-bold text-xs sm:text-sm px-4 py-3 rounded-xl shadow-lg shadow-sky-950/50 transition shrink-0 cursor-pointer"
+          >
+            <span>
+              {selectedEntries.length === 0
+                ? (language === 'th' ? 'เลือกบริการ' : 'Book Now')
+                : (language === 'th' ? `จองเลย (${selectedEntries.length})` : `Book (${selectedEntries.length})`)}
+            </span>
+            <Icon name="chevronRight" className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* MOBILE SLIDE-UP BOOKING DRAWER (Modal Sheet on < lg) */}
+      {isMobileCalcOpen && (
+        <div
+          className="fixed inset-0 z-50 lg:hidden bg-slate-950/60 backdrop-blur-xs flex flex-col justify-end"
+          onClick={() => setIsMobileCalcOpen(false)}
+        >
+          <div
+            className="bg-white w-full max-h-[88vh] rounded-t-3xl shadow-2xl border-t border-slate-200 flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Mobile Sheet Header */}
+            <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-white shrink-0">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-sky-600 flex items-center gap-1">
+                  <Icon name="truck" className="w-3 h-3" />
+                  <span>{language === 'th' ? 'จองบริการรับ-ส่งผ้าออนไลน์ (ส่งฟรีเมื่อครบ ฿500)' : 'Instant Booking • Free Delivery ฿500+'}</span>
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  {language === 'th' ? 'รายการจองและประเมินราคาของคุณ' : 'Your Booking & Estimated Total'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileCalcOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer shrink-0"
+                aria-label="Close booking panel"
+              >
+                <Icon name="x" className="w-4 h-4" />
+              </button>
+            </div>
+
+            {renderBookingSectionBody(true)}
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }

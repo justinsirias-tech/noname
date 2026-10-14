@@ -48,9 +48,9 @@ export function OrderDetailsModal({
   };
 
   const formatSpeedLabel = (speed) => {
-    if (speed === 'same_day') return 'Same Day (<18:00)';
-    if (speed === 'next_day_24h' || speed === 'next_day') return 'Next Day (24h)';
-    return 'Standard (48h)';
+    if (speed === 'same_day') return 'Same Day';
+    if (speed === 'next_day_24h' || speed === 'next_day') return 'Next Day';
+    return 'Standard (2 Days)';
   };
 
   // Find initial matching service
@@ -197,7 +197,10 @@ export function OrderDetailsModal({
       if (parts.length === 3) {
         const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         if (speed === 'same_day') {
-          return { date: order.pickupDate, time: 'Before 18:00 (Same Day Express)' };
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return { date: `${yyyy}-${mm}-${dd}`, time: 'Delivered before 18:00 (Same Day)' };
         } else if (speed === 'next_day_24h' || speed === 'next_day') {
           d.setDate(d.getDate() + 1);
           const yyyy = d.getFullYear();
@@ -209,7 +212,7 @@ export function OrderDetailsModal({
           const yyyy = d.getFullYear();
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           const dd = String(d.getDate()).padStart(2, '0');
-          return { date: `${yyyy}-${mm}-${dd}`, time: order.pickupTime || '14:00 - 16:00 (Standard 48h)' };
+          return { date: `${yyyy}-${mm}-${dd}`, time: order.pickupTime || '14:00 - 16:00 (Standard 2 Days)' };
         }
       }
     } catch (e) {
@@ -222,11 +225,7 @@ export function OrderDetailsModal({
     const target = allServices.find(s => s.id === newSrvId);
     if (!target) return;
     setEditServiceId(newSrvId);
-    let newSpeed = editTurnaroundSpeed;
-    if (target.sameDayAvailable === false && newSpeed === 'same_day') {
-      newSpeed = 'next_day_24h';
-      setEditTurnaroundSpeed('next_day_24h');
-    }
+    const newSpeed = editTurnaroundSpeed;
     const autoRate = getRateForSpeed(target, newSpeed);
     setEditCustomRate(autoRate);
     const suggested = calculateSuggestedDelivery(newSpeed);
@@ -255,9 +254,7 @@ export function OrderDetailsModal({
   const getCustomerMessageText = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const gatewayUrl = `${origin}/?track=${encodeURIComponent(order.id)}&pay=1`;
-    const speed = order.turnaroundSpeed === 'same_day' 
-      ? 'Same Day Express (<18h)' 
-      : (order.turnaroundSpeed?.includes('next_day') ? 'Next Day (24h)' : 'Standard (48h)');
+    const speed = order.turnaroundSpeed === 'same_day' ? 'Same Day' : (order.turnaroundSpeed?.includes('next_day') ? 'Next Day' : 'Standard (2 Days)');
     const isPaid = order.paymentStatus === 'PAID';
     const finalWeight = editWeight !== '' ? parseFloat(editWeight) : (order.actualWeightKg || order.estimatedWeightKg || 4.0);
 
@@ -436,16 +433,16 @@ LINE: @nonamelaundry`;
             </span>
 
             {editTurnaroundSpeed === 'same_day' ? (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-amber-950 border border-amber-300">
-                🚀 SAME DAY (&lt;18H)
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white border border-amber-400">
+                🚀 SAME DAY
               </span>
             ) : (editTurnaroundSpeed === 'next_day_24h' || editTurnaroundSpeed === 'next_day') ? (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-500 text-white border border-sky-400">
-                ⚡ NEXT DAY (24H)
+                ⚡ NEXT DAY
               </span>
             ) : (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                🕒 STANDARD (48H)
+                🕒 STANDARD (2 DAYS)
               </span>
             )}
           </div>
@@ -691,7 +688,7 @@ LINE: @nonamelaundry`;
                         Choose Turnaround Speed
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {/* Standard 48H */}
+                        {/* Standard (2 Days) */}
                         <button
                           type="button"
                           onClick={() => handleTurnaroundChange('standard_48h')}
@@ -702,14 +699,14 @@ LINE: @nonamelaundry`;
                           }`}
                         >
                           <div className="font-bold text-xs flex items-center gap-1">
-                            <span>🕒 Standard (48h)</span>
+                            <span>🕒 Standard (2 Days)</span>
                           </div>
                           <div className="text-[10px] opacity-80 mt-0.5">
                             ฿{getRateForSpeed(activeSrv, 'standard_48h')} / KG • Regular queue
                           </div>
                         </button>
 
-                        {/* Next Day 24H */}
+                        {/* Next Day */}
                         <button
                           type="button"
                           onClick={() => handleTurnaroundChange('next_day_24h')}
@@ -720,33 +717,28 @@ LINE: @nonamelaundry`;
                           }`}
                         >
                           <div className="font-bold text-xs flex items-center gap-1">
-                            <span>⚡ Next Day (24h)</span>
+                            <span>⚡ Next Day</span>
                           </div>
                           <div className="text-[10px] opacity-80 mt-0.5">
-                            ฿{getRateForSpeed(activeSrv, 'next_day_24h')} / KG • Fast Track
+                            ฿{getRateForSpeed(activeSrv, 'next_day_24h')} / KG • Next Day
                           </div>
                         </button>
 
-                        {/* Same Day Express */}
+                        {/* Same Day */}
                         <button
                           type="button"
-                          disabled={activeSrv?.sameDayAvailable === false}
                           onClick={() => handleTurnaroundChange('same_day')}
                           className={`p-2.5 rounded-xl border text-left transition ${
-                            activeSrv?.sameDayAvailable === false
-                              ? 'opacity-40 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                              : (editTurnaroundSpeed === 'same_day')
-                              ? 'border-amber-500 bg-amber-400 text-amber-950 font-black shadow-xs'
-                              : 'border-amber-200 hover:border-amber-300 bg-amber-50/60 text-amber-900'
+                            editTurnaroundSpeed === 'same_day'
+                              ? 'border-amber-500 bg-amber-500 text-white shadow-xs'
+                              : 'border-amber-200 hover:border-amber-300 bg-amber-50/50 text-amber-800'
                           }`}
                         >
                           <div className="font-bold text-xs flex items-center gap-1">
-                            <span>🚀 Same Day (&lt;18h)</span>
+                            <span>🚀 Same Day</span>
                           </div>
                           <div className="text-[10px] opacity-80 mt-0.5">
-                            {activeSrv?.sameDayAvailable === false
-                              ? 'Not available for this service'
-                              : `฿${getRateForSpeed(activeSrv, 'same_day')} / KG • Before 18:00`}
+                            ฿{getRateForSpeed(activeSrv, 'same_day')} / KG • Same Day
                           </div>
                         </button>
                       </div>
@@ -803,7 +795,6 @@ LINE: @nonamelaundry`;
                 )}
 
                 {/* 4 Summary Metric Cards */}
-                {/* 4 Summary Metric Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div className="p-3 bg-white rounded-xl border border-sky-100">
                     <span className="text-slate-400 block text-[10px] font-semibold uppercase">Service</span>
@@ -818,11 +809,11 @@ LINE: @nonamelaundry`;
                   <div className="p-3 bg-white rounded-xl border border-sky-100">
                     <span className="text-slate-400 block text-[10px] font-semibold uppercase">Turnaround Speed</span>
                     {editTurnaroundSpeed === 'same_day' ? (
-                      <span className="font-bold text-amber-800 flex items-center gap-0.5">🚀 Same Day (&lt;18:00)</span>
+                      <span className="font-bold text-amber-700 flex items-center gap-0.5">🚀 Same Day</span>
                     ) : (editTurnaroundSpeed === 'next_day_24h' || editTurnaroundSpeed === 'next_day') ? (
-                      <span className="font-bold text-sky-700 flex items-center gap-0.5">⚡ Next Day (24h)</span>
+                      <span className="font-bold text-sky-700 flex items-center gap-0.5">⚡ Next Day</span>
                     ) : (
-                      <span className="font-bold text-slate-700 flex items-center gap-0.5">🕒 Standard (48h)</span>
+                      <span className="font-bold text-slate-700 flex items-center gap-0.5">🕒 Standard (2 Days)</span>
                     )}
                   </div>
 
@@ -1079,11 +1070,8 @@ LINE: @nonamelaundry`;
                           onChange={(e) => handleTurnaroundChange(e.target.value)}
                           className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-bold text-xs"
                         >
-                          <option value="standard_48h">🕒 Standard (48h)</option>
-                          <option value="next_day_24h">⚡ Next Day (24h)</option>
-                          {activeSrv?.sameDayAvailable !== false && (
-                            <option value="same_day">🚀 Same Day (&lt;18:00)</option>
-                          )}
+                          <option value="standard_48h">🕒 Standard (2 Days)</option>
+                          <option value="next_day_24h">⚡ Next Day</option>
                         </select>
                       </div>
                     </div>

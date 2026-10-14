@@ -1253,16 +1253,16 @@ export function AdminPOS({
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-semibold text-slate-800">{order.serviceName}</span>
                                 {order.turnaroundSpeed === 'same_day' ? (
-                                  <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-[9px] inline-flex items-center gap-0.5">
-                                    <span>🚀 Same Day (&lt;18h)</span>
+                                  <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[9px] inline-flex items-center gap-0.5">
+                                    <span>🚀 Same Day</span>
                                   </span>
                                 ) : (order.turnaroundSpeed === 'next_day_24h' || order.turnaroundSpeed === 'next_day') ? (
                                   <span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 font-bold text-[9px] inline-flex items-center gap-0.5">
-                                    <span>⚡ Next Day (24h)</span>
+                                    <span>⚡ Next Day</span>
                                   </span>
                                 ) : (
                                   <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-medium text-[9px] inline-flex items-center gap-0.5">
-                                    <span>🕒 Standard (48h)</span>
+                                    <span>🕒 Standard (2 Days)</span>
                                   </span>
                                 )}
                               </div>
@@ -1595,12 +1595,12 @@ export function AdminPOS({
                         />
                       </div>
 
-                      {/* 3-Tier Pricing & Weight/Quantity Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
-                        {/* Standard 48h Price */}
+                      {/* 3-Tier Pricing & Weight/Quantity Grid (Standard 2 Days, Next Day & Same Day) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+                        {/* Standard (2 Days) Price */}
                         <div>
                           <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
-                            <span>🕒 Standard 48h (฿/{unitLabel}) *</span>
+                            <span>🕒 Standard (2 Days) (฿/{unitLabel}) *</span>
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">฿</span>
@@ -1617,13 +1617,13 @@ export function AdminPOS({
                               className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                             />
                           </div>
-                          <span className="text-[10px] text-slate-400 mt-0.5 block">Standard ~48h turnaround</span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 block">Standard 2 days turnaround</span>
                         </div>
 
-                        {/* Next Day 24h Price */}
+                        {/* Next Day Price */}
                         <div>
                           <label className="block text-xs font-bold text-sky-800 mb-1 flex items-center gap-1">
-                            <span>⚡ Next Day 24h (฿/{unitLabel}) *</span>
+                            <span>⚡ Next Day (฿/{unitLabel}) *</span>
                           </label>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">฿</span>
@@ -1637,7 +1637,7 @@ export function AdminPOS({
                               className="w-full pl-7 pr-3 py-2 rounded-xl border border-sky-300 text-sm font-bold text-sky-950 bg-sky-50/40 focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                             />
                           </div>
-                          <span className="text-[10px] text-sky-700/80 mt-0.5 block">Next day ~24h delivery</span>
+                          <span className="text-[10px] text-sky-700/80 mt-0.5 block">Next day delivery</span>
                         </div>
 
                         {/* Same Day Price */}
@@ -1657,7 +1657,7 @@ export function AdminPOS({
                               className="w-full pl-7 pr-3 py-2 rounded-xl border border-amber-300 text-sm font-bold text-amber-950 bg-amber-50/40 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                             />
                           </div>
-                          <span className="text-[10px] text-amber-700/80 mt-0.5 block">Deliver before 18:00 hrs</span>
+                          <span className="text-[10px] text-amber-700/80 mt-0.5 block">Same day delivery</span>
                         </div>
 
                         {/* Minimum Weight or Quantity */}
@@ -1680,41 +1680,6 @@ export function AdminPOS({
                           </div>
                           <span className="text-[10px] text-slate-400 mt-0.5 block">{isPiece ? 'Min 1 item' : 'Standard 4.0 KG min'}</span>
                         </div>
-
-                        {/* Turnaround Standard Hours */}
-                        <div>
-                          <label className="block text-xs font-bold text-slate-800 mb-1">
-                            Standard Hours
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              min="1"
-                              max="168"
-                              value={draft.turnaroundHours}
-                              onChange={(e) => handleDraftFieldChange(service.id, 'turnaroundHours', e.target.value)}
-                              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">hrs</span>
-                          </div>
-                          <span className="text-[10px] text-slate-400 mt-0.5 block">Default 48h standard</span>
-                        </div>
-                      </div>
-
-                      {/* Same Day Availability Switch */}
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 border border-amber-200">
-                        <label className="flex items-center gap-2.5 cursor-pointer text-xs">
-                          <input
-                            type="checkbox"
-                            checked={draft.sameDayAvailable !== false}
-                            onChange={(e) => handleDraftFieldChange(service.id, 'sameDayAvailable', e.target.checked)}
-                            className="w-4 h-4 text-amber-600 rounded"
-                          />
-                          <div>
-                            <span className="font-bold text-amber-950 block">🚀 Offer Same Day Express Speed (Delivered Before 18:00 hrs)</span>
-                            <span className="text-[11px] text-amber-800/80">When enabled, customers can select Same Day Express in the booking wizard at ฿{draft.sameDayPricePerKg || Math.round((draft.pricePerKg || 70) * 1.75)}/{unitLabel}.</span>
-                          </div>
-                        </label>
                       </div>
 
                       {/* INCLUDED IN SERVICE: Bullet Points Sublist Editor */}
@@ -1774,15 +1739,11 @@ export function AdminPOS({
                       {/* Card Footer: Minimum Charge & Save Button */}
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-200/80">
                         <div className="text-xs text-slate-600 flex items-center gap-2 flex-wrap">
-                          <span>Standard Min: <strong className="text-slate-900 font-black">฿{Math.round((parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 0) * (parseFloat(draft.minWeightKg) || 1.0))} THB</strong></span>
+                          <span>Standard (2 Days) Min: <strong className="text-slate-900 font-black">฿{Math.round((parseFloat(draft.standardPricePerKg || draft.pricePerKg) || 0) * (parseFloat(draft.minWeightKg) || 1.0))} THB</strong></span>
                           <span className="text-slate-400">•</span>
                           <span>Next Day Min: <strong className="text-slate-900 font-black">฿{Math.round((parseFloat(draft.nextDayPricePerKg || draft.pricePerKg) || 0) * (parseFloat(draft.minWeightKg) || 1.0))} THB</strong></span>
                           <span className="text-slate-400">•</span>
-                          {draft.sameDayAvailable !== false ? (
-                            <span>Same Day Min: <strong className="text-amber-800 font-black">฿{Math.round((parseFloat(draft.sameDayPricePerKg) || Math.round((parseFloat(draft.pricePerKg) || 80) * 1.75)) * (parseFloat(draft.minWeightKg) || 1.0))} THB</strong></span>
-                          ) : (
-                            <span className="text-slate-400 italic">Same day disabled</span>
-                          )}
+                          <span>Same Day Min: <strong className="text-amber-700 font-black">฿{Math.round((parseFloat(draft.sameDayPricePerKg || draft.pricePerKg) || 0) * (parseFloat(draft.minWeightKg) || 1.0))} THB</strong></span>
                         </div>
 
                         <button
@@ -2816,11 +2777,9 @@ export function AdminPOS({
                     const sameP = selSrv?.sameDayPricePerKg || Math.round(stdP * 1.75);
                     return (
                       <>
-                        <option value="standard_48h">🕒 Standard 48h (฿{stdP}/{unitLbl})</option>
-                        <option value="next_day_24h">⚡ Next Day 24h (฿{nextP}/{unitLbl})</option>
-                        {selSrv?.sameDayAvailable !== false && (
-                          <option value="same_day">🚀 Same Day (&lt;18:00) (฿{sameP}/{unitLbl})</option>
-                        )}
+                        <option value="standard_48h">🕒 Standard (2 Days) (฿{stdP}/{unitLbl})</option>
+                        <option value="next_day_24h">⚡ Next Day (฿{nextP}/{unitLbl})</option>
+                        <option value="same_day">🚀 Same Day (฿{sameP}/{unitLbl})</option>
                       </>
                     );
                   })()}
@@ -3383,10 +3342,10 @@ export function AdminPOS({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    🕒 Standard 48h (฿/{newServicePricingType === 'piece' ? (newServiceUnit || 'piece') : 'KG'}) *
+                    🕒 Standard (2 Days) (฿/{newServicePricingType === 'piece' ? (newServiceUnit || 'piece') : 'KG'}) *
                   </label>
                   <input
                     type="number"
@@ -3400,7 +3359,7 @@ export function AdminPOS({
 
                 <div>
                   <label className="block font-bold text-sky-800 mb-1">
-                    ⚡ Next Day 24h (฿/{newServicePricingType === 'piece' ? (newServiceUnit || 'piece') : 'KG'}) *
+                    ⚡ Next Day (฿/{newServicePricingType === 'piece' ? (newServiceUnit || 'piece') : 'KG'}) *
                   </label>
                   <input
                     type="number"
@@ -3440,33 +3399,6 @@ export function AdminPOS({
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
                   />
                 </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Turnaround (Hrs)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={newServiceTurnaround}
-                    onChange={(e) => setNewServiceTurnaround(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                  />
-                </div>
-              </div>
-
-              {/* Same Day Available toggle */}
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={newServiceSameDayAvailable}
-                    onChange={(e) => setNewServiceSameDayAvailable(e.target.checked)}
-                    className="w-4 h-4 text-amber-600 rounded"
-                  />
-                  <div>
-                    <span className="font-bold text-amber-900 block">🚀 Enable Same Day Express Speed (Delivered Before 18:00)</span>
-                    <span className="text-[11px] text-amber-700">Allow customers to choose Same Day turnaround for this service at ฿{newServiceSameDayPrice}/KG.</span>
-                  </div>
-                </label>
               </div>
 
               <div>

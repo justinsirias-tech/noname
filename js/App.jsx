@@ -136,6 +136,7 @@ export function App() {
   const [bookingPrefillService, setBookingPrefillService] = useState(null);
   const [bookingPrefillWeight, setBookingPrefillWeight] = useState(null);
   const [bookingPrefillItems, setBookingPrefillItems] = useState(null);
+  const [bookingPrefillSpeed, setBookingPrefillSpeed] = useState('standard_48h');
   const [activeTrackingId, setActiveTrackingId] = useState(initialParams.trackingId);
   const [initialOpenPayment, setInitialOpenPayment] = useState(initialParams.openPayment);
 
@@ -262,10 +263,11 @@ export function App() {
   };
 
   // Switch to Booking with selected service
-  const handleSelectServiceForBooking = (serviceId, minWeight, multiItems = null) => {
+  const handleSelectServiceForBooking = (serviceId, minWeight, multiItems = null, speed = 'standard_48h') => {
     setBookingPrefillService(serviceId);
     setBookingPrefillWeight(minWeight);
     setBookingPrefillItems(multiItems);
+    setBookingPrefillSpeed(speed || 'standard_48h');
     setCurrentView('book');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -413,7 +415,7 @@ export function App() {
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-['Plus_Jakarta_Sans',sans-serif] w-full max-w-full overflow-x-hidden">
+      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-['Plus_Jakarta_Sans',sans-serif] w-full max-w-full overflow-x-clip">
         
         {/* Toast Notification */}
         {toastMessage && (
@@ -440,7 +442,7 @@ export function App() {
         )}
 
       {/* Main Content Router */}
-      <main className="flex-1 w-full max-w-full overflow-x-hidden">
+      <main className="flex-1 w-full max-w-full overflow-x-clip">
         {currentView === 'home' && (
           <>
             <Hero
@@ -451,13 +453,14 @@ export function App() {
               onSwitchCity={handleSwitchCity}
               onOpenContactModal={() => setIsContactModalOpen(true)}
             />
-            <DigitalSupportBanner
-              onOpenContactModal={() => setIsContactModalOpen(true)}
-            />
             <ServicesSection
               services={storeState.services}
               categories={storeState.categories}
               onSelectServiceForBooking={handleSelectServiceForBooking}
+              onBookingSuccess={handleBookingSuccess}
+            />
+            <DigitalSupportBanner
+              onOpenContactModal={() => setIsContactModalOpen(true)}
             />
             <HowItWorks
               setView={navigateTo}
@@ -474,6 +477,7 @@ export function App() {
               services={storeState.services}
               categories={storeState.categories}
               onSelectServiceForBooking={handleSelectServiceForBooking}
+              onBookingSuccess={handleBookingSuccess}
             />
             <DigitalSupportBanner
               onOpenContactModal={() => setIsContactModalOpen(true)}
@@ -500,6 +504,7 @@ export function App() {
             initialServiceId={bookingPrefillService}
             initialWeight={bookingPrefillWeight}
             initialSelectedItems={bookingPrefillItems}
+            initialTurnaroundSpeed={bookingPrefillSpeed}
             initialCustomer={currentCustomer || prefillCustomer}
             initialCity={currentCity}
             onBookingSuccess={handleBookingSuccess}
@@ -647,10 +652,14 @@ export function App() {
 
       {/* Floating Action Button: Digital Support (Hidden in Admin Back-Office) */}
       {currentView !== 'admin' && (
-        <div className="fixed bottom-6 right-6 z-40">
+        <div className={`fixed right-4 sm:right-6 z-30 transition-all ${
+          (currentView === 'home' || currentView === 'services')
+            ? 'bottom-24 lg:bottom-6'
+            : 'bottom-6'
+        }`}>
           <button
             onClick={() => setIsContactModalOpen(true)}
-            className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-4 py-3 rounded-full shadow-xl shadow-emerald-900/20 hover:shadow-2xl transition transform hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-xl shadow-emerald-900/20 hover:shadow-2xl transition transform hover:scale-105 active:scale-95 cursor-pointer"
             title="Online Support (WhatsApp / LINE / Email)"
           >
             <div className="flex -space-x-1">

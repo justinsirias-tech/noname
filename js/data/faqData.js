@@ -29,8 +29,8 @@ export const INITIAL_FAQS = [
   {
     id: 'FAQ-4',
     category: 'Turnaround & Scheduling',
-    question: 'What turnaround speeds are available (48h Standard, Next Day 24h, Same Day)?',
-    answer: 'We offer three distinct turnaround speeds: 1) Standard Service (48 Hours / ~2 Days) for economical relaxed turnaround; 2) Next Day Delivery (24 Hours) for fast next-day returns; and 3) Same Day Express for priority morning pickups delivered anytime before 18:00 hrs on the same day. You can select your preferred turnaround speed directly during booking with dynamic per-KG pricing.',
+    question: 'What turnaround speeds are available (Standard 2 Days, Next Day, Same Day)?',
+    answer: 'We offer three distinct turnaround speeds: 1) Standard Service (2 Days) for economical relaxed turnaround; 2) Next Day for fast next-day returns; and 3) Same Day for priority morning pickups delivered before 18:00 hrs on the same day. You can select your preferred turnaround speed directly during booking with dynamic pricing.',
     order: 4,
     isPublished: true
   },

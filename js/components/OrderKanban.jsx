@@ -308,14 +308,18 @@ export function OrderKanban({
                         <div className="flex items-center justify-between gap-1.5 mb-2.5 text-[10px]">
                           <div className="flex items-center gap-1 min-w-0">
                             {order.turnaroundSpeed === 'same_day' ? (
-                              <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-extrabold text-[9px] shrink-0">
+                              <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[9px] shrink-0">
                                 🚀 Same Day
                               </span>
                             ) : (order.turnaroundSpeed === 'next_day_24h' || order.turnaroundSpeed === 'next_day') ? (
                               <span className="px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 border border-sky-300 font-bold text-[9px] shrink-0">
                                 ⚡ Next Day
                               </span>
-                            ) : null}
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-[9px] shrink-0">
+                                🕒 2 Days
+                              </span>
+                            )}
                             <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold truncate">
                               {order.serviceName}
                             </span>

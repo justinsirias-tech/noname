@@ -56,9 +56,9 @@ export const translations = {
     calcEstWeight: 'Estimated Weight',
     calcEstPieces: 'Pieces / Quantity',
     calcMinWeightNotice: 'Min. weight applied for hygiene and batching efficiency',
-    calcSpeedStandard: 'Standard (48 Hours)',
-    calcSpeedNextDay: 'Next-Day Rush (~24 Hours)',
-    calcSpeedSameDay: 'Same-Day Express (<12 Hours)',
+    calcSpeedStandard: 'Standard (2 Days)',
+    calcSpeedNextDay: 'Next Day',
+    calcSpeedSameDay: 'Same Day',
     calcTotalEstimate: 'Estimated Total:',
     calcDeliveryFeeNote: 'Delivery calculated by distance / postal code (Free over ฿500)',
     calcBookThisNow: 'Proceed to Booking with this Estimate →',
@@ -86,7 +86,7 @@ export const translations = {
     hiwStep3Desc: 'Upon arrival at our laundry hub, your bag is weighed on precision digital scales. We log the actual KG and update your online invoice.',
     hiwStep3Badge: 'Transparent Weight',
     hiwStep4Title: 'Fresh Doorstep Return',
-    hiwStep4Desc: 'Garments are returned clean, folded or hung in sealed protective dust covers within 24–48 hours. Real-time delivery notification sent online.',
+    hiwStep4Desc: 'Garments are returned clean, folded or hung in sealed protective dust covers within 2 days (Standard), Next Day, or Same Day. Real-time delivery notification sent online.',
     hiwStep4Badge: 'Prompt Delivery',
 
     // Digital Support Banner
@@ -201,9 +201,9 @@ export const translations = {
     calcEstWeight: 'น้ำหนักผ้าโดยประมาณ',
     calcEstPieces: 'จำนวนชิ้น / ปริมาณ',
     calcMinWeightNotice: 'คิดน้ำหนักขั้นต่ำเพื่อสุขอนามัยและการแยกถังซักเฉพาะบุคคล',
-    calcSpeedStandard: 'ปกติ (48 ชั่วโมง)',
-    calcSpeedNextDay: 'ด่วนพิเศษ (~24 ชั่วโมง)',
-    calcSpeedSameDay: 'ด่วนวันเดียว (<12 ชั่วโมง)',
+    calcSpeedStandard: 'มาตรฐาน (2 วัน)',
+    calcSpeedNextDay: 'ส่งวันถัดไป (Next Day)',
+    calcSpeedSameDay: 'ส่งในวันเดียว (Same Day)',
     calcTotalEstimate: 'ยอดรวมประมาณการ:',
     calcDeliveryFeeNote: 'ค่าจัดส่งคำนวณตามรหัสไปรษณีย์/ระยะทาง (ส่งฟรีเมื่อครบ ฿500)',
     calcBookThisNow: 'ไปที่หน้าจองพร้อมราคานี้ →',
@@ -231,7 +231,7 @@ export const translations = {
     hiwStep3Desc: 'เมื่อผ้าถึงศูนย์ซัก จะถูกชั่งด้วยตาชั่งดิจิทัลมาตรฐาน บันทึกน้ำหนักจริงและอัปเดตใบแจ้งยอดออนไลน์ของคุณ',
     hiwStep3Badge: 'น้ำหนักตรงไปตรงมา',
     hiwStep4Title: '4. จัดส่งผ้าสะอาดคืนถึงหน้าห้อง',
-    hiwStep4Desc: 'เสื้อผ้าถูกซัก อบ พับ หรือแขวนในถุงกันฝุ่นอย่างดี ส่งคืนภายใน 24–48 ชม. พร้อมแจ้งเตือนออนไลน์เมื่อส่งถึง',
+    hiwStep4Desc: 'เสื้อผ้าถูกซัก อบ พับ หรือแขวนในถุงกันฝุ่นอย่างดี ส่งคืนภายใน 2 วัน (มาตรฐาน), วันถัดไป (Next Day) หรือส่งด่วนในวันเดียว (Same Day) พร้อมแจ้งเตือนออนไลน์เมื่อส่งถึง',
     hiwStep4Badge: 'ส่งตรงเวลา',
 
     // Digital Support Banner

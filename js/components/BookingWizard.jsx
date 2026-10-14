@@ -13,9 +13,10 @@ import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 import GoogleMapsCondoAutocomplete from './GoogleMapsCondoAutocomplete.jsx';
 import { useTranslation } from '../i18n.jsx';
 
-export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, initialCustomer, initialCity, onBookingSuccess, onViewFullTerms }) {
+export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, initialTurnaroundSpeed, initialCustomer, initialCity, onBookingSuccess, onViewFullTerms }) {
   const { t, language } = useTranslation();
   // Support multi-service selection map: { [serviceId]: { weightKg, quantity } }
+  // Starts empty unless pre-filled by customer selection
   const [selectedServicesMap, setSelectedServicesMap] = useState(() => {
     if (Array.isArray(initialSelectedItems) && initialSelectedItems.length > 0) {
       const map = {};
@@ -29,22 +30,24 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
       });
       if (Object.keys(map).length > 0) return map;
     }
-    const defaultId = initialServiceId || services[0]?.id || 'wash_fold';
-    const defaultSrv = services.find(s => s.id === defaultId);
-    const isPc = defaultSrv?.pricingType === 'piece' || defaultSrv?.unit === 'piece';
-    return {
-      [defaultId]: {
-        weightKg: initialWeight || (isPc ? 1.0 : Number(defaultSrv?.minWeightKg || 4.0)),
-        quantity: 1
-      }
-    };
+    if (initialServiceId) {
+      const defaultSrv = services.find(s => s.id === initialServiceId);
+      const isPc = defaultSrv?.pricingType === 'piece' || defaultSrv?.unit === 'piece';
+      return {
+        [initialServiceId]: {
+          weightKg: initialWeight || (isPc ? 1.0 : Number(defaultSrv?.minWeightKg || 4.0)),
+          quantity: 1
+        }
+      };
+    }
+    return {};
   });
 
   const [activeCategory, setActiveCategory] = useState(() => {
     const cats = laundryStore.getCategories ? laundryStore.getCategories() : [];
     return cats[0]?.id || 'laundry_by_weight';
   });
-  const [turnaroundSpeed, setTurnaroundSpeed] = useState('standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
+  const [turnaroundSpeed, setTurnaroundSpeed] = useState(initialTurnaroundSpeed || 'standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
   // Customer Info (First Name & Last Name required)
   const primaryAddr = initialCustomer?.addresses?.[0];
@@ -338,7 +341,6 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
 
     setSelectedServicesMap(prev => {
       if (prev[srvId]) {
-        if (Object.keys(prev).length <= 1) return prev;
         const next = { ...prev };
         delete next[srvId];
         return next;
@@ -380,26 +382,16 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
 
   const handleRemoveService = (srvId) => {
     setSelectedServicesMap(prev => {
-      if (Object.keys(prev).length <= 1) return prev;
       const next = { ...prev };
       delete next[srvId];
       return next;
     });
   };
 
-  // Turnaround speed and same day availability check across all selected items
-  const allSameDayAvailable = Object.keys(selectedServicesMap).every(id => {
-    const s = services.find(srv => srv.id === id);
-    return s?.sameDayAvailable !== false;
-  });
-
+  // Turnaround speed: Standard (2 Days), Next Day, or Same Day
   let activeSpeed = turnaroundSpeed;
-  if (activeSpeed === 'same_day' && !allSameDayAvailable) {
-    activeSpeed = 'standard_48h';
-  }
   if (!['standard_48h', 'next_day_24h', 'same_day'].includes(activeSpeed)) {
     if (activeSpeed === 'next_day') activeSpeed = 'next_day_24h';
-    else if (activeSpeed === 'standard') activeSpeed = 'standard_48h';
     else activeSpeed = 'standard_48h';
   }
 
@@ -443,17 +435,25 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const estimatedTotal = selectedEntries.reduce((sum, item) => sum + item.subtotal, 0);
   const totalWeightKg = selectedEntries.filter(i => !i.isPiece).reduce((sum, i) => sum + i.billable, 0);
   const totalPieces = selectedEntries.filter(i => i.isPiece).reduce((sum, i) => sum + i.qty, 0);
-  const deliveryInfo = laundryStore.calculateDeliveryFee({
+  const rawDeliveryInfo = laundryStore.calculateDeliveryFee({
     city: serviceCity,
     district,
     subdistrict,
     postalCode
   }, estimatedTotal);
+  const deliveryInfo = selectedEntries.length === 0
+    ? { ...rawDeliveryInfo, fee: 0, isFree: false }
+    : rawDeliveryInfo;
   const grandEstimatedTotal = estimatedTotal + deliveryInfo.fee;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setErrorMessage('');
+
+    if (selectedEntries.length === 0) {
+      setErrorMessage('Please select at least one service to book (กรุณาเลือกบริการอย่างน้อย 1 รายการ).');
+      return;
+    }
 
     if (!firstName.trim()) {
       setErrorMessage('Please enter your First Name (กรุณากรอกชื่อจริง).');
@@ -541,16 +541,16 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
       totalPrice: grandEstimatedTotal,
       pickupDate,
       pickupTime,
-      deliveryDate: activeSpeed === 'same_day' 
-        ? `${pickupDate} (Same Day Before 18:00)` 
+      deliveryDate: activeSpeed === 'same_day'
+        ? 'Same Day (Delivered before 18:00)'
         : activeSpeed === 'next_day_24h' 
-        ? 'Scheduled Next Day (~24 Hours)' 
-        : 'Scheduled in 48 Hours (~2 Days)',
-      deliveryTime: activeSpeed === 'same_day' 
-        ? 'Anytime before 18:00 hrs' 
+          ? 'Scheduled Next Day' 
+          : 'Scheduled in 2 Days (Standard)',
+      deliveryTime: activeSpeed === 'same_day'
+        ? 'Before 18:00 hrs'
         : activeSpeed === 'next_day_24h' 
-        ? '18:00 - 20:30 (Evening Rush)' 
-        : '16:00 - 18:00 (Early Evening)',
+          ? '18:00 - 20:30 (Evening Rush)' 
+          : '16:00 - 18:00 (Early Evening)',
       specialInstructions: specialInstructions.trim(),
       companyTax: isCompanyTax ? {
         required: true,
@@ -753,13 +753,13 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                   <span className="text-slate-700">{completedOrder.pickupDate} • {completedOrder.pickupTime}</span>
                 </div>
                 <div>
-                  <strong className="text-slate-900 block font-bold">🚀 Target Turnaround:</strong>
+                  <strong className="text-slate-900 block font-bold">🕒 Target Turnaround:</strong>
                   <span className="text-slate-700">
-                    {completedOrder.turnaroundSpeed === 'same_day' 
-                      ? 'Same Day Express (<18h)' 
-                      : completedOrder.turnaroundSpeed === 'next_day_24h' 
-                      ? 'Next Day Express (24h)' 
-                      : 'Standard Turnaround (48h)'}
+                    {completedOrder.turnaroundSpeed === 'same_day'
+                      ? 'Same Day Turnaround'
+                      : (completedOrder.turnaroundSpeed === 'next_day_24h' || completedOrder.turnaroundSpeed === 'next_day')
+                        ? 'Next Day Turnaround' 
+                        : 'Standard Turnaround (2 Days)'}
                   </span>
                   <span className="text-[11px] text-slate-500 block">
                     {completedOrder.deliveryDate} • {completedOrder.deliveryTime}
@@ -1024,24 +1024,17 @@ Please confirm our pickup schedule. Thank you!`
 
                           <div className="mt-3 pt-2.5 border-t border-slate-200/70 space-y-1">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-600 font-medium">Standard (48h):</span>
+                              <span className="text-slate-600 font-medium">Standard (2 Days):</span>
                               <span className="font-extrabold text-slate-800">฿{srvStd} / {unitLabel}</span>
                             </div>
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-sky-700 font-medium">Next Day (24h):</span>
+                              <span className="text-sky-700 font-medium">Next Day:</span>
                               <span className="font-extrabold text-sky-700">฿{srvNext} / {unitLabel}</span>
                             </div>
-                            {srv.sameDayAvailable !== false ? (
+                            {srv.sameDayAvailable !== false && (
                               <div className="flex items-center justify-between text-[11px]">
-                                <span className="text-amber-800 font-medium flex items-center gap-0.5">
-                                  <span>🚀 Same Day (&lt;18h):</span>
-                                </span>
+                                <span className="text-amber-700 font-medium">Same Day:</span>
                                 <span className="font-extrabold text-amber-700">฿{srvSame} / {unitLabel}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                                <span>🚀 Same Day:</span>
-                                <span>N/A</span>
                               </div>
                             )}
 
@@ -1058,21 +1051,16 @@ Please confirm our pickup schedule. Thank you!`
             })}
           </div>
 
-          {/* Turnaround Speed Selection (3-Tier Options) */}
+          {/* Turnaround Speed Selection (3-Tier Options: Standard 2 Days, Next Day, Same Day) */}
           <div className="space-y-2.5 pt-1">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
                 Select Turnaround Speed *
               </label>
-              {!allSameDayAvailable && (
-                <span className="text-[11px] text-amber-700 font-medium">
-                  * Same Day not available for delicate linens / curtains
-                </span>
-              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              {/* Option 1: Standard 48 Hours */}
+              {/* Option 1: Standard (2 Days) */}
               <div
                 onClick={() => setTurnaroundSpeed('standard_48h')}
                 className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
@@ -1090,23 +1078,23 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 flex-wrap">
                     <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
-                      🕒 Standard 48h
+                      🕒 Standard (2 Days)
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold text-xs">
-                      Base Rate
+                      Standard Rate
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Economical standard service. Picked up on schedule, returned within 48 hours (~2 days).
+                    Economical standard service. Picked up on schedule, returned clean within 2 days.
                   </p>
                   <div className="mt-2 text-[10px] text-slate-600 font-semibold flex items-center gap-1">
                     <Icon name="clock" className="w-3 h-3" />
-                    <span>~48 Hours Turnaround</span>
+                    <span>2 Days Turnaround</span>
                   </div>
                 </div>
               </div>
 
-              {/* Option 2: Next Day 24 Hours */}
+              {/* Option 2: Next Day */}
               <div
                 onClick={() => setTurnaroundSpeed('next_day_24h')}
                 className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
@@ -1124,57 +1112,52 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 flex-wrap">
                     <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
-                      ⚡ Next Day 24h
+                      ⚡ Next Day
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-xs">
-                      +30% Rate
+                      Next Day Rate
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Fast 24-hour turnaround. Picked up tomorrow morning, returned clean next day evening.
+                    Fast next-day turnaround. Picked up on schedule, returned clean the next day.
                   </p>
                   <div className="mt-2 text-[10px] text-sky-700 font-semibold flex items-center gap-1">
                     <Icon name="clock" className="w-3 h-3" />
-                    <span>~24 Hours Turnaround</span>
+                    <span>Next Day Turnaround</span>
                   </div>
                 </div>
               </div>
 
-              {/* Option 3: Same Day Express */}
+              {/* Option 3: Same Day */}
               <div
-                onClick={() => {
-                  if (allSameDayAvailable) setTurnaroundSpeed('same_day');
-                }}
-                className={`p-4 rounded-2xl border-2 transition flex items-start gap-3 relative ${
-                  !allSameDayAvailable
-                    ? 'opacity-50 border-slate-200 bg-slate-50 cursor-not-allowed'
-                    : activeSpeed === 'same_day'
-                    ? 'border-amber-500 bg-amber-50/80 shadow-sm ring-1 ring-amber-500 cursor-pointer'
-                    : 'border-slate-200 hover:border-amber-300 bg-white cursor-pointer'
+                onClick={() => setTurnaroundSpeed('same_day')}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                  activeSpeed === 'same_day'
+                    ? 'border-amber-500 bg-amber-50/80 shadow-sm ring-1 ring-amber-500'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                  activeSpeed === 'same_day' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-400'
+                  activeSpeed === 'same_day' ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-400'
                 }`}>
                   {activeSpeed === 'same_day' && <Icon name="check" className="w-3.5 h-3.5" />}
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 flex-wrap">
-                    <span className="font-extrabold text-slate-900 text-xs sm:text-sm flex items-center gap-1">
-                      <span>🚀 Same Day</span>
-                      <span className="text-[9px] uppercase font-bold bg-amber-200 text-amber-900 px-1 py-0.2 rounded">&lt;18:00</span>
+                    <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                      🚀 Same Day
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs">
-                      +75% Rate
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-xs">
+                      Same Day Rate
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Morning pickup, delivered anytime before 18:00 hrs today!
+                    Priority same-day service. Morning pickup returned clean before 18:00 the same day.
                   </p>
-                  <div className="mt-2 text-[10px] text-amber-800 font-semibold flex items-center gap-1">
+                  <div className="mt-2 text-[10px] text-amber-700 font-semibold flex items-center gap-1">
                     <Icon name="clock" className="w-3 h-3" />
-                    <span>Before 18:00 hrs Today</span>
+                    <span>Same Day Turnaround</span>
                   </div>
                 </div>
               </div>
@@ -1192,36 +1175,46 @@ Please confirm our pickup schedule. Thank you!`
                   </span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Adjust weight or pieces for each chosen service. Click any card above to add or remove services.
+                  Click any service card above to add the services you need, then adjust weight or quantity below.
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3">
-              {selectedEntries.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-extrabold text-sm text-slate-900">{item.name}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        item.isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
-                      }`}>
-                        {item.isPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
-                      </span>
-                      <span className="text-xs text-slate-500 font-medium">
-                        Rate: <strong className="text-slate-800">฿{item.rate} / {item.unitLabel}</strong> ({activeSpeed === 'same_day' ? 'Same Day' : activeSpeed === 'next_day_24h' ? 'Next Day' : 'Standard 48h'})
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-3">
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Subtotal</span>
-                        <span className="text-base font-black text-sky-700 font-mono">฿{item.subtotal} THB</span>
+            {selectedEntries.length === 0 ? (
+              <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 text-center space-y-2">
+                <div className="text-2xl">🧺</div>
+                <div className="text-sm font-bold text-slate-800">
+                  No services added yet
+                </div>
+                <p className="text-xs text-slate-500">
+                  Tap on one or more service cards above to add the services you need to your booking and see your estimated total.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {selectedEntries.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-sm text-slate-900">{item.name}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          item.isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+                        }`}>
+                          {item.isPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          Rate: <strong className="text-slate-800">฿{item.rate} / {item.unitLabel}</strong> ({activeSpeed === 'same_day' ? 'Same Day' : activeSpeed === 'next_day_24h' ? 'Next Day' : 'Standard (2 Days)'})
+                        </span>
                       </div>
-                      {selectedEntries.length > 1 && (
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3">
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Subtotal</span>
+                          <span className="text-base font-black text-sky-700 font-mono">฿{item.subtotal} THB</span>
+                        </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveService(item.id)}
@@ -1230,89 +1223,89 @@ Please confirm our pickup schedule. Thank you!`
                         >
                           ✕ Remove
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
 
-                  {item.isPiece ? (
-                    /* Piece Counter */
-                    <div className="bg-white p-3.5 rounded-xl border border-slate-200 flex items-center justify-between flex-wrap gap-2">
-                      <div className="text-xs text-slate-600 font-medium">
-                        Quantity ({item.unitLabel}):
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateQuantity(item.id, -1)}
-                          className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center transition active:scale-95"
-                        >
-                          -
-                        </button>
-                        <span className="w-10 text-center text-lg font-black text-slate-900 font-mono">
-                          {item.qty}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateQuantity(item.id, 1)}
-                          className="w-8 h-8 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-base flex items-center justify-center transition active:scale-95"
-                        >
-                          +
-                        </button>
-                        <span className="text-xs font-bold text-slate-600">
-                          {item.unitLabel}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Weight Stepper & Slider */
-                    <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-700">
-                          Estimated Weight (KG)
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="1"
-                            max="30"
-                            step="0.5"
-                            value={item.weight}
-                            onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
-                            className="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-sm font-bold text-center text-slate-900"
-                          />
-                          <span className="text-xs font-bold text-slate-600">KG</span>
+                    {item.isPiece ? (
+                      /* Piece Counter */
+                      <div className="bg-white p-3.5 rounded-xl border border-slate-200 flex items-center justify-between flex-wrap gap-2">
+                        <div className="text-xs text-slate-600 font-medium">
+                          Quantity ({item.unitLabel}):
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQuantity(item.id, -1)}
+                            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center transition active:scale-95"
+                          >
+                            -
+                          </button>
+                          <span className="w-10 text-center text-lg font-black text-slate-900 font-mono">
+                            {item.qty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQuantity(item.id, 1)}
+                            className="w-8 h-8 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-base flex items-center justify-center transition active:scale-95"
+                          >
+                            +
+                          </button>
+                          <span className="text-xs font-bold text-slate-600">
+                            {item.unitLabel}
+                          </span>
                         </div>
                       </div>
-
-                      <input
-                        type="range"
-                        min="1.0"
-                        max="20.0"
-                        step="0.5"
-                        value={item.weight}
-                        onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
-                      />
-
-                      <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5 flex-wrap gap-2">
-                        <span>Selected: <strong>{item.weight} KG</strong></span>
-                        <span>Min Billable: <strong>{item.minWeight} KG</strong></span>
-                        <span className="text-slate-600">Billable: <strong className="text-sky-700">{item.billable} KG</strong></span>
-                      </div>
-
-                      {item.weight < item.minWeight && (
-                        <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-center gap-1.5">
-                          <Icon name="shieldAlert" className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>
-                            Min weight of {item.minWeight} KG applies for <strong>{item.name}</strong>.
+                    ) : (
+                      /* Weight Stepper & Slider */
+                      <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-700">
+                            Estimated Weight (KG)
                           </span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="1"
+                              max="30"
+                              step="0.5"
+                              value={item.weight}
+                              onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
+                              className="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-sm font-bold text-center text-slate-900"
+                            />
+                            <span className="text-xs font-bold text-slate-600">KG</span>
+                          </div>
+                        </div>
+
+                        <input
+                          type="range"
+                          min="1.0"
+                          max="20.0"
+                          step="0.5"
+                          value={item.weight}
+                          onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
+                          className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                        />
+
+                        <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5 flex-wrap gap-2">
+                          <span>Selected: <strong>{item.weight} KG</strong></span>
+                          <span>Min Billable: <strong>{item.minWeight} KG</strong></span>
+                          <span className="text-slate-600">Billable: <strong className="text-sky-700">{item.billable} KG</strong></span>
+                        </div>
+
+                        {item.weight < item.minWeight && (
+                          <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                            <Icon name="shieldAlert" className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>
+                              Min weight of {item.minWeight} KG applies for <strong>{item.name}</strong>.
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Total Aggregated Summary Banner */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-900 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
@@ -1323,7 +1316,10 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="text-xs text-slate-300 mt-0.5 flex items-center gap-2 flex-wrap">
                   {totalWeightKg > 0 && <span>• Laundry Weight: <strong>{totalWeightKg.toFixed(1)} KG</strong></span>}
                   {totalPieces > 0 && <span>• Specialty Linens: <strong>{totalPieces} pieces</strong></span>}
-                  <span>• {activeSpeed === 'same_day' ? '🚀 Same Day Express' : activeSpeed === 'next_day_24h' ? '⚡ Next Day (24h)' : '🕒 Standard (48h)'}</span>
+                  <span>• {activeSpeed === 'same_day' ? '🚀 Same Day' : activeSpeed === 'next_day_24h' ? '⚡ Next Day' : '🕒 Standard (2 Days)'}</span>
+                  <span className="text-emerald-300 font-semibold">
+                    • {estimatedTotal >= 500 ? '✓ Free Delivery Unlocked (฿500+)' : 'Free Delivery on ฿500+ spend'}
+                  </span>
                 </div>
               </div>
 
@@ -2031,13 +2027,13 @@ Please confirm our pickup schedule. Thank you!`
                   </span>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  activeSpeed === 'same_day' 
-                    ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                  activeSpeed === 'same_day'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
                     : activeSpeed === 'next_day_24h'
-                    ? 'bg-sky-100 text-sky-900 border border-sky-300'
-                    : 'bg-slate-200 text-slate-800 border border-slate-300'
+                      ? 'bg-sky-100 text-sky-900 border border-sky-300'
+                      : 'bg-slate-200 text-slate-800 border border-slate-300'
                 }`}>
-                  {activeSpeed === 'same_day' ? '🚀 Same-Day Express' : activeSpeed === 'next_day_24h' ? '⚡ Next-Day 24H' : 'Standard 48H'}
+                  {activeSpeed === 'same_day' ? '🚀 Same Day' : activeSpeed === 'next_day_24h' ? '⚡ Next Day' : '🕒 Standard (2 Days)'}
                 </span>
               </div>
 
@@ -2046,9 +2042,9 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-2.5">
                   <span className="text-base">🚀</span>
                   <div className="text-xs text-amber-950">
-                    <span className="font-bold block">Same Day Express: Return scheduled before 18:00 hrs today</span>
+                    <span className="font-bold block">Same Day Return: Delivered before 18:00 hrs</span>
                     <span className="text-[11px] text-amber-900/80 mt-0.5 block leading-relaxed">
-                      Pickup during your morning window. Your freshly washed and processed laundry will be returned to your condo <strong>before 18:00 hrs today</strong>.
+                      Morning pickup returned fresh, sealed, and packaged before 18:00 hrs on the same day.
                     </span>
                   </div>
                 </div>
@@ -2056,9 +2052,9 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="p-3 bg-sky-50/90 border border-sky-200 rounded-xl flex items-start gap-2.5">
                   <span className="text-base">⚡</span>
                   <div className="text-xs text-sky-950">
-                    <span className="font-bold block">Next Day Return: Delivered in ~24 hours</span>
+                    <span className="font-bold block">Next Day Return: Delivered the next day</span>
                     <span className="text-[11px] text-sky-900/80 mt-0.5 block leading-relaxed">
-                      Pickup on your scheduled date and returned fresh, sealed, and packaged within 24 hours.
+                      Pickup on your scheduled date and returned fresh, sealed, and packaged the next day.
                     </span>
                   </div>
                 </div>
@@ -2066,9 +2062,9 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-start gap-2.5">
                   <span className="text-base">🕒</span>
                   <div className="text-xs text-slate-800">
-                    <span className="font-bold block">Standard Turnaround: Return in ~48 hours (2 Days)</span>
+                    <span className="font-bold block">Standard Turnaround: Return in 2 Days</span>
                     <span className="text-[11px] text-slate-500 mt-0.5 block leading-relaxed">
-                      Pickup on your scheduled date and delivery returned fresh and sealed in 48 hours (~2 days).
+                      Pickup on your scheduled date and delivery returned fresh and sealed within 2 days.
                     </span>
                   </div>
                 </div>

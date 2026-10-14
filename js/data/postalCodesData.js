@@ -19,7 +19,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhumvit 1–39, Asoke (Sukhumvit 21), BTS Asok, MRT Sukhumvit, Prasanmit",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-watthana-khlong-tan-nuea",
@@ -32,7 +32,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Thonglor (Sukhumvit 55), Phrom Phong (Sukhumvit 39–49), Ekkamai (Sukhumvit 63)",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-watthana-phra-khanong-nuea",
@@ -45,7 +45,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhumvit 65–71, Pridi Banomyong, BTS Phra Khanong",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-toei-khlong-toei",
@@ -58,7 +58,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Rama 4 Road, Khlong Toei Market, Port of Bangkok, MedPark Hospital, Queen Sirikit Center",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-toei-khlong-tan",
@@ -71,7 +71,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhumvit 22–36, Phrom Phong (South), Soi Ari, Suan Phlu links",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-toei-phra-khanong",
@@ -84,7 +84,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhumvit 40–50, Kluai Nam Thai, Bangkok University (Kluai Nam Thai)",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-rak-maha-phruettharam",
@@ -97,7 +97,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Hua Lamphong border, Rama 4, Mahanakhon bypass, Wat Maha Phruettharam",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-rak-si-phraya",
@@ -110,7 +110,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Si Phraya Pier, Charoen Krung, Captain Bush Lane, River City border",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-rak-si-lom",
@@ -123,7 +123,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "BTS Sala Daeng, MRT Silom, Convent Rd, Patpong, Silom Complex",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-rak-suriyawong",
@@ -136,7 +136,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Surawong Road, Thaniya, Decho Road, Neilson Hays Library",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-rak-bang-rak",
@@ -149,7 +149,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "BTS Saphan Taksin, Robinson Bangrak, Oriental Pier, Mandarin Oriental",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-sathon-thung-maha-mek",
@@ -162,7 +162,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sathorn Road (North/South), Suan Phlu, Yen Akat, Nang Linchi, Australian Embassy",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-sathon-yan-nawa",
@@ -175,7 +175,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Saint Louis, Chan Road, Surasak BTS, Sathorn Soi 11, Assumption College",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-sathon-thung-wat-don",
@@ -188,7 +188,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Charoen Rat, Chan Road (Lower), Wat Don, expressway junction",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pathum-wan-rong-mueang",
@@ -201,7 +201,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ban That Thong culinary street, Charoen Mueang, Rama 6 link",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pathum-wan-wang-mai",
@@ -214,7 +214,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "MBK Center, National Stadium, Chulalongkorn University, Stadium One",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pathum-wan-pathum-wan",
@@ -227,7 +227,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Siam Paragon, Siam Square, CentralWorld, Siam Discovery, Erawan",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pathum-wan-lumphini",
@@ -240,7 +240,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lumphini Park, Wireless Road (Witthayu), Langsuan, Ploenchit, Sindhorn Village",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phaya-thai-sam-sen-nai",
@@ -253,7 +253,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "BTS Ari, Sanam Pao, Phahonyothin Road, Soi Aree 1–7, La Villa Ari",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phaya-thai-phaya-thai",
@@ -266,7 +266,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Pradipat Road, Rama VI road, Saphan Khwai border, Government Savings Bank HQ",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-huai-khwang-huai-khwang",
@@ -279,7 +279,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Huai Khwang Night Market, Pracha Songkhro, MRT Huai Khwang, Ganesha Shrine",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-huai-khwang-bang-kapi",
@@ -292,7 +292,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Rama 9, RCA, Asoke-Din Daeng, Central Rama 9, Fortune Town, Show DC",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-huai-khwang-sam-sen-nok",
@@ -305,7 +305,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "MRT Sutthisan, Meng Jai, Pracha Uthit Road, CyberWorld, The Street Ratchada",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chatuchak-lat-yao",
@@ -318,7 +318,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Kasetsart University, Ngamwongwan, Vibhavadi Rangsit, SCB Park Plaza",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chatuchak-sena-nikhom",
@@ -331,7 +331,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sena Nikhom 1, Phahonyothin 32, Wang Hin, Mayo Hospital area",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chatuchak-chan-kasem",
@@ -344,7 +344,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ratchadaphisek Court, Chandrakasem Rajabhat University, Ratchada 32–36",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chatuchak-chomphon",
@@ -357,7 +357,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Central Ladprao, Union Mall, Phahonyothin MRT, Ha Yaek Lat Phrao",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chatuchak-chatuchak",
@@ -370,7 +370,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Chatuchak Weekend Market, BTS Mo Chit, Chatuchak Park, JJ Mall",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-din-daeng-din-daeng",
@@ -383,7 +383,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Din Daeng Flat, Thai-Japan Youth Center, Mit Maitri, Bangkok City Hall 2",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-din-daeng-ratchadaphisek",
@@ -396,7 +396,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "The Esplanade, The One Ratchada, MRT Thailand Cultural Centre, AIA Capital",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-yan-nawa-chong-nonsi",
@@ -409,7 +409,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Rama 3, BRT Chong Nonsi, Central Rama 3, Naradhiwas, SV City",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-yan-nawa-bang-phongphang",
@@ -422,7 +422,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sathu Pradit, Bhumibol Bridge, Industrial Ring Road, Krungsri Riverside HQ",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-phra-borom-maha-ratchawang",
@@ -435,7 +435,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Grand Palace, Sanam Luang, Wat Phra Kaew, Tha Chang Pier",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-wang-burapha-phirom",
@@ -448,7 +448,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wang Burapha, Phahurat (Little India), Mega Plaza, The Old Siam",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-wat-ratchabophit",
@@ -461,7 +461,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wat Ratchabophit, Ministry of Interior, Atsadang Road",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-samran-rat",
@@ -474,7 +474,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Pratu Phi, Jay Fai, Thip Samai Pad Thai, Mahachai Road",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-san-chao-pho-suea",
@@ -487,7 +487,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Tiger God Shrine, Tanao Road, Bamrung Mueang",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-sao-chingcha",
@@ -500,7 +500,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Giant Swing, Bangkok City Hall, Wat Suthat",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-bowon-niwet",
@@ -513,7 +513,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wat Bowonniwet, Phra Sumen Road, Sip Sam Hang",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-talat-yot",
@@ -526,7 +526,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Khao San Road, Bang Lamphu, Rambuttri",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-chana-songkhram",
@@ -539,7 +539,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wat Chana Songkhram, Phra Athit Road, Phra Sumen Fort, Santichaiprakarn",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-ban-phan-thom",
@@ -552,7 +552,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wisut Kasat Road, Prachathipatai, Phan Thom",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-bang-khun-phrom",
@@ -565,7 +565,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bank of Thailand, Bang Khun Phrom Palace, Samsen Road",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-nakhon-wat-sam-phraya",
@@ -578,7 +578,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wat Sam Phraya, Chao Phraya Pier, Samsen Soi 3–5",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-dusit-dusit",
@@ -591,7 +591,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Dusit Palace, Rama V Monument, Sukhothai Road",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-dusit-wachiraphayaban",
@@ -604,7 +604,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Vajira Hospital, Samsen Road, Krung Kasem",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-dusit-suan-chitlada",
@@ -617,7 +617,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Chitralada Royal Villa, Royal Turf Club, Rama VI Road",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-dusit-si-yaek-mahanak",
@@ -630,7 +630,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Mahanak Intersection, Phitsanulok Road, Government House",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-dusit-thanon-nakhon-chai-si",
@@ -643,7 +643,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ratchawat Market, Sri Yan Market, Nakhon Chai Si Road",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-samphanthawong-chakkrawat",
@@ -656,7 +656,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sampheng Wholesale Market, Chakkrawat, Phahurat Eastern Border",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-samphanthawong-samphanthawong",
@@ -669,7 +669,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Yaowarat Road, Chinatown Heart, Wat Traimit (Golden Buddha)",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-samphanthawong-talat-noi",
@@ -682,7 +682,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Talat Noi Art Street, River City, Soi Wanit 2, Holy Rosary Church",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pom-prap-sattru-phai-pom-prap",
@@ -695,7 +695,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Luang Road, Krung Kasem Canal, Worachak",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pom-prap-sattru-phai-wat-sommanat",
@@ -708,7 +708,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wat Sommanas, Ratchadamnoen Nok, Nang Loeng Racecourse border",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pom-prap-sattru-phai-khlong-mahanak",
@@ -721,7 +721,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bobae Market, Mahanak Canal Garment Stalls, Krung Kasem",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pom-prap-sattru-phai-ban-bat",
@@ -734,7 +734,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Handmade Monk Bowl Community, Bamrung Mueang, Soi Bat",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-pom-prap-sattru-phai-wat-thepsirin",
@@ -747,7 +747,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wat Thepsirin, Nopphawong, Yotse Culinary Street",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-kho-laem-bang-kho-laem",
@@ -760,7 +760,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Charoen Krung Road End, Rama 3 Junction, Asiatique Area",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-kho-laem-wat-phraya-krai",
@@ -773,7 +773,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Asiatique The Riverfront, Charoen Krung 72–99, Shrewsbury Int School",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-kho-laem-bang-khlo",
@@ -786,7 +786,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Rama 3 Riverside, Sathu Pradit Junction, Montien Riverside",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-sue-bang-sue",
@@ -799,7 +799,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bang Sue Grand Station (Krung Thep Aphiwat), Tao Poon MRT, SCG HQ",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-sue-wong-sawang",
@@ -812,7 +812,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "MRT Wong Sawang, Pracha Chuen, Wongsawang Junction, Big C",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-khanong-bang-chak",
@@ -825,7 +825,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhumvit 93–99, BTS Bang Chak, Bang Chak Refinery, Sukhumvit 97/1",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phra-khanong-phra-khanong-tai",
@@ -838,7 +838,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhumvit 101 (Punnavithi), True Digital Park, Whizdom 101",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-na-bang-na-nuea",
@@ -851,7 +851,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Central Bangna, Bang Na-Trat (Even side), Udom Suk (Even side), Big C Bangna",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-na-bang-na-tai",
@@ -864,7 +864,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "BITEC Bangna, Lasalle (Sukhumvit 105), Bearing border, BTS Bang Na",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-suan-luang-suan-luang",
@@ -877,7 +877,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phatthanakan Road (Upper), Ramkhamhaeng 24 link, Hua Mak border",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-suan-luang-on-nut",
@@ -890,7 +890,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhumvit 77 (On Nut 17–60), People Park, Habito Mall, T77 Community",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-suan-luang-phatthanakan",
@@ -903,7 +903,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phatthanakan 20–53, Srinakarin Junction, Airport Link Hua Mak",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-ratchathewi-thung-phaya-thai",
@@ -916,7 +916,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Victory Monument, Rajavithi Hospital, Phayathai BTS, Center One",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-ratchathewi-thanon-phaya-thai",
@@ -929,7 +929,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phayathai Road, BTS Ratchathewi, Airport Rail Link Phayathai, Co-Co Walk",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-ratchathewi-thanon-phetchaburi",
@@ -942,7 +942,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Pratunam Market, Platinum Fashion Mall, Phetchaburi Road, Shibuya 19",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-ratchathewi-makkasan",
@@ -955,7 +955,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "ARL Makkasan, Asoke-Dindaeng, Rama 9 MRT, Makkasan Depot",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thon-buri-wat-kanlaya",
@@ -968,7 +968,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wat Kalayanamit, Santa Cruz Church, Kudi Chin Heritage Community",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thon-buri-hiran-ruchi",
@@ -981,7 +981,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wongwian Yai, Prajadhipok Road, King Taksin Monument",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thon-buri-bang-yi-ruea",
@@ -994,7 +994,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Intharaphithak, Bang Yi Ruea, Wat Intharam, Somdet Phra Chao Taksin",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thon-buri-bukkhalo",
@@ -1007,7 +1007,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Mahaisawan, Charoen Nakhon End, Rama 3 Bridge, Riverside Plaza",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thon-buri-talat-phlu",
@@ -1020,7 +1020,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Talat Phlu Street Food, BTS Talat Phlu, Thoet Thai Road, Wat Paknam link",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thon-buri-dao-khanong",
@@ -1033,7 +1033,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Dao Khanong Market, Somdet Phra Chao Tak Sin Road, Big C Dao Khanong",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thon-buri-samre",
@@ -1046,7 +1046,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Samitivej Thonburi Hospital, Tak Sin Road, Samre Pier",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bangkok-yai-wat-arun",
@@ -1059,7 +1059,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Temple of Dawn (Wat Arun), Wang Doem Road, Royal Thai Navy HQ",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bangkok-yai-wat-tha-phra",
@@ -1072,7 +1072,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "MRT Tha Phra Interchange, Phetkasem, Charan Sanitwong",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-san-somdet-chao-phraya",
@@ -1085,7 +1085,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Somdet Chao Phraya Road, Tha Din Daeng Pier, Princess Mother Memorial Park",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-san-khlong-san",
@@ -1098,7 +1098,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "ICONSIAM, Gold Line Charoen Nakhon, Khlong San Plaza, Millennium Hilton",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-san-khlong-ton-sai",
@@ -1111,7 +1111,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "BTS Krung Thon Buri, Sena Fest, Charoen Nakhon Road",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-san-bang-lamphu-lang",
@@ -1124,7 +1124,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Charoen Nakhon South, Krung Thon Buri Soi 4, Chao Phraya Riverfront",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bangkok-noi-siri-rat",
@@ -1137,7 +1137,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Siriraj Hospital, Wang Lang Market, Wang Lang Pier, Wat Rakhang",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bangkok-noi-ban-chang-lo",
@@ -1150,7 +1150,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phran Nok Road, Itsaraphap, Ban Chang Lo Buddha Foundry",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bangkok-noi-bang-khun-non",
@@ -1163,7 +1163,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bang Khun Non Culinary Street, Charan Sanitwong, MRT Bang Khun Non",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bangkok-noi-bang-khun-si",
@@ -1176,7 +1176,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Makro Charan, Bang Khun Si Market, Charan 35, Fai Chai Junction",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bangkok-noi-arun-amarin",
@@ -1189,7 +1189,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Pin Klao, Central Pin Klao, Rama 8 Bridge Thonburi Side, Royal Barge Museum",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-phlat-bang-phlat",
@@ -1202,7 +1202,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Charan Sanitwong 75–89, Bang Phlat MRT, Krung Thon Bridge (Sang Hi)",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-phlat-bang-o",
@@ -1215,7 +1215,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Yanhee Hospital, MRT Bang O, Rama 7 Bridge South",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-phlat-bang-bamru",
@@ -1228,7 +1228,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sirindhorn Road, Chang Chui Creative Park, SRT Bang Bamru",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-phlat-bang-yi-khan",
@@ -1241,7 +1241,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "MRT Bang Yi Khan, Rama 8 Bridge, Arun Amarin, Life Pinklao",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-kapi-khlong-chan",
@@ -1254,7 +1254,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Nawamin, Seri Thai, NIDA, The Mall Bangkapi, Happy Land",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-kapi-hua-mak",
@@ -1267,7 +1267,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ramkhamhaeng University, Rajamangala National Stadium, ABAC, MRT Lam Sali",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-wang-thonglang-wang-thonglang",
@@ -1280,7 +1280,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lat Phrao 64–80, Chok Chai 4 Southern Link, Imperial World Lat Phrao",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-wang-thonglang-saphan-song",
@@ -1293,7 +1293,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lat Phrao 82–100, Saphan Song Market, Yellow Line Chok Chai 4",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-wang-thonglang-khlong-chaokhunsing",
@@ -1306,7 +1306,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lat Phrao 102–120, Bodindecha School Area, Pradit Manutham Link",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-wang-thonglang-phlabphla",
@@ -1319,7 +1319,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Town in Town, Ramkhamhaeng 39, Pracha Uthit Road, SC Park Hotel",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lat-phrao-lat-phrao",
@@ -1332,7 +1332,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Chok Chai 4, Lat Phrao Wang Hin, Nak Niwat Road, Central Eastville",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lat-phrao-chorakhe-bua",
@@ -1345,7 +1345,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Prasert-Manukitch (Kaset-Nawamin), Sena Nikhom Link, The Walk Kaset",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bueng-kum-khlong-kum",
@@ -1358,7 +1358,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Seri Thai, Navatanee Golf Course, Bueng Kum District Office",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bueng-kum-nawamin",
@@ -1371,7 +1371,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Nawamin Road, Sukhaphiban 1, Post Office Bueng Kum, Phayathai Nawamin",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bueng-kum-nuan-chan",
@@ -1384,7 +1384,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Nuan Chan Road, Ram Inthra Soi 40, Prasert-Manukitch, Wat Nuan Chan",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-saphan-sung-saphan-sung",
@@ -1397,7 +1397,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ramkhamhaeng 118–150, Sammakorn Village, Paseo Town Ramkhamhaeng",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-saphan-sung-rat-phatthana",
@@ -1410,7 +1410,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Soi Mistine, Rat Phatthana Road, Kanchanaphisek Eastern Link",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-saphan-sung-thap-chang",
@@ -1423,7 +1423,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Krungthep Kreetha Road, Motorway 7 Border, Wellington College, Brighton College",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-prawet-prawet",
@@ -1436,7 +1436,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Prawet Junction, On Nut-Lat Krabang, Chaloem Phra Kiat R.9, Sukhaphiban 2",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-prawet-nong-bon",
@@ -1449,7 +1449,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Suan Luang Rama IX Park, Nong Bon Water Sports Center, Paradise Park",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-prawet-dokmai",
@@ -1462,7 +1462,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ramkhamhaeng 2, Bang Na-Trat Km 8, Gemopolis Industrial Estate, Mega Bangna border",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chom-thong-bang-khun-thian",
@@ -1475,7 +1475,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Chom Thong, Rama 2 Border, Wat Sai Floating Market, Ekkachai Link",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chom-thong-bang-kho",
@@ -1488,7 +1488,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wutthakat Road, BTS Wutthakat, Wat Nang, Ratchaphruek Link",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chom-thong-bang-mot",
@@ -1501,7 +1501,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phuttha Bucha Road, Bang Mot Tangerine Orchards Area, Wat Luang Pho O-Pasi",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-chom-thong-chom-thong",
@@ -1514,7 +1514,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Chom Thong Road, Dao Khanong Link, Ekkachai Link, Wat Ratcha-orot",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phasi-charoen-bang-wa",
@@ -1527,7 +1527,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "BTS/MRT Bang Wa Interchange, Ratchaphruek, Phetkasem Road, Siam University",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phasi-charoen-bang-duan",
@@ -1540,7 +1540,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phasi Charoen Canal, Phetkasem 39, Bang Duan, Seacon Bangkae border",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phasi-charoen-bang-chak",
@@ -1553,7 +1553,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ratchaphruek, Phetkasem 48, Bang Chak Canal, Wat Chan Pradittharam",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phasi-charoen-bang-waek",
@@ -1566,7 +1566,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bang Waek Road, Phutthamonthon Sai 1 Link, Ratchaphruek Western Link",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phasi-charoen-khlong-khwang",
@@ -1579,7 +1579,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Khlong Khwang, Phetkasem 54–58, Phasi Charoen Pier",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phasi-charoen-pak-khlong-phasi-charoen",
@@ -1592,7 +1592,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Wat Paknam Bhasicharoen (Great Buddha), Khlong Dan, Wat Absorn Sawan",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-phasi-charoen-khuha-sawan",
@@ -1605,7 +1605,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Khlong Bang Luang Artist Village, Wat Khuha Sawan, Riverside Wooden Walkway",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-rat-burana-rat-burana",
@@ -1618,7 +1618,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Rat Burana Road, Kasikornbank Head Office, Big C Rat Burana",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-rat-burana-bang-pakok",
@@ -1631,7 +1631,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Suksawat Road, Bang Pakok 1 Hospital, Rama 9 Expressway Bridge (Chaloem Maha Nakhon)",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thung-khru-bang-mot",
@@ -1644,7 +1644,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "KMUTT (King Mongkut University Thonburi), Pracha Uthit 33–69, Thonburirom Park",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thung-khru-thung-khru",
@@ -1657,7 +1657,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Pracha Uthit 70–131, Thung Khru Market, Khlong Suan Link, Bang Khun Thian border",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-khen-anusawari",
@@ -1670,7 +1670,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lak Si Monument, Phahonyothin Road, Ram Inthra Km 1–3, Central General Hospital",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-khen-tha-raeng",
@@ -1683,7 +1683,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhaphiban 5, Watcharaphon, Ram Inthra Km 4–8, Plearnary Mall",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-sai-mai-sai-mai",
@@ -1696,7 +1696,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sai Mai Road, Soi Sai Mai 1–86, Khlong Sam Wa Border, Wongsakorn Market",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-sai-mai-o-ngoen",
@@ -1709,7 +1709,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Sukhaphiban 5, O Ngoen Market, Chalong Rat Expressway, Sai Mai District Office",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-sai-mai-khlong-thanon",
@@ -1722,7 +1722,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phahonyothin 52–54, Saphan Mai Market Border, BTS Saphan Mai",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-don-mueang-si-kan",
@@ -1735,7 +1735,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Song Prapha Road, Don Mueang Technical College, Wat Si Kan, Happy Avenue",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-don-mueang-don-mueang",
@@ -1748,7 +1748,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Don Mueang International Airport, Vibhavadi Rangsit Road, SRT Dark Red Line",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-don-mueang-sanam-bin",
@@ -1761,7 +1761,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Royal Thai Air Force Base, Phahonyothin Km 24–26, Wing 6, Air Force Museum",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lak-si-thung-song-hong",
@@ -1774,7 +1774,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Government Complex Chaeng Watthana, Vibhavadi 60–64, Miracle Grand Convention",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lak-si-talat-bang-khen",
@@ -1787,7 +1787,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lak Si IT Square, Chaeng Watthana 1–10, Phahonyothin, Chulabhorn Research Institute",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khan-na-yao-khan-na-yao",
@@ -1800,7 +1800,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Fashion Island, The Promenade, Ram Inthra Km 9–11, Pink Line Fashion Island",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khan-na-yao-ram-inthra",
@@ -1813,7 +1813,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Siam Amazing Park (Siam Park City), Suan Sayam Road, Seri Thai Link",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-taling-chan-khlong-chak-phra",
@@ -1826,7 +1826,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Taling Chan District Office, Chak Phra Canal, Wat Nang Chi",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-taling-chan-taling-chan",
@@ -1839,7 +1839,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Taling Chan Floating Market, Borommaratchachonnani, Ratchaphruek Link",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-taling-chan-chimphli",
@@ -1852,7 +1852,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Chimphli Road, Southern Railway Line, Suan Phak, Phutthamonthon Sai 1",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-taling-chan-bang-phrom",
@@ -1865,7 +1865,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bang Phrom Road, Ratchaphruek Connection, The Circle Ratchapruk border",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-taling-chan-bang-ramat",
@@ -1878,7 +1878,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Khlong Lat Mayom Floating Market, Bang Ramat Canal, Phutthamonthon Sai 1",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-taling-chan-bang-chueak-nang",
@@ -1891,7 +1891,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phutthamonthon Sai 1, Bang Chueak Nang Canal, Kanchanaphisek Link",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thawi-watthana-thawi-watthana",
@@ -1904,7 +1904,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Thawi Watthana Road, Utthayan Road (Avenue), Phutthamonthon Sai 3 Link",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-thawi-watthana-sala-thammasop",
@@ -1917,7 +1917,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phutthamonthon Sai 2–4, Borommaratchachonnani, Mahidol Salaya Border",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-khae-bang-khae",
@@ -1930,7 +1930,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phetkasem Road, The Mall Bang Khae, MRT Lak Song, Bang Khae Market",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-khae-bang-khae-nuea",
@@ -1943,7 +1943,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phutthamonthon Sai 2, Kanlapaphruek Link, Phetkasem 53–61",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-khae-bang-phai",
@@ -1956,7 +1956,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bang Phai Canal, Phetkasem 69 Link, Bang Chueak Nang, Kanchanaphisek",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-khae-lak-song",
@@ -1969,7 +1969,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Kanchanaphisek Road, Phetkasem 63–65, Lak Song Plaza, Victoria Gardens",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-khaem-nong-khaem",
@@ -1982,7 +1982,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phetkasem 77–81, Nong Khaem Market, Ma Charoen Road",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-khaem-nong-khang-phlu",
@@ -1995,7 +1995,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phetkasem 110, Southeast Asia University, Thonburi University",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-bon-bang-bon-nuea",
@@ -2008,7 +2008,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ekkachai 100–140, Bang Bon 3–5, Kanchanaphisek Western Ring Road",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-bon-bang-bon-tai",
@@ -2021,7 +2021,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bang Bon 1, Rama 2 Link, Ekkachai-Bang Bon Junction",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-bon-khlong-bang-phran",
@@ -2034,7 +2034,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Ekkachai 60–90, Bang Khun Thian Railway Station Border",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-bon-khlong-bang-bon",
@@ -2047,7 +2047,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bang Bon Canal, Ekkachai 40–59, Chom Thong Border",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-khun-thian-tha-kham",
@@ -2060,7 +2060,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Central Rama 2, Rama 2 Soi 47, Tha Kham Road, Bang Khun Thian District Office",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-bang-khun-thian-samae-dam",
@@ -2073,7 +2073,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Bang Khun Thian Coastline, Bang Kradi, Samae Dam Industrial, Rama 2 Km 10–18",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-min-buri-min-buri",
@@ -2086,7 +2086,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Min Buri Market, Sihaburanukit Road, Ram Inthra End, Pink Line Min Buri Station",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-min-buri-saen-saep",
@@ -2099,7 +2099,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Suwinthawong Road, Saen Saep Canal, Nimit Mai, Ramkhamhaeng Junction",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-sam-wa-sam-wa-tawan-tok",
@@ -2112,7 +2112,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Khlong Sam Wa Road, Safari World, Panya Indra, Wat Phraya Suren",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-sam-wa-sam-wa-tawan-ok",
@@ -2125,7 +2125,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Nimit Mai Road, Sam Wa Canal, Agricultural Green Zone",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-sam-wa-bang-chan",
@@ -2138,7 +2138,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Phraya Suren Road, Ram Inthra 109, Bang Chan Canal Industrial Link",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-sam-wa-sai-kong-din",
@@ -2151,7 +2151,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Hatairath Road, Sai Kong Din Community, Khlong Sam Wa Central",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-khlong-sam-wa-sai-kong-din-tai",
@@ -2164,7 +2164,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Mit Maitri Link, Suwinthawong Border, Khlong Sam Wa South",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lat-krabang-lat-krabang",
@@ -2177,7 +2177,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lat Krabang Road, KMITL, Airport Rail Link Lat Krabang, Paseo Lat Krabang",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lat-krabang-khlong-song-ton-nun",
@@ -2190,7 +2190,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Rom Klao Road, Motorway 7 Junction, ICD Lat Krabang Container Yard",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lat-krabang-khlong-sam-prawet",
@@ -2203,7 +2203,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Chalong Krung Road, Khlong Sam Prawet, Suvarnabhumi Cargo District",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lat-krabang-lam-pla-thio",
@@ -2216,7 +2216,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lat Krabang Industrial Estate, Chalong Krung 31, Honda Factory area",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lat-krabang-thap-yao",
@@ -2229,7 +2229,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Luang Phaeng Road, Siam Premium Outlets Bangkok Area",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-lat-krabang-khum-thong",
@@ -2242,7 +2242,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Eastern Bangkok Canal Boundary, Luang Phaeng Road End, Chachoengsao border",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-chok-krathum-rai",
@@ -2255,7 +2255,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Mahanakorn University of Technology, Liab Wari Road, Suwinthawong",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-chok-nong-chok",
@@ -2268,7 +2268,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Nong Chok Market, Nong Chok Public Park, Chueam Samphan Road",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-chok-khlong-sip",
@@ -2281,7 +2281,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Khlong Sip, Pracha Ruam Chai, Agricultural Zone",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-chok-khlong-sip-song",
@@ -2294,7 +2294,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Khlong Sip Song, Eastern Boundary, Lam Sai, Lam Luk Ka border",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-chok-khok-faet",
@@ -2307,7 +2307,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Mit Maitri Road, Khok Faet, Lam Hin, Nong Chok Sports Complex",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-chok-khu-fang-nuea",
@@ -2320,7 +2320,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Khu Khwang, Pracha Ruam Chai, Ecological Green Area",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-chok-lam-phak-chi",
@@ -2333,7 +2333,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Suwinthawong Road, Chalong Krung Junction, Lam Phak Chi Community",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   },
   {
     "id": "bkk-nong-chok-lam-toiting",
@@ -2346,7 +2346,7 @@ export const DEFAULT_BANGKOK_SUBDISTRICTS = [
     "areas": "Lam Toiting Canal, Easternmost Bangkok Border with Chachoengsao",
     "fee": 90,
     "isActive": true,
-    "freeDeliveryAbove": 800
+    "freeDeliveryAbove": 500
   }
 ];
 
@@ -2365,7 +2365,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Beach Road, Second Road, Central Festival, Soi Buakhao, Walking Street",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-north-wongamat",
@@ -2378,7 +2378,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Wongamat Beach, Soi Naklua 12–18, Terminal 21 Pattaya, Dusit Thani",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-naklua-old-town",
@@ -2391,7 +2391,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Lan Pho Naklua Market, Sanctuary of Truth, Naklua Road Soi 1–33",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-pratumnak-hill",
@@ -2404,7 +2404,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Pratumnak Soi 1–6, Cosy Beach, Big Buddha Temple, Royal Cliff, Khao Phra Bat",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-south-pattaya",
@@ -2417,7 +2417,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "South Pattaya Road, Bali Hai Pier, Third Road, Chaloem Phra Kiat",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-jomtien-beach-main",
@@ -2430,7 +2430,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Jomtien Beach Road Soi 1–19, Dongtan Beach, Jomtien Night Market",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-jomtien-second-road",
@@ -2443,7 +2443,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Jomtien Second Road, Riviera Jomtien, Copacabana, Boon Kanchana",
     "fee": 50,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-south-jomtien",
@@ -2456,7 +2456,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Chaiyaphruek 1 & 2, Jomtien Beach Road Soi 20+, Chonburi Ring Road",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-na-jomtien-north",
@@ -2469,7 +2469,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Mövenpick, Mason Pattaya, The Glass House, Cave Beach Club",
     "fee": 70,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-na-jomtien-marina",
@@ -2482,7 +2482,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Ocean Marina Yacht Club, Sukhumvit Road Km 150–157, Ban Amphur Beach",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-darkside-khao-noi",
@@ -2495,7 +2495,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Soi Khao Noi, Soi Khao Talo, Wat Boon Sampan, Darkside Expat Villas",
     "fee": 60,
     "isActive": true,
-    "freeDeliveryAbove": 600
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-darkside-mapbrachan",
@@ -2508,7 +2508,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Lake Mabprachan, Siam Country Club, Pong, Motorway 7 Junction, Rugby School link",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   },
   {
     "id": "pty-huai-yai",
@@ -2521,7 +2521,7 @@ export const DEFAULT_PATTAYA_SUBDISTRICTS = [
     "areas": "Huai Yai Road, Phoenix Gold Golf, French International School area, Motorway 7 extension",
     "fee": 80,
     "isActive": true,
-    "freeDeliveryAbove": 700
+    "freeDeliveryAbove": 500
   }
 ];
 
@@ -2544,7 +2544,7 @@ export const DEFAULT_DELIVERY_CONFIG = {
   standardLeadTimeHours: 48,
   expressLeadTimeHours: 24,
   sameDayCutoffHour: 11,
-  storeWideFreeDeliveryThreshold: 600,
+  storeWideFreeDeliveryThreshold: 500,
   enableDynamicZonePricing: true,
   allowSelfDropOff: true,
   cashlessPolicyNotice: '100% Cashless System (PromptPay / QR / Cards / Online Invoicing)'
@@ -2560,21 +2560,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "คลองเตยเหนือ",
       "code": "10110",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Tan Nuea",
       "nameTh": "คลองตันเหนือ",
       "code": "10110",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Phra Khanong Nuea",
       "nameTh": "พระโขนงเหนือ",
       "code": "10110",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Khlong Toei": [
@@ -2583,21 +2583,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "คลองเตย",
       "code": "10110",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Tan",
       "nameTh": "คลองตัน",
       "code": "10110",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Phra Khanong",
       "nameTh": "พระโขนง",
       "code": "10110",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Rak": [
@@ -2606,35 +2606,35 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "มหาพฤฒาราม",
       "code": "10500",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Si Phraya",
       "nameTh": "สี่พระยา",
       "code": "10500",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Si Lom",
       "nameTh": "สีลม",
       "code": "10500",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Suriyawong",
       "nameTh": "สุริยวงศ์",
       "code": "10500",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Rak",
       "nameTh": "บางรัก",
       "code": "10500",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Sathon": [
@@ -2643,21 +2643,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ทุ่งมหาเมฆ",
       "code": "10120",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Yan Nawa",
       "nameTh": "ยานนาวา",
       "code": "10120",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Thung Wat Don",
       "nameTh": "ทุ่งวัดดอน",
       "code": "10120",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Pathum Wan": [
@@ -2666,28 +2666,28 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "รองเมือง",
       "code": "10330",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wang Mai",
       "nameTh": "วังใหม่",
       "code": "10330",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Pathum Wan",
       "nameTh": "ปทุมวัน",
       "code": "10330",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Lumphini",
       "nameTh": "ลุมพินี",
       "code": "10330",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Phaya Thai": [
@@ -2696,14 +2696,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "สามเสนใน",
       "code": "10400",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Phaya Thai",
       "nameTh": "พญาไท",
       "code": "10400",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Huai Khwang": [
@@ -2712,21 +2712,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ห้วยขวาง",
       "code": "10310",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Kapi",
       "nameTh": "บางกะปิ",
       "code": "10310",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Sam Sen Nok",
       "nameTh": "สามเสนนอก",
       "code": "10310",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Chatuchak": [
@@ -2735,35 +2735,35 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ลาดยาว",
       "code": "10900",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Sena Nikhom",
       "nameTh": "เสนานิคม",
       "code": "10900",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Chan Kasem",
       "nameTh": "จันทรเกษม",
       "code": "10900",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Chomphon",
       "nameTh": "จอมพล",
       "code": "10900",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Chatuchak",
       "nameTh": "จตุจักร",
       "code": "10900",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Din Daeng": [
@@ -2772,14 +2772,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ดินแดง",
       "code": "10400",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Ratchadaphisek",
       "nameTh": "รัชดาภิเษก",
       "code": "10400",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Yan Nawa": [
@@ -2788,14 +2788,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ช่องนนทรี",
       "code": "10120",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Phongphang",
       "nameTh": "บางโพงพาง",
       "code": "10120",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Phra Nakhon": [
@@ -2804,84 +2804,84 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "พระบรมมหาราชวัง",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wang Burapha Phirom",
       "nameTh": "วังบูรพาภิรมย์",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wat Ratchabophit",
       "nameTh": "วัดราชบพิธ",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Samran Rat",
       "nameTh": "สำราญราษฎร์",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "San Chao Pho Suea",
       "nameTh": "ศาลเจ้าพ่อเสือ",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Sao Chingcha",
       "nameTh": "เสาชิงช้า",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bowon Niwet",
       "nameTh": "บวรนิเวศ",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Talat Yot",
       "nameTh": "ตลาดยอด",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Chana Songkhram",
       "nameTh": "ชนะสงคราม",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Ban Phan Thom",
       "nameTh": "บ้านพานถม",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Khun Phrom",
       "nameTh": "บางขุนพรหม",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wat Sam Phraya",
       "nameTh": "วัดสามพระยา",
       "code": "10200",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Dusit": [
@@ -2890,35 +2890,35 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ดุสิต",
       "code": "10300",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wachiraphayaban",
       "nameTh": "วชิรพยาบาล",
       "code": "10300",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Suan Chitlada",
       "nameTh": "สวนจิตรลดา",
       "code": "10300",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Si Yaek Mahanak",
       "nameTh": "สี่แยกมหานาค",
       "code": "10300",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Thanon Nakhon Chai Si",
       "nameTh": "ถนนนครไชยศรี",
       "code": "10300",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Samphanthawong": [
@@ -2927,21 +2927,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "จักรวรรดิ",
       "code": "10100",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Samphanthawong",
       "nameTh": "สัมพันธวงศ์",
       "code": "10100",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Talat Noi",
       "nameTh": "ตลาดน้อย",
       "code": "10100",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Pom Prap Sattru Phai": [
@@ -2950,35 +2950,35 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ป้อมปราบ",
       "code": "10100",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wat Sommanat",
       "nameTh": "วัดโสมนัส",
       "code": "10100",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Mahanak",
       "nameTh": "คลองมหานาค",
       "code": "10100",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Ban Bat",
       "nameTh": "บ้านบาตร",
       "code": "10100",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wat Thepsirin",
       "nameTh": "วัดเทพศิรินทร์",
       "code": "10100",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Kho Laem": [
@@ -2987,21 +2987,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางคอแหลม",
       "code": "10120",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wat Phraya Krai",
       "nameTh": "วัดพระยาไกร",
       "code": "10120",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Khlo",
       "nameTh": "บางโคล่",
       "code": "10120",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Sue": [
@@ -3010,14 +3010,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางซื่อ",
       "code": "10800",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wong Sawang",
       "nameTh": "วงศ์สว่าง",
       "code": "10800",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Phra Khanong": [
@@ -3026,14 +3026,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางจาก",
       "code": "10260",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Phra Khanong Tai",
       "nameTh": "พระโขนงใต้",
       "code": "10260",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Na": [
@@ -3042,14 +3042,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางนาเหนือ",
       "code": "10260",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Na Tai",
       "nameTh": "บางนาใต้",
       "code": "10260",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Suan Luang": [
@@ -3058,21 +3058,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "สวนหลวง",
       "code": "10250",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "On Nut",
       "nameTh": "อ่อนนุช",
       "code": "10250",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Phatthanakan",
       "nameTh": "พัฒนาการ",
       "code": "10250",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Ratchathewi": [
@@ -3081,28 +3081,28 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ทุ่งพญาไท",
       "code": "10400",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Thanon Phaya Thai",
       "nameTh": "ถนนพญาไท",
       "code": "10400",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Thanon Phetchaburi",
       "nameTh": "ถนนเพชรบุรี",
       "code": "10400",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Makkasan",
       "nameTh": "มักกะสัน",
       "code": "10400",
       "fee": 50,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Thon Buri": [
@@ -3111,49 +3111,49 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "วัดกัลยาณ์",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Hiran Ruchi",
       "nameTh": "หิรัญรูจี",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Yi Ruea",
       "nameTh": "บางยี่เรือ",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bukkhalo",
       "nameTh": "บุคคโล",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Talat Phlu",
       "nameTh": "ตลาดพลู",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Dao Khanong",
       "nameTh": "ดาวคะนอง",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Samre",
       "nameTh": "สำเหร่",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Bangkok Yai": [
@@ -3162,14 +3162,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "วัดอรุณ",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Wat Tha Phra",
       "nameTh": "วัดท่าพระ",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Khlong San": [
@@ -3178,28 +3178,28 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "สมเด็จเจ้าพระยา",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong San",
       "nameTh": "คลองสาน",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Ton Sai",
       "nameTh": "คลองต้นไทร",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Lamphu Lang",
       "nameTh": "บางลำภูล่าง",
       "code": "10600",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Bangkok Noi": [
@@ -3208,35 +3208,35 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ศิริราช",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Ban Chang Lo",
       "nameTh": "บ้านช่างหล่อ",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Khun Non",
       "nameTh": "บางขุนนนท์",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Khun Si",
       "nameTh": "บางขุนศรี",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Arun Amarin",
       "nameTh": "อรุณอมรินทร์",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Phlat": [
@@ -3245,28 +3245,28 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางพลัด",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang O",
       "nameTh": "บางอ้อ",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Bamru",
       "nameTh": "บางบำหรุ",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Yi Khan",
       "nameTh": "บางยี่ขัน",
       "code": "10700",
       "fee": 60,
-      "freeDeliveryAbove": 600
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Kapi": [
@@ -3275,14 +3275,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "คลองจั่น",
       "code": "10240",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Hua Mak",
       "nameTh": "หัวหมาก",
       "code": "10240",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Wang Thonglang": [
@@ -3291,28 +3291,28 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "วังทองหลาง",
       "code": "10310",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Saphan Song",
       "nameTh": "สะพานสอง",
       "code": "10310",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Chaokhunsing",
       "nameTh": "คลองเจ้าคุณสิงห์",
       "code": "10310",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Phlabphla",
       "nameTh": "พลับพลา",
       "code": "10310",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Lat Phrao": [
@@ -3321,14 +3321,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ลาดพร้าว",
       "code": "10230",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Chorakhe Bua",
       "nameTh": "จรเข้บัว",
       "code": "10230",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Bueng Kum": [
@@ -3337,21 +3337,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "คลองกุ่ม",
       "code": "10240",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Nawamin",
       "nameTh": "นวมินทร์",
       "code": "10240",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Nuan Chan",
       "nameTh": "นวลจันทร์",
       "code": "10240",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Saphan Sung": [
@@ -3360,21 +3360,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "สะพานสูง",
       "code": "10240",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Rat Phatthana",
       "nameTh": "ราษฎร์พัฒนา",
       "code": "10240",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Thap Chang",
       "nameTh": "ทับช้าง",
       "code": "10240",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Prawet": [
@@ -3383,21 +3383,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ประเวศ",
       "code": "10250",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Nong Bon",
       "nameTh": "หนองบอน",
       "code": "10250",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Dokmai",
       "nameTh": "ดอกไม้",
       "code": "10250",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Chom Thong": [
@@ -3406,28 +3406,28 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางขุนเทียน",
       "code": "10150",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Kho",
       "nameTh": "บางค้อ",
       "code": "10150",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Mot",
       "nameTh": "บางมด",
       "code": "10150",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Chom Thong",
       "nameTh": "จอมทอง",
       "code": "10150",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Phasi Charoen": [
@@ -3436,49 +3436,49 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางหว้า",
       "code": "10160",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Duan",
       "nameTh": "บางด้วน",
       "code": "10160",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Chak",
       "nameTh": "บางจาก",
       "code": "10160",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Waek",
       "nameTh": "บางแวก",
       "code": "10160",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Khwang",
       "nameTh": "คลองขวาง",
       "code": "10160",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Pak Khlong Phasi Charoen",
       "nameTh": "ปากคลองภาษีเจริญ",
       "code": "10160",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khuha Sawan",
       "nameTh": "คูหาสวรรค์",
       "code": "10160",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Rat Burana": [
@@ -3487,14 +3487,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ราษฎร์บูรณะ",
       "code": "10140",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Pakok",
       "nameTh": "บางปะกอก",
       "code": "10140",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Thung Khru": [
@@ -3503,14 +3503,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางมด",
       "code": "10140",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Thung Khru",
       "nameTh": "ทุ่งครุ",
       "code": "10140",
       "fee": 70,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Khen": [
@@ -3519,14 +3519,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "อนุสาวรีย์",
       "code": "10220",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Tha Raeng",
       "nameTh": "ท่าแร้ง",
       "code": "10220",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Sai Mai": [
@@ -3535,21 +3535,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "สายไหม",
       "code": "10220",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "O Ngoen",
       "nameTh": "ออเงิน",
       "code": "10220",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Thanon",
       "nameTh": "คลองถนน",
       "code": "10220",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Don Mueang": [
@@ -3558,21 +3558,21 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "สีกัน",
       "code": "10210",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Don Mueang",
       "nameTh": "ดอนเมือง",
       "code": "10210",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Sanam Bin",
       "nameTh": "สนามบิน",
       "code": "10210",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Lak Si": [
@@ -3581,14 +3581,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ทุ่งสองห้อง",
       "code": "10210",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Talat Bang Khen",
       "nameTh": "ตลาดบางเขน",
       "code": "10210",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Khan Na Yao": [
@@ -3597,14 +3597,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "คันนายาว",
       "code": "10230",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Ram Inthra",
       "nameTh": "รามอินทรา",
       "code": "10230",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Taling Chan": [
@@ -3613,42 +3613,42 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "คลองชักพระ",
       "code": "10170",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Taling Chan",
       "nameTh": "ตลิ่งชัน",
       "code": "10170",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Chimphli",
       "nameTh": "ฉิมพลี",
       "code": "10170",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Phrom",
       "nameTh": "บางพรม",
       "code": "10170",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Ramat",
       "nameTh": "บางระมาด",
       "code": "10170",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Chueak Nang",
       "nameTh": "บางเชือกหนัง",
       "code": "10170",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Thawi Watthana": [
@@ -3657,14 +3657,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ทวีวัฒนา",
       "code": "10170",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Sala Thammasop",
       "nameTh": "ศาลาธรรมสพน์",
       "code": "10170",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Khae": [
@@ -3673,28 +3673,28 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางแค",
       "code": "10160",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Khae Nuea",
       "nameTh": "บางแคเหนือ",
       "code": "10160",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Phai",
       "nameTh": "บางไผ่",
       "code": "10160",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Lak Song",
       "nameTh": "หลักสอง",
       "code": "10160",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Nong Khaem": [
@@ -3703,14 +3703,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "หนองแขม",
       "code": "10160",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Nong Khang Phlu",
       "nameTh": "หนองค้างพลู",
       "code": "10160",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Bon": [
@@ -3719,28 +3719,28 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "บางบอนเหนือ",
       "code": "10150",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Bon Tai",
       "nameTh": "บางบอนใต้",
       "code": "10150",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Bang Phran",
       "nameTh": "คลองบางพราน",
       "code": "10150",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Bang Bon",
       "nameTh": "คลองบางบอน",
       "code": "10150",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Bang Khun Thian": [
@@ -3749,14 +3749,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ท่าข้าม",
       "code": "10150",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Samae Dam",
       "nameTh": "แสมดำ",
       "code": "10150",
       "fee": 80,
-      "freeDeliveryAbove": 700
+      "freeDeliveryAbove": 500
     }
   ],
   "Min Buri": [
@@ -3765,14 +3765,14 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "มีนบุรี",
       "code": "10510",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Saen Saep",
       "nameTh": "แสนแสบ",
       "code": "10510",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     }
   ],
   "Khlong Sam Wa": [
@@ -3781,35 +3781,35 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "สามวาตะวันตก",
       "code": "10510",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Sam Wa Tawan Ok",
       "nameTh": "สามวาตะวันออก",
       "code": "10510",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Bang Chan",
       "nameTh": "บางชัน",
       "code": "10510",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Sai Kong Din",
       "nameTh": "ทรายกองดิน",
       "code": "10510",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Sai Kong Din Tai",
       "nameTh": "ทรายกองดินใต้",
       "code": "10510",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     }
   ],
   "Lat Krabang": [
@@ -3818,42 +3818,42 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "ลาดกระบัง",
       "code": "10520",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Song Ton Nun",
       "nameTh": "คลองสองต้นนุ่น",
       "code": "10520",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Sam Prawet",
       "nameTh": "คลองสามประเวศ",
       "code": "10520",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Lam Pla Thio",
       "nameTh": "ลำปลาทิว",
       "code": "10520",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Thap Yao",
       "nameTh": "ทับยาว",
       "code": "10520",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khum Thong",
       "nameTh": "ขุมทอง",
       "code": "10520",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     }
   ],
   "Nong Chok": [
@@ -3862,56 +3862,56 @@ export const BANGKOK_DISTRICTS_TO_SUBDISTRICTS = {
       "nameTh": "กระทุ่มราย",
       "code": "10530",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Nong Chok",
       "nameTh": "หนองจอก",
       "code": "10530",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Sip",
       "nameTh": "คลองสิบ",
       "code": "10530",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khlong Sip Song",
       "nameTh": "คลองสิบสอง",
       "code": "10530",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khok Faet",
       "nameTh": "โคกแฝด",
       "code": "10530",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Khu Fang Nuea",
       "nameTh": "คู้ฝั่งเหนือ",
       "code": "10530",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Lam Phak Chi",
       "nameTh": "ลำผักชี",
       "code": "10530",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     },
     {
       "name": "Lam Toiting",
       "nameTh": "ลำต้อยติ่ง",
       "code": "10530",
       "fee": 90,
-      "freeDeliveryAbove": 800
+      "freeDeliveryAbove": 500
     }
   ]
 };
@@ -4080,7 +4080,8 @@ export function calculateDeliveryFee(locationInput, subtotal = 0, customZonesLis
   let fee = matched ? Number(matched.fee) : fallbackFee;
   let isFree = false;
   let reason = '';
-  const threshold = matched?.freeDeliveryAbove || config.storeWideFreeDeliveryThreshold || 600;
+  const rawThreshold = matched?.freeDeliveryAbove || config.storeWideFreeDeliveryThreshold || 500;
+  const threshold = [600, 700, 800].includes(Number(rawThreshold)) ? 500 : Number(rawThreshold);
 
   if (isFreeDeliveryEnabled && Number(subtotal) >= Number(threshold)) {
     isFree = true;

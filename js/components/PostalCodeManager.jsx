@@ -25,7 +25,7 @@ export function PostalCodeManager() {
   const [newCode, setNewCode] = useState('');
   const [newAreas, setNewAreas] = useState('');
   const [newFee, setNewFee] = useState('50');
-  const [newFreeAbove, setNewFreeAbove] = useState('600');
+  const [newFreeAbove, setNewFreeAbove] = useState('500');
   const [newIsActive, setNewIsActive] = useState(true);
 
   // Edit Modal State (Full Details)
@@ -33,7 +33,7 @@ export function PostalCodeManager() {
 
   // Global Config Edit State
   const [fallbackFee, setFallbackFee] = useState(config.defaultFallbackFee || 70);
-  const [freeThreshold, setFreeThreshold] = useState(config.storeWideFreeDeliveryThreshold || 600);
+  const [freeThreshold, setFreeThreshold] = useState(config.storeWideFreeDeliveryThreshold || 500);
   const [freeEnabled, setFreeEnabled] = useState(config.freeDeliveryEnabled !== false);
 
   // Feedback messages
@@ -47,7 +47,7 @@ export function PostalCodeManager() {
       const cfg = laundryStore.getDeliveryConfig();
       setConfig(cfg);
       setFallbackFee(cfg.defaultFallbackFee || 70);
-      setFreeThreshold(cfg.storeWideFreeDeliveryThreshold || 600);
+      setFreeThreshold(cfg.storeWideFreeDeliveryThreshold || 500);
       setFreeEnabled(cfg.freeDeliveryEnabled !== false);
     });
     return () => unsubscribe();
@@ -128,7 +128,7 @@ export function PostalCodeManager() {
         code: newCode.trim(),
         areas: newAreas.trim() || `${newSubdistrict.trim()} residences`,
         fee: Number(newFee) || 50,
-        freeDeliveryAbove: Number(newFreeAbove) || 600,
+        freeDeliveryAbove: Number(newFreeAbove) || 500,
         isActive: newIsActive
       });
       setIsAddModalOpen(false);
@@ -139,7 +139,7 @@ export function PostalCodeManager() {
       setNewCode('');
       setNewAreas('');
       setNewFee('50');
-      setNewFreeAbove('600');
+      setNewFreeAbove('500');
       showToast(`Sub-district ${newSubdistrict.trim()} (${newCity}) successfully added to delivery rates!`);
     } catch (err) {
       showToast(err.message, true);
@@ -178,7 +178,7 @@ export function PostalCodeManager() {
     try {
       await laundryStore.updateDeliveryConfig({
         defaultFallbackFee: Number(fallbackFee) || 70,
-        storeWideFreeDeliveryThreshold: Number(freeThreshold) || 600,
+        storeWideFreeDeliveryThreshold: Number(freeThreshold) || 500,
         freeDeliveryEnabled: Boolean(freeEnabled)
       });
       showToast('Global delivery fee policy saved and synchronized!');
@@ -363,7 +363,7 @@ export function PostalCodeManager() {
               min="0"
               value={freeThreshold}
               onChange={(e) => setFreeThreshold(e.target.value)}
-              placeholder="600"
+              placeholder="500"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 focus:ring-2 focus:ring-sky-500"
             />
             <p className="text-[10px] text-slate-400 mt-1">
@@ -834,7 +834,7 @@ export function PostalCodeManager() {
                   <input
                     type="number"
                     min="0"
-                    placeholder="600"
+                    placeholder="500"
                     value={newFreeAbove}
                     onChange={(e) => setNewFreeAbove(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold"
