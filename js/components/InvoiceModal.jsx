@@ -338,6 +338,15 @@ https://apptest.thatlaundryshop.com`;
                 <img 
                   src="/images/logo.png" 
                   alt="NoName Laundry" 
+                  onError={(e) => {
+                    if (!e.target.dataset.tried) {
+                      e.target.dataset.tried = '1';
+                      e.target.src = '/public/images/logo.png';
+                    } else if (e.target.dataset.tried === '1') {
+                      e.target.dataset.tried = '2';
+                      e.target.src = '/images/logo_cropped.png';
+                    }
+                  }}
                   className="h-12 w-auto object-contain mb-2"
                 />
                 <div className="text-[11px] text-slate-500 space-y-0.5 leading-relaxed">

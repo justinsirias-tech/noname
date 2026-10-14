@@ -15,6 +15,7 @@ export function Navbar({
 }) {
   const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   const desktopNavLinks = [
     { id: 'services', label: t('navServices') },
@@ -133,11 +134,33 @@ export function Navbar({
             onClick={() => setView('home')} 
             className="flex items-center gap-3 cursor-pointer group shrink-0"
           >
-            <img 
-              src="/images/logo.png" 
-              alt="NoName Laundry" 
-              className="h-14 sm:h-16 md:h-20 w-auto object-contain group-hover:scale-105 transition-transform"
-            />
+            {logoError ? (
+              <div className="flex items-center gap-2 py-1">
+                <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-cyan-500 text-white flex items-center justify-center font-black text-base shadow-sm">
+                  🧺
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  NoName <span className="text-sky-600">Laundry</span>
+                </span>
+              </div>
+            ) : (
+              <img 
+                src="/images/logo.png" 
+                alt="NoName Laundry" 
+                onError={(e) => {
+                  if (!e.target.dataset.tried) {
+                    e.target.dataset.tried = '1';
+                    e.target.src = '/public/images/logo.png';
+                  } else if (e.target.dataset.tried === '1') {
+                    e.target.dataset.tried = '2';
+                    e.target.src = '/images/logo_cropped.png';
+                  } else {
+                    setLogoError(true);
+                  }
+                }}
+                className="h-14 sm:h-16 md:h-20 w-auto object-contain group-hover:scale-105 transition-transform"
+              />
+            )}
             <div className="hidden lg:block border-l-2 border-slate-200 pl-3.5 py-1">
               <p className="text-xs text-slate-600 font-extrabold tracking-wider uppercase">
                 {currentCity === 'Pattaya' ? (t('brandSubtitlePattaya') || 'Pattaya Door-to-Door By KG') : (t('brandSubtitleBangkok') || 'Bangkok Door-to-Door By KG')}

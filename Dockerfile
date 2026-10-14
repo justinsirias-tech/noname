@@ -25,6 +25,7 @@ RUN npm ci --only=production
 # Copy built assets and server code
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/images ./images
 COPY --from=builder /app/bangkok ./bangkok
 COPY --from=builder /app/pattaya ./pattaya
 COPY --from=builder /app/css ./css

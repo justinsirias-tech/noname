@@ -14,7 +14,20 @@ export function Footer({ setView }) {
           {/* Col 1: Brand & Digital Policy */}
           <div className="space-y-4 md:col-span-1">
             <div className="bg-white p-3 rounded-2xl inline-block shadow-md border border-slate-700">
-              <img src="/images/logo.png" alt="NoName Laundry" className="h-12 sm:h-14 w-auto object-contain" />
+              <img 
+                src="/images/logo.png" 
+                alt="NoName Laundry" 
+                onError={(e) => {
+                  if (!e.target.dataset.tried) {
+                    e.target.dataset.tried = '1';
+                    e.target.src = '/public/images/logo.png';
+                  } else if (e.target.dataset.tried === '1') {
+                    e.target.dataset.tried = '2';
+                    e.target.src = '/images/logo_cropped.png';
+                  }
+                }}
+                className="h-12 sm:h-14 w-auto object-contain" 
+              />
             </div>
 
             <p className="text-slate-400 text-xs leading-relaxed">

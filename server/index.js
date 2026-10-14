@@ -3607,7 +3607,38 @@ app.delete('/api/customers/:id', async (req, res) => {
 
 
 // Static assets serving
-const publicDir = path.join(__dirname, '..');
+const rootDir = path.join(__dirname, '..');
+const publicDir = rootDir;
+const publicFolder = path.join(rootDir, 'public');
+const imagesDir = path.join(rootDir, 'images');
+const publicImagesDir = path.join(publicFolder, 'images');
+
+// Dedicated static images handler - check both root/images and public/images
+app.use('/images', express.static(imagesDir, { maxAge: '1d' }));
+app.use('/images', express.static(publicImagesDir, { maxAge: '1d' }));
+app.use('/public/images', express.static(publicImagesDir, { maxAge: '1d' }));
+
+// Direct endpoint fallback for image files to prevent falling through to SPA html
+app.get(['/images/:file', '/public/images/:file'], (req, res, next) => {
+  const file = req.params.file;
+  const p1 = path.join(imagesDir, file);
+  const p2 = path.join(publicImagesDir, file);
+  if (fs.existsSync(p1)) return res.sendFile(p1);
+  if (fs.existsSync(p2)) return res.sendFile(p2);
+  next();
+});
+
+// Serve public directory
+app.use(express.static(publicFolder, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('app.js') || filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
+
 app.use(express.static(publicDir, {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('app.js') || filePath.endsWith('.html')) {

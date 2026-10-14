@@ -958,7 +958,20 @@ export function AdminPOS({
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-3 mt-3">
-            <img src="/images/logo.png" alt="NoName Laundry" className="h-12 sm:h-14 w-auto object-contain" />
+            <img 
+              src="/images/logo.png" 
+              alt="NoName Laundry" 
+              onError={(e) => {
+                if (!e.target.dataset.tried) {
+                  e.target.dataset.tried = '1';
+                  e.target.src = '/public/images/logo.png';
+                } else if (e.target.dataset.tried === '1') {
+                  e.target.dataset.tried = '2';
+                  e.target.src = '/images/logo_cropped.png';
+                }
+              }}
+              className="h-12 sm:h-14 w-auto object-contain" 
+            />
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-sky-700 font-bold bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
                 100% Cashless System

@@ -51,7 +51,20 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
             onClick={onNavigateHome}
             className="cursor-pointer transform hover:scale-105 transition mb-3 inline-block"
           >
-            <img src="/images/logo.png" alt="NoName Laundry" className="h-16 w-auto object-contain mx-auto" />
+            <img 
+              src="/images/logo.png" 
+              alt="NoName Laundry" 
+              onError={(e) => {
+                if (!e.target.dataset.tried) {
+                  e.target.dataset.tried = '1';
+                  e.target.src = '/public/images/logo.png';
+                } else if (e.target.dataset.tried === '1') {
+                  e.target.dataset.tried = '2';
+                  e.target.src = '/images/logo_cropped.png';
+                }
+              }}
+              className="h-16 w-auto object-contain mx-auto" 
+            />
           </div>
           <span className="text-xs font-extrabold uppercase tracking-widest text-sky-600 bg-sky-50 border border-sky-100 px-3 py-1 rounded-full inline-block">
             Customer Member Portal
