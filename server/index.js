@@ -1830,7 +1830,7 @@ app.get('/api/state', async (req, res) => {
           { id: 'delicate_dryclean', name: 'Delicates & Special Care', nameTh: 'ผ้าไหมและชุดพิเศษ', icon: 'sparkles', badge: '✨ Specialty Care', pricingType: 'piece', description: 'Specialty care garments.', displayOrder: 4 }
         ],
         lineOaId: '@nonamelaundry',
-        whatsappNumber: '+66 94 882 1920',
+        whatsappNumber: '@nonamelaundry',
         supportEmail: 'support@nonamelaundry.com'
       }
     });

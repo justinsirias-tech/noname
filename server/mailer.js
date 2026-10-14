@@ -139,7 +139,7 @@ async function sendBookingConfirmationEmail(order, overrideRecipient = null) {
           <!-- Customer Support Notice -->
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; font-size: 12px; color: #475569; text-align: center; line-height: 1.6;">
             <strong>Need to adjust your pickup time or have any questions?</strong><br />
-            📞 Call or WhatsApp: <strong style="color: #0f172a;">+66 80 888 9885</strong> &nbsp;|&nbsp; 💬 LINE: <strong style="color: #0f172a;">@nonamelaundry</strong>
+            💬 WhatsApp: <strong style="color: #0f172a;">@nonamelaundry</strong> &nbsp;|&nbsp; 💬 LINE: <strong style="color: #0f172a;">@nonamelaundry</strong> &nbsp;|&nbsp; 📞 Phone: <strong style="color: #0f172a;">+66 80 888 9885</strong>
           </div>
 
         </div>
@@ -319,7 +319,7 @@ async function sendConfirmedBillingEmail(order, overrideRecipient = null) {
           <!-- Customer Support Notice -->
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; font-size: 12px; color: #475569; text-align: center; line-height: 1.6;">
             <strong>Questions regarding your weighing or order?</strong><br />
-            📞 Call or WhatsApp: <strong style="color: #0f172a;">+66 80 888 9885</strong> &nbsp;|&nbsp; 💬 LINE: <strong style="color: #0f172a;">@nonamelaundry</strong>
+            💬 WhatsApp: <strong style="color: #0f172a;">@nonamelaundry</strong> &nbsp;|&nbsp; 💬 LINE: <strong style="color: #0f172a;">@nonamelaundry</strong> &nbsp;|&nbsp; 📞 Phone: <strong style="color: #0f172a;">+66 80 888 9885</strong>
           </div>
 
         </div>

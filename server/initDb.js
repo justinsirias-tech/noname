@@ -327,7 +327,7 @@ const DEFAULT_SETTINGS = {
   turnaroundStd: '24–48 Hours',
   currency: 'THB',
   lineOaId: '@nonamelaundry',
-  whatsappNumber: '+66 94 882 1920',
+  whatsappNumber: '@nonamelaundry',
   supportEmail: 'support@nonamelaundry.com',
   paymentGateway: {
     provider: 'Omise / Opn Payments (Thailand)',

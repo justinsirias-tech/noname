@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { ORDER_STATUSES, TRACKING_STAGES, getTrackingStage, BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
-import { CONTACT_CHANNELS, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
+import { CONTACT_CHANNELS, getLineOaAddFriendUrl, getLineQrCodeUrl, getWhatsappUrl, getWhatsappQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
 import { OrderKanban } from './OrderKanban.jsx';
 import { OrderDetailsModal } from './OrderDetailsModal.jsx';
 import { InvoiceModal } from './InvoiceModal.jsx';
@@ -134,7 +134,7 @@ export function AdminPOS({
 
   // LINE OA & Contact Channels State
   const [adminLineOa, setAdminLineOa] = useState(laundryStore.settings?.lineOaId || '@nonamelaundry');
-  const [adminWhatsapp, setAdminWhatsapp] = useState(laundryStore.settings?.whatsappNumber || '+66 94 882 1920');
+  const [adminWhatsapp, setAdminWhatsapp] = useState(laundryStore.settings?.whatsappNumber || '@nonamelaundry');
   const [adminEmail, setAdminEmail] = useState(laundryStore.settings?.supportEmail || 'support@nonamelaundry.com');
   const [channelSuccessMsg, setChannelSuccessMsg] = useState('');
   const [channelErrorMsg, setChannelErrorMsg] = useState('');
@@ -2099,16 +2099,19 @@ export function AdminPOS({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  WhatsApp Official Phone Number *
+                  WhatsApp Business Handle / Number *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="+66 94 882 1920"
+                  placeholder="@nonamelaundry or +66 80 888 9885"
                   value={adminWhatsapp}
                   onChange={(e) => setAdminWhatsapp(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold bg-white text-emerald-700 text-sm"
                 />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Direct WhatsApp Link: <code className="text-emerald-800 font-bold">{getWhatsappUrl(adminWhatsapp)}</code>
+                </p>
               </div>
 
               <div>
@@ -2121,23 +2124,50 @@ export function AdminPOS({
                   placeholder="support@nonamelaundry.com"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono font-bold bg-white text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold bg-white text-slate-800 text-sm"
                 />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Support Email: <code className="text-slate-800 font-bold">{adminEmail}</code>
+                </p>
               </div>
             </div>
 
-            {/* QR Code Live Preview */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
-              <img
-                src={getLineQrCodeUrl(adminLineOa)}
-                alt="LINE QR Code Preview"
-                className="w-24 h-24 rounded-lg border border-slate-300 bg-white"
-              />
-              <div>
-                <div className="font-bold text-slate-800 text-xs">Customer QR Code Preview</div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  This dynamic QR code is displayed to desktop customers on booking completion and on the tracking portal.
-                </p>
+            {/* QR Code Live Previews for LINE OA and WhatsApp Business */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex items-center gap-3.5">
+                <img
+                  src={getWhatsappQrCodeUrl(adminWhatsapp)}
+                  alt="WhatsApp Business QR Code Preview"
+                  className="w-20 h-20 rounded-lg border border-emerald-300 bg-white p-1 shrink-0"
+                />
+                <div>
+                  <div className="font-bold text-emerald-950 text-xs flex items-center gap-1.5">
+                    <span>WhatsApp Business</span>
+                    <span className="text-[10px] px-1.5 py-0.2 bg-emerald-200 text-emerald-800 rounded font-mono font-bold">Active</span>
+                  </div>
+                  <div className="text-xs font-mono font-bold text-emerald-800 mt-0.5">{adminWhatsapp}</div>
+                  <p className="text-[10px] text-emerald-700 mt-0.5">
+                    Scan to open WhatsApp Business chat instantly.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-green-50/60 border border-green-200 flex items-center gap-3.5">
+                <img
+                  src={getLineQrCodeUrl(adminLineOa)}
+                  alt="LINE QR Code Preview"
+                  className="w-20 h-20 rounded-lg border border-green-300 bg-white p-1 shrink-0"
+                />
+                <div>
+                  <div className="font-bold text-green-950 text-xs flex items-center gap-1.5">
+                    <span>LINE Official Account</span>
+                    <span className="text-[10px] px-1.5 py-0.2 bg-green-200 text-green-800 rounded font-mono font-bold">Active</span>
+                  </div>
+                  <div className="text-xs font-mono font-bold text-green-800 mt-0.5">{adminLineOa}</div>
+                  <p className="text-[10px] text-green-700 mt-0.5">
+                    Scan to add friend & track orders on LINE.
+                  </p>
+                </div>
               </div>
             </div>
 

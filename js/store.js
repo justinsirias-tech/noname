@@ -33,8 +33,8 @@ export const CONTACT_CHANNELS = {
   },
   whatsapp: {
     name: 'WhatsApp',
-    handle: '+66 80 888 9885',
-    url: 'https://wa.me/66808889885?text=',
+    handle: '@nonamelaundry',
+    url: 'https://wa.me/nonamelaundry?text=',
     color: 'emerald',
     badge: 'Fastest Response (~5 mins)',
     icon: 'MessageCircle'
@@ -82,6 +82,31 @@ export function getLineOaMessageUrl(message = '', lineId = '@nonamelaundry') {
 
 export function getLineQrCodeUrl(lineId = '@nonamelaundry') {
   const targetUrl = getLineOaAddFriendUrl(lineId);
+  return 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=' + encodeURIComponent(targetUrl);
+}
+
+export function getWhatsappUrl(handleOrPhone = '@nonamelaundry', message = '') {
+  if (!handleOrPhone) return 'https://wa.me/nonamelaundry';
+  const raw = String(handleOrPhone).trim();
+  const textQuery = message ? `?text=${encodeURIComponent(message)}` : '';
+
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    return raw;
+  }
+
+  // Handle username/handle (e.g. '@nonamelaundry' or 'nonamelaundry')
+  if (raw.startsWith('@') || /[a-zA-Z]/.test(raw)) {
+    const cleanHandle = raw.replace(/^@/, '');
+    return `https://wa.me/${cleanHandle}${textQuery}`;
+  }
+
+  // Phone number (e.g. '+66 80 888 9885' or '+66 94 882 1920')
+  const cleanPhone = raw.replace(/[^0-9]/g, '');
+  return `https://wa.me/${cleanPhone}${textQuery}`;
+}
+
+export function getWhatsappQrCodeUrl(handleOrPhone = '@nonamelaundry') {
+  const targetUrl = getWhatsappUrl(handleOrPhone);
   return 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=' + encodeURIComponent(targetUrl);
 }
 
@@ -250,9 +275,11 @@ export class LaundryStore {
       CONTACT_CHANNELS.line.oaMessageUrl = 'https://line.me/R/oaMessage/' + encodeURIComponent(settings.lineOaId) + '/?';
     }
     if (settings.whatsappNumber) {
-      CONTACT_CHANNELS.whatsapp.handle = settings.whatsappNumber;
-      const cleanPhone = settings.whatsappNumber.replace(/[^0-9]/g, '');
-      CONTACT_CHANNELS.whatsapp.url = `https://wa.me/${cleanPhone}?text=`;
+      const val = settings.whatsappNumber.trim();
+      const isAlpha = /[a-zA-Z]/.test(val);
+      CONTACT_CHANNELS.whatsapp.handle = (val.startsWith('@') || isAlpha) ? (val.startsWith('@') ? val : `@${val}`) : val;
+      const baseWaUrl = getWhatsappUrl(val);
+      CONTACT_CHANNELS.whatsapp.url = baseWaUrl.includes('?') ? `${baseWaUrl}&text=` : `${baseWaUrl}?text=`;
     }
     if (settings.supportEmail) {
       CONTACT_CHANNELS.email.handle = settings.supportEmail;
@@ -378,7 +405,7 @@ export class LaundryStore {
         turnaroundStd: '24–48 Hours',
         currency: 'THB',
         lineOaId: '@nonamelaundry',
-        whatsappNumber: '+66 94 882 1920',
+        whatsappNumber: '@nonamelaundry',
         supportEmail: 'support@nonamelaundry.com',
         paymentGateway: {
           provider: 'Omise / Opn Payments (Thailand)',
