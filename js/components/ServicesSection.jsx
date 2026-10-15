@@ -1,11 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { useTranslation } from '../i18n.jsx';
 import { INITIAL_CATEGORIES, BANGKOK_DISTRICTS, TIME_SLOTS } from '../data/servicesData.js';
 import { laundryStore } from '../store.js';
-
-const FREE_DELIVERY_MIN_SPEND = 500;
-const BASE_DELIVERY_FEE = 50;
 
 export function ServicesSection({
   services = [],
@@ -49,10 +46,34 @@ export function ServicesSection({
   const [roomNumber, setRoomNumber] = useState('');
   const [district, setDistrict] = useState(BANGKOK_DISTRICTS[0] || 'Watthana');
   const [pickupDate, setPickupDate] = useState(tomorrow);
-  const [pickupTime, setPickupTime] = useState(TIME_SLOTS[0] || '09:00 - 11:00 (Morning)');
+  const [pickupTime, setPickupTime] = useState(TIME_SLOTS[0] || '10:30 - 12:30 (Morning)');
   const [leaveWithJuristic, setLeaveWithJuristic] = useState(true);
   const [bookingError, setBookingError] = useState('');
   const [quickBookedOrder, setQuickBookedOrder] = useState(null);
+  const [isPickupDetailsOpen, setIsPickupDetailsOpen] = useState(false);
+  const [stickyTop, setStickyTop] = useState(140);
+
+  useEffect(() => {
+    const updateStickyOffsets = () => {
+      const header = document.querySelector('header');
+      if (header) {
+        const headerRect = header.getBoundingClientRect();
+        const h = Math.round(headerRect.height || header.offsetHeight || 132);
+        setStickyTop(h + 10);
+      } else {
+        setStickyTop(140);
+      }
+    };
+
+    updateStickyOffsets();
+    window.addEventListener('resize', updateStickyOffsets);
+    const timer = setTimeout(updateStickyOffsets, 400);
+
+    return () => {
+      window.removeEventListener('resize', updateStickyOffsets);
+      clearTimeout(timer);
+    };
+  }, []);
 
   const handleToggleService = (srv) => {
     if (!srv || !srv.id) return;
@@ -169,11 +190,9 @@ export function ServicesSection({
     [selectedEntries]
   );
 
-  const isFreeDelivery = servicesSubtotal >= FREE_DELIVERY_MIN_SPEND;
-  const amountToFreeDelivery = Math.max(0, FREE_DELIVERY_MIN_SPEND - servicesSubtotal);
-  const freeDeliveryProgressPct = Math.min(100, Math.round((servicesSubtotal / FREE_DELIVERY_MIN_SPEND) * 100));
-  const deliveryFee = selectedEntries.length === 0 ? 0 : (isFreeDelivery ? 0 : BASE_DELIVERY_FEE);
-  const totalEstimatedCost = servicesSubtotal + deliveryFee;
+  const isFreeDelivery = true;
+  const deliveryFee = 0;
+  const totalEstimatedCost = servicesSubtotal;
 
   const totalWeightKg = useMemo(
     () => selectedEntries.filter(i => !i.isPiece).reduce((sum, i) => sum + i.billable, 0),
@@ -207,15 +226,18 @@ export function ServicesSection({
     }
 
     if (!customerName.trim()) {
+      setIsPickupDetailsOpen(true);
       setBookingError(language === 'th' ? 'กรุณากรอกชื่อ-นามสกุลของคุณ' : 'Please enter your name.');
       return;
     }
     const cleanPhone = (mobileNumber || '').replace(/\D/g, '');
     if (cleanPhone.length < 8) {
+      setIsPickupDetailsOpen(true);
       setBookingError(language === 'th' ? 'กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง' : 'Please enter a valid phone / WhatsApp number.');
       return;
     }
     if (!condoName.trim()) {
+      setIsPickupDetailsOpen(true);
       setBookingError(language === 'th' ? 'กรุณาระบุชื่อคอนโด อาคาร หรือที่อยู่รับ-ส่งผ้า' : 'Please enter your condo, building, or pickup address.');
       return;
     }
@@ -382,10 +404,10 @@ export function ServicesSection({
   const renderBookingSectionBody = (isMobileDrawer = false) => (
     <>
       {/* Scrollable Booking Body */}
-      <div className="px-4 py-3.5 sm:px-5 sm:py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+      <div className="px-3.5 py-3 sm:px-4 sm:py-3.5 space-y-3 overflow-y-auto flex-1 min-h-0">
         
         {/* 1. SELECTED SERVICES (Starts Empty until customer adds services) */}
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
               <span>1. {language === 'th' ? 'บริการที่เลือก' : 'Selected Services'}</span>
@@ -410,8 +432,8 @@ export function ServicesSection({
 
           {selectedEntries.length === 0 ? (
             /* Empty State — Customer needs to add the service they need */
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-4 text-center space-y-2.5">
-              <div className="w-10 h-10 rounded-full bg-sky-100/80 text-sky-600 flex items-center justify-center mx-auto text-lg">
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-3.5 text-center space-y-2">
+              <div className="w-8 h-8 rounded-full bg-sky-100/80 text-sky-600 flex items-center justify-center mx-auto text-base">
                 🧺
               </div>
               <div>
@@ -420,19 +442,19 @@ export function ServicesSection({
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                   {language === 'th'
-                    ? 'กดปุ่ม "+ เพิ่มในรายการจอง" จากการ์ดบริการด้านซ้าย หรือเลือกเพิ่มด่วนด้านล่างเพื่อคำนวณราคารวม'
-                    : 'Click "+ Add to Booking" on any service card on the left, or select a service below to see your estimated total.'}
+                    ? 'กดปุ่ม "+ เพิ่มในรายการจอง" จากการ์ดบริการด้านซ้าย หรือเลือกเพิ่มด่วนด้านล่าง'
+                    : 'Click "+ Add to Booking" on any service card on the left, or select below.'}
                 </p>
               </div>
 
               {/* Quick Add Service Dropdown */}
-              <div className="pt-1">
+              <div className="pt-0.5">
                 <select
                   value=""
                   onChange={(e) => {
                     if (e.target.value) handleAddServiceById(e.target.value);
                   }}
-                  className="w-full px-3 py-2 rounded-xl border border-sky-300 bg-white text-xs font-bold text-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer shadow-2xs"
+                  className="w-full px-2.5 py-1.5 rounded-xl border border-sky-300 bg-white text-xs font-bold text-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer shadow-2xs"
                 >
                   <option value="">
                     {language === 'th' ? '+ เลือกเพิ่มบริการที่ต้องการ...' : '+ Quick add a service you need...'}
@@ -452,91 +474,86 @@ export function ServicesSection({
             </div>
           ) : (
             /* Added Services List with Quantity / Weight Steppers */
-            <div className="space-y-2">
+            <div className="space-y-1.5 max-h-56 sm:max-h-64 overflow-y-auto pr-0.5">
               {selectedEntries.map((item) => (
-                <div key={item.id} className="bg-slate-50/90 p-3 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
-                        <span className="truncate">{item.name}</span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                          item.isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
-                        }`}>
-                          {item.isPiece ? '🛏️ Piece' : '🧺 Weight'}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-medium tabular-nums">
-                        ฿{item.rate}/{item.unitLabel} ({
-                          turnaroundSpeed === 'same_day'
-                            ? (language === 'th' ? 'ส่งในวันเดียว' : 'Same Day')
-                            : turnaroundSpeed === 'next_day_24h'
-                              ? (language === 'th' ? 'วันถัดไป' : 'Next Day')
-                              : (language === 'th' ? 'มาตรฐาน 2 วัน' : 'Standard 2 Days')
-                        })
-                      </div>
+                <div key={item.id} className="bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/90 shadow-2xs space-y-1.5">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <div className="min-w-0 flex items-center gap-1.5 flex-wrap flex-1">
+                      <span className="font-extrabold text-xs text-slate-900 truncate">{item.name}</span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded shrink-0 ${
+                        item.isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+                      }`}>
+                        {item.isPiece ? 'Piece' : 'KG'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium tabular-nums">
+                        (฿{item.rate}/{item.unitLabel})
+                      </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveService(item.id)}
-                      className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition cursor-pointer shrink-0"
-                      title="Remove service"
-                    >
-                      <Icon name="x" className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-xs font-black text-sky-700 tabular-nums">฿{item.subtotal}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveService(item.id)}
+                        className="text-slate-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition cursor-pointer"
+                        title="Remove service"
+                      >
+                        <Icon name="x" className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {item.isPiece ? (
                     /* Piece Quantity Counter */
                     <div className="flex items-center justify-between pt-0.5">
-                      <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-slate-500">
+                        {language === 'th' ? 'จำนวน' : 'Quantity'}:
+                      </span>
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(item.id, -1)}
-                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm cursor-pointer shadow-2xs"
+                          className="w-6 h-6 rounded-md border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs cursor-pointer shadow-2xs"
                         >
                           -
                         </button>
-                        <span className="min-w-[64px] px-1 text-center font-extrabold text-xs text-slate-900 tabular-nums">
+                        <span className="min-w-[48px] px-1 text-center font-extrabold text-xs text-slate-900 tabular-nums">
                           {item.qty} {item.unitLabel}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(item.id, 1)}
-                          className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm cursor-pointer shadow-2xs"
+                          className="w-6 h-6 rounded-md border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs cursor-pointer shadow-2xs"
                         >
                           +
                         </button>
                       </div>
-                      <div className="text-right tabular-nums">
-                        <span className="text-xs font-extrabold text-sky-700">฿{item.subtotal}</span>
-                      </div>
                     </div>
                   ) : (
                     /* Weight Stepper & Slider */
-                    <div className="space-y-1.5 pt-0.5">
+                    <div className="space-y-1 pt-0.5">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-semibold text-slate-500">
+                          {language === 'th' ? 'น้ำหนักประเมิน' : 'Est. Weight'}:
+                        </span>
+                        <div className="flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => handleUpdateWeight(item.id, Math.max(1, (item.weight - 0.5).toFixed(1)))}
-                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm cursor-pointer shadow-2xs"
+                            className="w-6 h-6 rounded-md border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs cursor-pointer shadow-2xs"
                           >
                             -
                           </button>
-                          <span className="min-w-[68px] text-center font-extrabold text-xs text-sky-700 bg-white px-2 py-1 rounded border border-sky-200 tabular-nums">
+                          <span className="min-w-[58px] text-center font-black text-xs text-sky-700 bg-white px-1.5 py-0.5 rounded border border-sky-200 tabular-nums">
                             {item.weight} KG
                           </span>
                           <button
                             type="button"
                             onClick={() => handleUpdateWeight(item.id, (item.weight + 0.5).toFixed(1))}
-                            className="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm cursor-pointer shadow-2xs"
+                            className="w-6 h-6 rounded-md border border-slate-200 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs cursor-pointer shadow-2xs"
                           >
                             +
                           </button>
-                        </div>
-                        <div className="text-right tabular-nums">
-                          <span className="text-xs font-extrabold text-sky-700">฿{item.subtotal}</span>
                         </div>
                       </div>
 
@@ -547,10 +564,10 @@ export function ServicesSection({
                         step="0.5"
                         value={item.weight}
                         onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
-                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                        className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
                       />
                       {Number(item.weight) < Number(item.minWeight) && (
-                        <div className="text-[10px] text-amber-700 bg-amber-50 p-1 rounded border border-amber-200">
+                        <div className="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                           Min {item.minWeight} KG applied (฿{item.subtotal} THB)
                         </div>
                       )}
@@ -565,7 +582,7 @@ export function ServicesSection({
                 onChange={(e) => {
                   if (e.target.value) handleAddServiceById(e.target.value);
                 }}
-                className="w-full px-3 py-2 rounded-xl border border-dashed border-sky-300 bg-sky-50/50 hover:bg-sky-50 text-xs font-bold text-sky-700 focus:outline-none cursor-pointer"
+                className="w-full px-2.5 py-1.5 rounded-xl border border-dashed border-sky-300 bg-sky-50/50 hover:bg-sky-50 text-xs font-bold text-sky-700 focus:outline-none cursor-pointer"
               >
                 <option value="">
                   {language === 'th' ? '+ เพิ่มบริการอื่นเพิ่มเติม...' : '+ Add another service...'}
@@ -586,7 +603,7 @@ export function ServicesSection({
         </div>
 
         {/* 2. TURNAROUND SPEED (Standard 2 Days, Next Day, Same Day) */}
-        <div className="space-y-2 pt-1 border-t border-slate-100">
+        <div className="space-y-1.5 pt-1 border-t border-slate-100">
           <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wide block">
             2. {language === 'th' ? 'เลือกระยะเวลารับ-ส่งผ้า' : 'Turnaround Speed'}
           </label>
@@ -594,152 +611,189 @@ export function ServicesSection({
             <button
               type="button"
               onClick={() => setTurnaroundSpeed('standard_48h')}
-              className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+              className={`p-1.5 rounded-xl border text-center transition cursor-pointer ${
                 turnaroundSpeed === 'standard_48h'
                   ? 'border-slate-900 bg-slate-900 text-white shadow-2xs'
                   : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
-              <div className="text-[11px] font-extrabold leading-tight">
+              <div className="text-[10px] font-extrabold leading-tight">
                 🕒 {language === 'th' ? 'มาตรฐาน' : 'Standard'}
               </div>
-              <div className={`text-[10px] font-semibold mt-0.5 ${
+              <div className={`text-[9px] font-semibold mt-0.5 ${
                 turnaroundSpeed === 'standard_48h' ? 'text-slate-300' : 'text-slate-500'
               }`}>
-                {language === 'th' ? '2 วัน (2 Days)' : '2 Days'}
+                {language === 'th' ? '2 วัน' : '2 Days'}
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setTurnaroundSpeed('next_day_24h')}
-              className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+              className={`p-1.5 rounded-xl border text-center transition cursor-pointer ${
                 turnaroundSpeed === 'next_day_24h'
                   ? 'border-sky-600 bg-sky-600 text-white shadow-2xs'
                   : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
-              <div className="text-[11px] font-extrabold leading-tight">
+              <div className="text-[10px] font-extrabold leading-tight">
                 ⚡ {language === 'th' ? 'วันถัดไป' : 'Next Day'}
               </div>
-              <div className={`text-[10px] font-semibold mt-0.5 ${
+              <div className={`text-[9px] font-semibold mt-0.5 ${
                 turnaroundSpeed === 'next_day_24h' ? 'text-sky-100' : 'text-sky-600'
               }`}>
-                {language === 'th' ? 'ส่งวันถัดไป' : 'Next Day'}
+                {language === 'th' ? 'วันถัดไป' : 'Next Day'}
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setTurnaroundSpeed('same_day')}
-              className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+              className={`p-1.5 rounded-xl border text-center transition cursor-pointer ${
                 turnaroundSpeed === 'same_day'
                   ? 'border-amber-500 bg-amber-500 text-white shadow-2xs'
                   : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
-              <div className="text-[11px] font-extrabold leading-tight">
+              <div className="text-[10px] font-extrabold leading-tight">
                 🚀 {language === 'th' ? 'วันเดียว' : 'Same Day'}
               </div>
-              <div className={`text-[10px] font-semibold mt-0.5 ${
+              <div className={`text-[9px] font-semibold mt-0.5 ${
                 turnaroundSpeed === 'same_day' ? 'text-amber-100' : 'text-amber-600'
               }`}>
-                {language === 'th' ? 'ส่งในวันเดียว' : 'Same Day'}
+                {language === 'th' ? 'วันเดียว' : 'Same Day'}
               </div>
             </button>
           </div>
         </div>
 
-        {/* 3. QUICK PICKUP & CONTACT DETAILS (Booking Section Right Away) */}
-        <div className="space-y-2.5 pt-2 border-t border-slate-100">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
-              3. {language === 'th' ? 'ข้อมูลนัดรับ-ส่งผ้า (จองทันที)' : 'Pickup Details (Book Right Away)'}
-            </label>
-            <span className="text-[10px] font-semibold text-sky-600">
-              {language === 'th' ? 'รับ-ส่งถึงคอนโด/บ้าน' : 'Door-to-Door'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
-                {language === 'th' ? 'วันที่รับผ้า' : 'Pickup Date'}
-              </label>
-              <input
-                type="date"
-                value={pickupDate}
-                onChange={(e) => setPickupDate(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-sky-500"
-              />
+        {/* 3. QUICK PICKUP & CONTACT DETAILS (Collapsible Accordion for Optimal Space) */}
+        <div className="pt-1.5 border-t border-slate-100 space-y-1.5">
+          <button
+            type="button"
+            onClick={() => setIsPickupDetailsOpen(!isPickupDetailsOpen)}
+            className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200 transition text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wide truncate">
+                3. {language === 'th' ? 'ข้อมูลนัดรับผ้า (จองทันที)' : 'Pickup Details'}
+              </span>
+              {condoName.trim() && customerName.trim() ? (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                  ✓ {language === 'th' ? 'กรอกแล้ว' : 'Ready'}
+                </span>
+              ) : (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 shrink-0">
+                  {language === 'th' ? 'แตะเพื่อกรอก' : 'Tap to fill'}
+                </span>
+              )}
             </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
-                {language === 'th' ? 'ช่วงเวลารับผ้า' : 'Time Window'}
-              </label>
-              <select
-                value={pickupTime}
-                onChange={(e) => setPickupTime(e.target.value)}
-                className="w-full px-2 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-sky-500"
+            <div className="flex items-center gap-1 text-[11px] font-bold text-sky-600 shrink-0">
+              <span>{isPickupDetailsOpen ? (language === 'th' ? 'ย่อ' : 'Close') : (language === 'th' ? 'ระบุข้อมูล' : 'Open')}</span>
+              <Icon name="chevronDown" className={`w-3.5 h-3.5 transition-transform duration-200 ${isPickupDetailsOpen ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {/* Quick 1-line Summary when collapsed */}
+          {!isPickupDetailsOpen && (condoName.trim() || customerName.trim() || mobileNumber.trim()) && (
+            <div className="px-2.5 py-1 rounded-lg bg-sky-50/70 border border-sky-100 text-[10px] text-slate-600 flex items-center justify-between gap-1">
+              <span className="truncate">
+                📍 {condoName || 'Condo'} {roomNumber ? `(#${roomNumber})` : ''} • 👤 {customerName || 'Customer'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsPickupDetailsOpen(true)}
+                className="text-sky-600 font-bold hover:underline shrink-0"
               >
-                {TIME_SLOTS.map((slot, idx) => (
-                  <option key={idx} value={slot}>{slot}</option>
-                ))}
-              </select>
+                {language === 'th' ? 'แก้ไข' : 'Edit'}
+              </button>
             </div>
-          </div>
+          )}
 
-          <div className="grid grid-cols-3 gap-2">
-            <div className="col-span-2">
-              <input
-                type="text"
-                value={condoName}
-                onChange={(e) => setCondoName(e.target.value)}
-                placeholder={language === 'th' ? 'ชื่อคอนโด / อาคาร / โรงแรม *' : 'Condo / Building / Hotel *'}
-                className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
-              />
+          {/* Expanded Form Fields */}
+          {isPickupDetailsOpen && (
+            <div className="space-y-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 mt-1">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                    {language === 'th' ? 'วันที่รับผ้า' : 'Pickup Date'}
+                  </label>
+                  <input
+                    type="date"
+                    value={pickupDate}
+                    onChange={(e) => setPickupDate(e.target.value)}
+                    className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                    {language === 'th' ? 'ช่วงเวลารับผ้า' : 'Time Window'}
+                  </label>
+                  <select
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-sky-500"
+                  >
+                    {TIME_SLOTS.map((slot, idx) => (
+                      <option key={idx} value={slot}>{slot}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <input
+                    type="text"
+                    value={condoName}
+                    onChange={(e) => setCondoName(e.target.value)}
+                    placeholder={language === 'th' ? 'ชื่อคอนโด / โรงแรม *' : 'Condo / Hotel *'}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={roomNumber}
+                    onChange={(e) => setRoomNumber(e.target.value)}
+                    placeholder={language === 'th' ? 'เลขห้อง' : 'Room #'}
+                    className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder={language === 'th' ? 'ชื่อ-นามสกุลของคุณ *' : 'Your Full Name *'}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
+                />
+                <input
+                  type="tel"
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
+                  placeholder={language === 'th' ? 'เบอร์โทร / WhatsApp *' : 'Phone / WhatsApp *'}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer select-none pt-0.5">
+                <input
+                  type="checkbox"
+                  checked={leaveWithJuristic}
+                  onChange={(e) => setLeaveWithJuristic(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded text-sky-600 focus:ring-sky-500"
+                />
+                <span>
+                  {language === 'th'
+                    ? '🏢 ฝาก-รับถุงผ้าที่นิติบุคคลคอนโด / ล็อบบี้'
+                    : '🏢 Leave & collect at Condo Juristic / Lobby'}
+                </span>
+              </label>
             </div>
-            <div>
-              <input
-                type="text"
-                value={roomNumber}
-                onChange={(e) => setRoomNumber(e.target.value)}
-                placeholder={language === 'th' ? 'เลขห้อง' : 'Room #'}
-                className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder={language === 'th' ? 'ชื่อ-นามสกุลของคุณ *' : 'Your Full Name *'}
-              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
-            />
-            <input
-              type="tel"
-              value={mobileNumber}
-              onChange={(e) => setMobileNumber(e.target.value)}
-              placeholder={language === 'th' ? 'เบอร์โทร / WhatsApp *' : 'Phone / WhatsApp *'}
-              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:border-sky-500"
-            />
-          </div>
-
-          <label className="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer select-none pt-0.5">
-            <input
-              type="checkbox"
-              checked={leaveWithJuristic}
-              onChange={(e) => setLeaveWithJuristic(e.target.checked)}
-              className="w-3.5 h-3.5 rounded text-sky-600 focus:ring-sky-500"
-            />
-            <span>
-              {language === 'th'
-                ? '🏢 ฝาก-รับถุงผ้าที่นิติบุคคลคอนโด / ล็อบบี้'
-                : '🏢 Leave & collect bag at Condo Juristic / Lobby'}
-            </span>
-          </label>
+          )}
 
           {bookingError && (
             <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700">
@@ -750,101 +804,44 @@ export function ServicesSection({
 
       </div>
 
-      {/* Pinned ESTIMATED TOTAL & FREE DELIVERY (Min ฿500) Dark Card */}
-      <div className="p-4 sm:px-5 sm:pb-5 pt-2 bg-white border-t border-slate-100 shrink-0">
-        
-        {/* Free Delivery Minimum Spend ฿500 Progress Banner */}
-        <div className={`mb-2.5 px-3 py-2 rounded-xl border text-[11px] ${
-          isFreeDelivery
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-            : 'bg-sky-50/80 border-sky-200 text-sky-900'
-        }`}>
-          <div className="flex items-center justify-between gap-2 font-bold">
-            <span>
-              {isFreeDelivery
-                ? (language === 'th' ? '🎉 ได้รับสิทธิ์รับ-ส่งผ้าฟรี! (ครบขั้นต่ำ ฿500)' : '🎉 FREE Pickup & Delivery Unlocked! (Min. ฿500)')
-                : selectedEntries.length === 0
-                  ? (language === 'th' ? '🚚 ส่งฟรีเมื่อมียอดใช้จ่ายขั้นต่ำ ฿500' : '🚚 Free Delivery on minimum spend of ฿500')
-                  : (language === 'th'
-                      ? `🚚 เพิ่มอีก ฿${amountToFreeDelivery} เพื่อรับสิทธิ์ส่งฟรี (ขั้นต่ำ ฿500)`
-                      : `🚚 Add ฿${amountToFreeDelivery} more for FREE Delivery (Min. ฿500)`)}
-            </span>
-            <span className="tabular-nums font-extrabold shrink-0">
-              ฿{servicesSubtotal}/฿{FREE_DELIVERY_MIN_SPEND}
-            </span>
-          </div>
-          <div className="w-full h-1.5 bg-white/90 rounded-full overflow-hidden mt-1 border border-slate-200/60">
-            <div
-              className={`h-full transition-all duration-300 ${isFreeDelivery ? 'bg-emerald-500' : 'bg-sky-500'}`}
-              style={{ width: `${freeDeliveryProgressPct}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-2xl flex flex-col justify-between shadow-lg space-y-3">
+      {/* Pinned ESTIMATED TOTAL Dark Card */}
+      <div className="p-3 sm:p-4 bg-white border-t border-slate-100 shrink-0">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-3 rounded-2xl flex flex-col justify-between shadow-lg space-y-2">
           <div>
             <div className="flex items-center justify-between">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                 {language === 'th' ? 'ยอดประเมินรวม (Estimated Total)' : 'Estimated Total'}
               </div>
-              <span className="text-[10px] bg-sky-500/20 text-sky-300 px-2.5 py-0.5 rounded-full font-bold border border-sky-400/30">
+              <span className="text-[9px] bg-sky-500/20 text-sky-300 px-2 py-0.2 rounded-full font-bold border border-sky-400/30">
                 {selectedEntries.length} {selectedEntries.length === 1 ? 'Service' : 'Services'}
               </span>
             </div>
 
-            <div className="mt-1 flex items-baseline justify-between gap-2 tabular-nums">
+            <div className="mt-0.5 flex items-baseline justify-between gap-2 tabular-nums">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl sm:text-4xl font-black text-sky-400 tracking-tight">
+                <span className="text-2xl sm:text-3xl font-black text-sky-400 tracking-tight">
                   ฿{totalEstimatedCost}
                 </span>
-                <span className="text-xs text-slate-300 font-bold">THB</span>
+                <span className="text-[10px] text-slate-300 font-bold">THB</span>
               </div>
-              <span className="text-[11px] font-bold text-slate-300">
-                {turnaroundSpeed === 'same_day'
-                  ? '🚀 Same Day'
-                  : turnaroundSpeed === 'next_day_24h'
-                    ? '⚡ Next Day'
-                    : '🕒 Standard (2 Days)'}
-              </span>
+              <div className="text-right">
+                <span className="text-[10px] font-bold text-slate-300 block">
+                  {turnaroundSpeed === 'same_day'
+                    ? '🚀 Same Day'
+                    : turnaroundSpeed === 'next_day_24h'
+                      ? '⚡ Next Day'
+                      : '🕒 Standard (2 Days)'}
+                </span>
+              </div>
             </div>
-
-            {/* Itemized Mini Summary */}
-            {selectedEntries.length > 0 ? (
-              <div className="mt-2 pt-2 border-t border-slate-700/80 space-y-1 text-xs text-slate-300 max-h-24 overflow-y-auto">
-                {selectedEntries.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-2 text-[11px]">
-                    <span className="truncate text-slate-300">
-                      {item.name} ({item.isPiece ? `${item.qty} ${item.unitLabel}` : `${item.billable} KG`})
-                    </span>
-                    <span className="font-bold text-white tabular-nums shrink-0 pl-2">
-                      ฿{item.subtotal}
-                    </span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between gap-2 text-[11px] pt-1 border-t border-slate-700/50">
-                  <span className="text-slate-400">
-                    {language === 'th' ? 'ค่ารับ-ส่งผ้า (ส่งฟรีเมื่อครบ ฿500):' : 'Pickup & Delivery (Free at ฿500+):'}
-                  </span>
-                  <span className={`font-bold tabular-nums ${isFreeDelivery ? 'text-emerald-400' : 'text-slate-200'}`}>
-                    {isFreeDelivery ? 'FREE (฿0)' : `฿${deliveryFee}`}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-2 pt-2 border-t border-slate-700/80 text-[11px] text-slate-400">
-                {language === 'th'
-                  ? 'กรุณาเพิ่มบริการที่ต้องการเพื่อแสดงยอดประเมินรวม'
-                  : 'Add the services you need to calculate your estimated total.'}
-              </div>
-            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pt-0.5">
             {isMobileDrawer && (
               <button
                 type="button"
                 onClick={() => setIsMobileCalcOpen(false)}
-                className="px-3 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer shrink-0"
+                className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer shrink-0"
               >
                 {language === 'th' ? 'ดูบริการต่อ' : 'Add Services'}
               </button>
@@ -853,7 +850,7 @@ export function ServicesSection({
               type="button"
               disabled={selectedEntries.length === 0}
               onClick={handleQuickBookSubmit}
-              className={`flex-1 inline-flex items-center justify-center gap-2 font-bold text-sm py-2.5 px-4 rounded-xl transition shadow-md ${
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 font-bold text-xs sm:text-sm py-2 sm:py-2.5 px-3 rounded-xl transition shadow-md ${
                 selectedEntries.length === 0
                   ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
                   : 'bg-sky-500 hover:bg-sky-400 text-white shadow-sky-950/40 cursor-pointer'
@@ -863,10 +860,10 @@ export function ServicesSection({
                 {selectedEntries.length === 0
                   ? (language === 'th' ? 'เลือกบริการเพื่อทำการจอง' : 'Add Services to Book')
                   : (customerName.trim() || mobileNumber.trim() || condoName.trim())
-                    ? (language === 'th' ? `ยืนยันการจองทันที (฿${totalEstimatedCost})` : `Confirm Booking Now (฿${totalEstimatedCost})`)
+                    ? (language === 'th' ? `ยืนยันการจอง (฿${totalEstimatedCost})` : `Confirm Booking (฿${totalEstimatedCost})`)
                     : (language === 'th' ? 'ดำเนินการจองบริการที่เลือก' : 'Book Selected Services')}
               </span>
-              <Icon name="chevronRight" className="w-4 h-4" />
+              <Icon name="chevronRight" className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -884,8 +881,8 @@ export function ServicesSection({
             <Icon name="layers" className="w-3.5 h-3.5" />
             <span>
               {language === 'th'
-                ? 'รายการบริการ & จองรถรับ-ส่งผ้า (ส่งฟรีเมื่อครบ ฿500)'
-                : 'Services & Instant Booking • Free Delivery from ฿500'}
+                ? 'รายการบริการ & จองรถรับ-ส่งผ้า'
+                : 'Services & Instant Booking'}
             </span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
@@ -893,8 +890,8 @@ export function ServicesSection({
           </h2>
           <p className="mt-2 text-xs sm:text-base text-slate-600 leading-relaxed">
             {language === 'th'
-              ? 'เลือกเพิ่มบริการที่คุณต้องการลงในกล่องจองด้านขวา ระบบจะคำนวณราคารวมทันที พร้อมส่งฟรีเมื่อมียอดขั้นต่ำ ฿500'
-              : 'Add the services you need to your booking panel on the right — see your live estimated total and enjoy FREE pickup & delivery on orders from ฿500.'}
+              ? 'เลือกเพิ่มบริการที่คุณต้องการลงในกล่องจองด้านขวา ระบบจะคำนวณราคารวมและสามารถทำการจองได้ทันที'
+              : 'Add the services you need to your booking panel on the right to see your live estimated total and book instantly.'}
           </p>
         </div>
 
@@ -973,9 +970,6 @@ export function ServicesSection({
             <div className="flex items-baseline gap-1.5 mt-0.5 tabular-nums">
               <span className="text-2xl font-black text-white">฿{totalEstimatedCost}</span>
               <span className="text-xs text-slate-300 font-bold">THB</span>
-              <span className="text-[10px] text-emerald-400 font-semibold ml-1">
-                {isFreeDelivery ? '• Free Delivery!' : '• Free Delivery ฿500+'}
-              </span>
             </div>
           </div>
 
@@ -990,7 +984,7 @@ export function ServicesSection({
         </div>
 
         {/* Two-Column Layout: Left = Main Services Catalog, Right = Sticky Booking Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* LEFT COLUMN: Main Services Provided */}
           <div className="lg:col-span-7 xl:col-span-8 min-w-0 space-y-6 sm:space-y-8">
@@ -1355,7 +1349,7 @@ export function ServicesSection({
                 </div>
                 <div>
                   <strong className="text-slate-900 block font-bold text-sm">
-                    {language === 'th' ? 'สะดวกสำหรับชาวคอนโดและที่พักอาศัย (ส่งฟรีเมื่อครบ ฿500)' : 'Condominium & Residence Friendly (Free Delivery on ฿500+ Spend)'}
+                    {language === 'th' ? 'สะดวกสำหรับชาวคอนโดและที่พักอาศัย' : 'Condominium & Residence Friendly'}
                   </strong>
                   <p className="text-slate-500 mt-0.5">
                     {language === 'th'
@@ -1372,31 +1366,26 @@ export function ServicesSection({
           </div>
 
           {/* RIGHT COLUMN: Sticky Instant Booking Section (Follows user while scrolling down) */}
-          <div
-            className="lg:col-span-5 xl:col-span-4 lg:sticky self-start z-20"
-            style={{ top: '144px' }}
-          >
-            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-200/90 overflow-hidden flex flex-col lg:max-h-[calc(100vh-160px)]">
+          <div className="lg:col-span-5 xl:col-span-4 relative">
+            <div
+              className="lg:sticky z-20 bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-200/90 overflow-hidden flex flex-col transition-[top,max-height] duration-75"
+              style={{
+                top: `${stickyTop}px`,
+                maxHeight: `calc(100dvh - ${stickyTop + 14}px)`
+              }}
+            >
               
               {/* Booking Section Header */}
-              <div className="px-4 py-3.5 sm:px-5 sm:py-4 border-b border-slate-100 bg-white shrink-0">
-                <div className="flex items-center justify-between gap-2">
+              <div className="px-3.5 py-2.5 sm:px-4 sm:py-3 border-b border-slate-100 bg-white shrink-0">
+                <div className="flex items-center gap-2">
                   <span className="text-[11px] uppercase tracking-wider font-extrabold text-sky-600 flex items-center gap-1.5">
                     <Icon name="truck" className="w-3.5 h-3.5 shrink-0" />
-                    <span>{language === 'th' ? 'จองบริการรับ-ส่งผ้าออนไลน์' : 'Instant Laundry Booking'}</span>
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    {language === 'th' ? 'ส่งฟรีเมื่อครบ ฿500' : 'Free Delivery ฿500+'}
+                    <span>{language === 'th' ? 'จองบริการรับ-ส่งผ้า' : 'Instant Booking'}</span>
                   </span>
                 </div>
-                <h3 className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 leading-snug">
-                  {language === 'th' ? 'รายการจองและประเมินราคาของคุณ' : 'Your Booking & Estimated Total'}
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5 leading-snug">
+                  {language === 'th' ? 'รายการจองและคำนวณราคา' : 'Your Booking & Estimated Total'}
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                  {language === 'th'
-                    ? 'เพิ่มบริการที่คุณต้องการจากรายการด้านซ้าย ระบบจะแสดงยอดประเมินรวมและสามารถทำการจองได้ทันที'
-                    : 'Add the services you need from the catalog to see your estimated total and book right away.'}
-                </p>
               </div>
 
               {renderBookingSectionBody(false)}
@@ -1433,9 +1422,6 @@ export function ServicesSection({
                 ฿{totalEstimatedCost}
               </span>
               <span className="text-[11px] text-slate-300 font-bold">THB</span>
-              <span className="text-[10px] text-emerald-400 font-semibold ml-1">
-                {isFreeDelivery ? '• Free Delivery!' : '• Free Delivery ฿500+'}
-              </span>
             </div>
           </button>
 
@@ -1470,7 +1456,7 @@ export function ServicesSection({
               <div>
                 <span className="text-[10px] uppercase tracking-wider font-extrabold text-sky-600 flex items-center gap-1">
                   <Icon name="truck" className="w-3 h-3" />
-                  <span>{language === 'th' ? 'จองบริการรับ-ส่งผ้าออนไลน์ (ส่งฟรีเมื่อครบ ฿500)' : 'Instant Booking • Free Delivery ฿500+'}</span>
+                  <span>{language === 'th' ? 'จองบริการรับ-ส่งผ้าออนไลน์' : 'Instant Booking'}</span>
                 </span>
                 <h3 className="text-base font-extrabold text-slate-900">
                   {language === 'th' ? 'รายการจองและประเมินราคาของคุณ' : 'Your Booking & Estimated Total'}

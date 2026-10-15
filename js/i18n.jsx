@@ -23,6 +23,8 @@ export const translations = {
     navHome: 'Home',
     navServices: 'Pricing & Services',
     navHowItWorks: 'How It Works',
+    navCoverage: 'Coverage Areas',
+    navReviews: 'Customer Reviews',
     navFaq: 'FAQ',
     navTrack: 'Track Order',
     navTerms: 'Terms & Conditions',
@@ -60,7 +62,7 @@ export const translations = {
     calcSpeedNextDay: 'Next Day',
     calcSpeedSameDay: 'Same Day',
     calcTotalEstimate: 'Estimated Total:',
-    calcDeliveryFeeNote: 'Delivery calculated by distance / postal code (Free over ฿500)',
+    calcDeliveryFeeNote: 'Delivery calculated by distance and postal code with transparent pricing',
     calcBookThisNow: 'Proceed to Booking with this Estimate →',
 
     // Services Section
@@ -168,6 +170,8 @@ export const translations = {
     navHome: 'หน้าแรก',
     navServices: 'บริการและราคา',
     navHowItWorks: 'ขั้นตอนการใช้บริการ',
+    navCoverage: 'พื้นที่ให้บริการ',
+    navReviews: 'รีวิวจากลูกค้า',
     navFaq: 'คำถามที่พบบ่อย',
     navTrack: 'ติดตามสถานะผ้า',
     navTerms: 'เงื่อนไขและข้อตกลง',
@@ -205,7 +209,7 @@ export const translations = {
     calcSpeedNextDay: 'ส่งวันถัดไป (Next Day)',
     calcSpeedSameDay: 'ส่งในวันเดียว (Same Day)',
     calcTotalEstimate: 'ยอดรวมประมาณการ:',
-    calcDeliveryFeeNote: 'ค่าจัดส่งคำนวณตามรหัสไปรษณีย์/ระยะทาง (ส่งฟรีเมื่อครบ ฿500)',
+    calcDeliveryFeeNote: 'ค่าจัดส่งคำนวณตามรหัสไปรษณีย์และระยะทางอย่างโปร่งใส',
     calcBookThisNow: 'ไปที่หน้าจองพร้อมราคานี้ →',
 
     // Services Section

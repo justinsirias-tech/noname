@@ -4079,19 +4079,9 @@ export function calculateDeliveryFee(locationInput, subtotal = 0, customZonesLis
 
   let fee = matched ? Number(matched.fee) : fallbackFee;
   let isFree = false;
-  let reason = '';
-  const rawThreshold = matched?.freeDeliveryAbove || config.storeWideFreeDeliveryThreshold || 500;
-  const threshold = [600, 700, 800].includes(Number(rawThreshold)) ? 500 : Number(rawThreshold);
-
-  if (isFreeDeliveryEnabled && Number(subtotal) >= Number(threshold)) {
-    isFree = true;
-    fee = 0;
-    reason = `Free pickup & delivery promo applied (Orders ฿${threshold}+ in ${matched?.city || 'service'} zone)`;
-  } else if (matched) {
-    reason = `Fixed delivery fee of ฿${fee} for ${matched.city} · ${matched.subdistrict} (${matched.code})`;
-  } else {
-    reason = `Standard delivery fee of ฿${fee} applied`;
-  }
+  let reason = matched 
+    ? `Fixed delivery fee of ฿${fee} for ${matched.city} · ${matched.subdistrict} (${matched.code})`
+    : `Standard delivery fee of ฿${fee} applied`;
 
   return {
     fee,
@@ -4103,6 +4093,6 @@ export function calculateDeliveryFee(locationInput, subtotal = 0, customZonesLis
     subdistrict: matched?.subdistrict || querySubdistrict || '',
     postalCode: matched?.code || queryPostal || '10110',
     reason,
-    freeDeliveryAbove: threshold
+    freeDeliveryAbove: null
   };
 }

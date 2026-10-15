@@ -20,6 +20,8 @@ export function Navbar({
   const desktopNavLinks = [
     { id: 'services', label: t('navServices') },
     { id: 'how-it-works', label: t('navHowItWorks') },
+    { id: 'coverage', label: t('navCoverage') || 'Coverage' },
+    { id: 'reviews', label: t('navReviews') || 'Reviews' },
     { id: 'faq', label: t('navFaq') },
   ];
 
@@ -27,6 +29,8 @@ export function Navbar({
     { id: 'home', label: t('navHome') },
     { id: 'services', label: t('navServices') },
     { id: 'how-it-works', label: t('navHowItWorks') },
+    { id: 'coverage', label: t('navCoverage') || 'Coverage' },
+    { id: 'reviews', label: t('navReviews') || 'Reviews' },
     { id: 'faq', label: t('navFaq') },
     { id: 'terms', label: t('navTerms') },
     ...(customer 

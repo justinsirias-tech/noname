@@ -11,6 +11,8 @@ import { TermsAndConditions } from './components/TermsAndConditions.jsx';
 import { AdminPOS } from './components/AdminPOS.jsx';
 import { AdminLogin } from './components/AdminLogin.jsx';
 import { DigitalContactModal } from './components/DigitalContactModal.jsx';
+import { CoverageSection } from './components/CoverageSection.jsx';
+import { CustomerReviews } from './components/CustomerReviews.jsx';
 import { FaqSection } from './components/FaqSection.jsx';
 import { CustomerRegister } from './components/CustomerRegister.jsx';
 import { CustomerLogin } from './components/CustomerLogin.jsx';
@@ -50,8 +52,8 @@ const getInitialUrlParams = () => {
       view = 'book';
     } else if (hash === 'faq' || path === 'faq') {
       view = 'faq';
-    } else if (hash === 'how-it-works' || path === 'how-it-works') {
-      view = 'how-it-works';
+    } else if (['how-it-works', 'coverage', 'reviews'].includes(hash) || ['how-it-works', 'coverage', 'reviews'].includes(path)) {
+      view = 'home';
     } else if (hash === 'login' || path === 'login') {
       view = 'login';
     } else if (hash === 'register' || path === 'register') {
@@ -353,8 +355,14 @@ export function App() {
         }
 
         const target = hash || path;
-        if (['admin', 'track', 'services', 'terms', 'book', 'how-it-works', 'faq', 'login', 'portal', 'register'].includes(target)) {
+        if (['admin', 'track', 'services', 'terms', 'book', 'login', 'portal', 'register', 'faq'].includes(target)) {
           setCurrentView(target);
+        } else if (['how-it-works', 'coverage', 'reviews'].includes(target)) {
+          setCurrentView('home');
+          setTimeout(() => {
+            const el = document.getElementById(target);
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }, 150);
         } else if (!hash) {
           setCurrentView('home');
         }
@@ -397,6 +405,24 @@ export function App() {
   };
 
   const navigateTo = (view) => {
+    const sectionIds = ['how-it-works', 'coverage', 'reviews'];
+    if (sectionIds.includes(view)) {
+      if (currentView !== 'home') {
+        setCurrentView('home');
+        setTimeout(() => {
+          const el = document.getElementById(view);
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+      } else {
+        const el = document.getElementById(view);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+      if (typeof window !== 'undefined') {
+        window.location.hash = view;
+      }
+      return;
+    }
+
     setCurrentView(view);
     if (typeof window !== 'undefined') {
       const isPattayaPath = window.location.pathname.includes('/pattaya');
@@ -453,21 +479,54 @@ export function App() {
               onSwitchCity={handleSwitchCity}
               onOpenContactModal={() => setIsContactModalOpen(true)}
             />
-            <ServicesSection
-              services={storeState.services}
-              categories={storeState.categories}
-              onSelectServiceForBooking={handleSelectServiceForBooking}
-              onBookingSuccess={handleBookingSuccess}
+            <HowItWorks
+              setView={navigateTo}
+            />
+            <CoverageSection
+              setView={navigateTo}
+              city={currentCity}
+              onSwitchCity={handleSwitchCity}
+            />
+            <CustomerReviews
+              setView={navigateTo}
             />
             <DigitalSupportBanner
               onOpenContactModal={() => setIsContactModalOpen(true)}
             />
-            <HowItWorks
-              setView={navigateTo}
-            />
             <FaqSection
               setView={navigateTo}
             />
+            
+            {/* Informational Page Bottom Banner */}
+            <section className="py-14 sm:py-16 bg-gradient-to-r from-sky-700 via-sky-600 to-teal-600 text-white text-center relative overflow-hidden">
+              <div className="max-w-4xl mx-auto px-4 relative z-10">
+                <span className="inline-block px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-4 border border-white/20">
+                  Ready to Experience Cloud Laundry?
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                  Start Your Doorstep Laundry Order in Minutes
+                </h2>
+                <p className="mt-3 text-sky-100 text-sm sm:text-base max-w-xl mx-auto">
+                  Transparent KG pricing, precision digital scale photo receipts, and full juristic reception drop-off support across Bangkok & Pattaya.
+                </p>
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button
+                    onClick={() => navigateTo('book')}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-sky-900 hover:bg-slate-100 font-extrabold text-base px-8 py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5"
+                  >
+                    <Icon name="truck" className="w-5 h-5 text-sky-600" />
+                    <span>Book Pickup Now</span>
+                  </button>
+                  <button
+                    onClick={() => navigateTo('services')}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sky-800/60 hover:bg-sky-800 text-white font-bold text-base px-6 py-3.5 rounded-xl border border-white/30 backdrop-blur-md transition"
+                  >
+                    <Icon name="scale" className="w-5 h-5" />
+                    <span>View Pricing & Calculator</span>
+                  </button>
+                </div>
+              </div>
+            </section>
           </>
         )}
 

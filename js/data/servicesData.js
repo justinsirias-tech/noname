@@ -54,11 +54,11 @@ export const BANGKOK_DISTRICTS = [
 ];
 
 export const TIME_SLOTS = [
-  '09:00 - 11:00 (Morning)',
-  '11:00 - 13:00 (Midday)',
-  '14:00 - 16:00 (Afternoon)',
-  '16:00 - 18:00 (Early Evening)',
-  '18:00 - 20:30 (Evening Rush)'
+  '10:30 - 12:30 (Morning)',
+  '12:30 - 14:30 (Midday)',
+  '14:30 - 16:30 (Afternoon)',
+  '16:30 - 18:30 (Early Evening)',
+  '18:30 - 20:30 (Evening Rush)'
 ];
 
 export const INITIAL_CATEGORIES = [

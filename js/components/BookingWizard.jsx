@@ -278,6 +278,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
   const [copiedSummaryText, setCopiedSummaryText] = useState(false);
 
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
+  const safeServices = (Array.isArray(services) && services.length > 0) ? services : (laundryStore.services || []);
   const storeCategories = laundryStore.getCategories ? laundryStore.getCategories() : [];
   const categories = (Array.isArray(storeCategories) && storeCategories.length > 0) ? storeCategories : INITIAL_CATEGORIES;
   const currentCategory = (activeCategory && activeCategory !== 'all' && categories.some(c => c.id === activeCategory))
@@ -302,7 +303,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
       }
     }
     if (initialServiceId) {
-      const srv = services.find(s => s.id === initialServiceId);
+      const srv = safeServices.find(s => s && s.id === initialServiceId);
       const isPc = srv?.pricingType === 'piece' || srv?.unit === 'piece';
       setSelectedServicesMap({
         [initialServiceId]: {
@@ -397,7 +398,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
 
   // Calculate detailed entries for all selected services
   const selectedEntries = Object.keys(selectedServicesMap).map(id => {
-    const srv = services.find(s => s.id === id);
+    const srv = safeServices.find(s => s && s.id === id);
     if (!srv) return null;
     const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
     const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
@@ -431,7 +432,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
     };
   }).filter(Boolean);
 
-  const primaryService = selectedEntries[0] || services[0];
+  const primaryService = selectedEntries[0] || safeServices[0] || { id: 'wash_fold', name: 'Wash / Fold', unitLabel: 'KG', rate: 70 };
   const estimatedTotal = selectedEntries.reduce((sum, item) => sum + item.subtotal, 0);
   const totalWeightKg = selectedEntries.filter(i => !i.isPiece).reduce((sum, i) => sum + i.billable, 0);
   const totalPieces = selectedEntries.filter(i => i.isPiece).reduce((sum, i) => sum + i.qty, 0);
@@ -944,393 +945,290 @@ Please confirm our pickup schedule. Thank you!`
         
         {/* Step 1: Select Service & Weight / Quantity */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
-          <div className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">1</span>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Service, Linens & Turnaround Speed</h2>
-              <p className="text-xs text-slate-500">Select laundry by weight or specialty linens, comforters, and curtains billed per piece.</p>
-            </div>
-          </div>
-
-          {/* All Services Catalog Grouped Cleanly (No Hidden Tabs) */}
-          <div className="space-y-6">
-            {categories.map((cat) => {
-              const catServices = services.filter(s => (s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight')) === cat.id);
-              if (catServices.length === 0) return null;
-
-              const getCatEmoji = (cid) => {
-                switch (cid) {
-                  case 'bedding_linens': return '🛏️';
-                  case 'household_curtains': return '🛋️';
-                  case 'delicate_dryclean': return '✨';
-                  default: return '🧺';
-                }
-              };
-
-              return (
-                <div key={cat.id} className="space-y-3">
-                  <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
-                    <span className="text-base">{getCatEmoji(cat.id)}</span>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{cat.name}</h3>
-                    <span className="text-[11px] text-slate-400 font-mono">({catServices.length})</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {catServices.map((srv) => {
-                      const srvStd = srv.standardPricePerKg || srv.pricePerKg || (srv.id === 'wash_fold' ? 70 : 70);
-                      const srvNext = srv.nextDayPricePerKg || Math.round(srvStd * 1.3);
-                      const srvSame = srv.sameDayPricePerKg || Math.round(srvStd * 1.75);
-                      const isSelected = Boolean(selectedServicesMap[srv.id]);
-                      const srvIsPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
-                      const unitLabel = srvIsPiece ? (srv.unit || 'piece') : 'KG';
-
-                      return (
-                        <div
-                          key={srv.id}
-                          onClick={() => handleToggleService(srv.id)}
-                          className={`p-4 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between ${
-                            isSelected
-                              ? 'border-sky-600 bg-sky-50/70 shadow-sm ring-2 ring-sky-500/20'
-                              : 'border-slate-200 hover:border-slate-300 bg-white'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex justify-between items-start gap-2">
-                              <div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-extrabold text-sm text-slate-900">{srv.name}</span>
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                                    srvIsPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
-                                  }`}>
-                                    {srvIsPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
-                                  </span>
-                                </div>
-                                <div className="text-[11px] text-slate-500 font-medium">{srv.nameTh}</div>
-                              </div>
-                              
-                              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border transition ${
-                                isSelected 
-                                  ? 'bg-sky-600 border-sky-600 text-white' 
-                                  : 'border-slate-300 text-transparent bg-white hover:border-sky-400'
-                              }`}>
-                                <Icon name="check" className="w-3.5 h-3.5 stroke-[3]" />
-                              </div>
-                            </div>
-
-                            <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                              {srv.description}
-                            </p>
-                          </div>
-
-                          <div className="mt-3 pt-2.5 border-t border-slate-200/70 space-y-1">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-600 font-medium">Standard (2 Days):</span>
-                              <span className="font-extrabold text-slate-800">฿{srvStd} / {unitLabel}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-sky-700 font-medium">Next Day:</span>
-                              <span className="font-extrabold text-sky-700">฿{srvNext} / {unitLabel}</span>
-                            </div>
-                            {srv.sameDayAvailable !== false && (
-                              <div className="flex items-center justify-between text-[11px]">
-                                <span className="text-amber-700 font-medium">Same Day:</span>
-                                <span className="font-extrabold text-amber-700">฿{srvSame} / {unitLabel}</span>
-                              </div>
-                            )}
-
-                            <div className="text-[10px] text-slate-400 pt-1 font-mono">
-                              {srvIsPiece ? `Min quantity: ${srv.minWeightKg || 1} ${unitLabel}` : `Min billable: ${srv.minWeightKg || 4.0} KG`}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Turnaround Speed Selection (3-Tier Options: Standard 2 Days, Next Day, Same Day) */}
-          <div className="space-y-2.5 pt-1">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-                Select Turnaround Speed *
-              </label>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              {/* Option 1: Standard (2 Days) */}
-              <div
-                onClick={() => setTurnaroundSpeed('standard_48h')}
-                className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                  activeSpeed === 'standard_48h'
-                    ? 'border-slate-800 bg-slate-100/70 shadow-sm ring-1 ring-slate-800'
-                    : 'border-slate-200 hover:border-slate-300 bg-white'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                  activeSpeed === 'standard_48h' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-400'
-                }`}>
-                  {activeSpeed === 'standard_48h' && <Icon name="check" className="w-3.5 h-3.5" />}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1 flex-wrap">
-                    <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
-                      🕒 Standard (2 Days)
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold text-xs">
-                      Standard Rate
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Economical standard service. Picked up on schedule, returned clean within 2 days.
-                  </p>
-                  <div className="mt-2 text-[10px] text-slate-600 font-semibold flex items-center gap-1">
-                    <Icon name="clock" className="w-3 h-3" />
-                    <span>2 Days Turnaround</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Option 2: Next Day */}
-              <div
-                onClick={() => setTurnaroundSpeed('next_day_24h')}
-                className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                  activeSpeed === 'next_day_24h'
-                    ? 'border-sky-600 bg-sky-50/70 shadow-sm ring-1 ring-sky-500'
-                    : 'border-slate-200 hover:border-slate-300 bg-white'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                  activeSpeed === 'next_day_24h' ? 'border-sky-600 bg-sky-600 text-white' : 'border-slate-400'
-                }`}>
-                  {activeSpeed === 'next_day_24h' && <Icon name="check" className="w-3.5 h-3.5" />}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1 flex-wrap">
-                    <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
-                      ⚡ Next Day
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-xs">
-                      Next Day Rate
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Fast next-day turnaround. Picked up on schedule, returned clean the next day.
-                  </p>
-                  <div className="mt-2 text-[10px] text-sky-700 font-semibold flex items-center gap-1">
-                    <Icon name="clock" className="w-3 h-3" />
-                    <span>Next Day Turnaround</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Option 3: Same Day */}
-              <div
-                onClick={() => setTurnaroundSpeed('same_day')}
-                className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                  activeSpeed === 'same_day'
-                    ? 'border-amber-500 bg-amber-50/80 shadow-sm ring-1 ring-amber-500'
-                    : 'border-slate-200 hover:border-slate-300 bg-white'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                  activeSpeed === 'same_day' ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-400'
-                }`}>
-                  {activeSpeed === 'same_day' && <Icon name="check" className="w-3.5 h-3.5" />}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1 flex-wrap">
-                    <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
-                      🚀 Same Day
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-xs">
-                      Same Day Rate
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Priority same-day service. Morning pickup returned clean before 18:00 the same day.
-                  </p>
-                  <div className="mt-2 text-[10px] text-amber-700 font-semibold flex items-center gap-1">
-                    <Icon name="clock" className="w-3 h-3" />
-                    <span>Same Day Turnaround</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Dedicated Section: Selected Services Itemized Controllers & Quantities */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">1</span>
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                  <span>Selected Services &amp; Quantities</span>
-                  <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold">
-                    {selectedEntries.length} {selectedEntries.length === 1 ? 'Service' : 'Services'} Selected
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Click any service card above to add the services you need, then adjust weight or quantity below.
-                </p>
+                <h2 className="text-lg font-bold text-slate-900">Choose Services & Turnaround</h2>
+                <p className="text-xs text-slate-500">Pick turnaround speed, then tap the services you need.</p>
               </div>
             </div>
+            {selectedEntries.length > 0 && (
+              <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold">
+                {selectedEntries.length} {selectedEntries.length === 1 ? 'item' : 'items'} in order • ฿{estimatedTotal}
+              </span>
+            )}
+          </div>
 
-            {selectedEntries.length === 0 ? (
-              <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 text-center space-y-2">
-                <div className="text-2xl">🧺</div>
-                <div className="text-sm font-bold text-slate-800">
-                  No services added yet
-                </div>
-                <p className="text-xs text-slate-500">
-                  Tap on one or more service cards above to add the services you need to your booking and see your estimated total.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {selectedEntries.map((item) => (
+          {/* 1. Turnaround Speed Segment Bar */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Turnaround Speed *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {[
+                { id: 'standard_48h', label: '🕒 Standard (2 Days)', tag: 'Base Rate', desc: 'Returned clean in 2 days' },
+                { id: 'next_day_24h', label: '⚡ Next Day', tag: 'Fast Express', desc: 'Returned clean the next day' },
+                { id: 'same_day', label: '🚀 Same Day', tag: 'Priority', desc: 'Morning pickup, delivered today' }
+              ].map((sp) => (
+                <button
+                  key={sp.id}
+                  type="button"
+                  onClick={() => setTurnaroundSpeed(sp.id)}
+                  className={`p-3 rounded-2xl border-2 text-left transition cursor-pointer ${
+                    activeSpeed === sp.id
+                      ? 'border-sky-600 bg-sky-50/80 shadow-xs ring-2 ring-sky-500/20'
+                      : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-sm text-slate-900">{sp.label}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeSpeed === sp.id ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {sp.tag}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">{sp.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Category Filter Pills */}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-100 no-scrollbar">
+              {[
+                { id: 'all', label: 'All Services', icon: '🧺' },
+                { id: 'laundry_by_weight', label: 'Everyday Clothes (By KG)', icon: '👕' },
+                { id: 'bedding_linens', label: 'Bedding & Comforters', icon: '🛏️' },
+                { id: 'household_curtains', label: 'Curtains & Household', icon: '🛋️' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveCategory(tab.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                    activeCategory === tab.id
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. Streamlined Service Cards with Direct Controls */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {safeServices
+              .filter(s => {
+                if (!s) return false;
+                if (activeCategory === 'all') return true;
+                const cat = s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight');
+                return cat === activeCategory;
+              })
+              .map((srv) => {
+                const isSelected = Boolean(selectedServicesMap[srv.id]);
+                const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
+                const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
+                const stdPrice = Number(srv.standardPricePerKg || srv.pricePerKg || (srv.id === 'wash_fold' ? 70 : 70));
+                const nextPrice = Number(srv.nextDayPricePerKg || Math.round(stdPrice * 1.3));
+                const samePrice = Number(srv.sameDayPricePerKg || Math.round(stdPrice * 1.75));
+                
+                let activePrice = stdPrice;
+                if (activeSpeed === 'same_day') activePrice = samePrice;
+                else if (activeSpeed === 'next_day_24h') activePrice = nextPrice;
+
+                const currentWeight = selectedServicesMap[srv.id]?.weightKg || Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
+                const currentQty = selectedServicesMap[srv.id]?.quantity || 1;
+                const billable = isPiece ? currentQty : Math.max(currentWeight, Number(srv.minWeightKg || 4.0));
+                const cardSubtotal = Math.round(billable * activePrice);
+
+                return (
                   <div
-                    key={item.id}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition space-y-3"
+                    key={srv.id}
+                    className={`rounded-2xl border-2 transition p-4 flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-sky-500 bg-sky-50/60 shadow-sm ring-1 ring-sky-500/20'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-sm text-slate-900">{item.name}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          item.isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
-                        }`}>
-                          {item.isPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium">
-                          Rate: <strong className="text-slate-800">฿{item.rate} / {item.unitLabel}</strong> ({activeSpeed === 'same_day' ? 'Same Day' : activeSpeed === 'next_day_24h' ? 'Next Day' : 'Standard (2 Days)'})
-                        </span>
+                    <div>
+                      {/* Card Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h3 className="font-extrabold text-sm text-slate-900">{srv.name}</h3>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+                            }`}>
+                              {isPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-medium">{srv.nameTh}</div>
+                        </div>
+
+                        {isSelected && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveService(srv.id)}
+                            className="text-slate-400 hover:text-red-500 text-xs font-bold p-1 transition cursor-pointer"
+                            title="Remove"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3">
-                        <div className="text-right">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Subtotal</span>
-                          <span className="text-base font-black text-sky-700 font-mono">฿{item.subtotal} THB</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveService(item.id)}
-                          className="px-2.5 py-1 text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
-                          title="Remove this service"
-                        >
-                          ✕ Remove
-                        </button>
+                      {/* Description */}
+                      <p className="text-[11px] text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
+                        {srv.description}
+                      </p>
+
+                      {/* Single Clear Rate Display */}
+                      <div className="mt-3 flex items-baseline gap-1">
+                        <span className="text-xl font-black text-slate-900 font-mono">฿{activePrice}</span>
+                        <span className="text-xs text-slate-500 font-semibold">/ {unitLabel}</span>
+                        <span className="text-[10px] text-slate-400 ml-auto">
+                          {isPiece ? `Min 1 ${unitLabel}` : `Min ${srv.minWeightKg || 4} KG`}
+                        </span>
                       </div>
                     </div>
 
-                    {item.isPiece ? (
-                      /* Piece Counter */
-                      <div className="bg-white p-3.5 rounded-xl border border-slate-200 flex items-center justify-between flex-wrap gap-2">
-                        <div className="text-xs text-slate-600 font-medium">
-                          Quantity ({item.unitLabel}):
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQuantity(item.id, -1)}
-                            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center transition active:scale-95"
-                          >
-                            -
-                          </button>
-                          <span className="w-10 text-center text-lg font-black text-slate-900 font-mono">
-                            {item.qty}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQuantity(item.id, 1)}
-                            className="w-8 h-8 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-base flex items-center justify-center transition active:scale-95"
-                          >
-                            +
-                          </button>
-                          <span className="text-xs font-bold text-slate-600">
-                            {item.unitLabel}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Weight Stepper & Slider */
-                      <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-700">
-                            Estimated Weight (KG)
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min="1"
-                              max="30"
-                              step="0.5"
-                              value={item.weight}
-                              onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
-                              className="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-sm font-bold text-center text-slate-900"
-                            />
-                            <span className="text-xs font-bold text-slate-600">KG</span>
+                    {/* Direct Interactive Controls */}
+                    <div className="mt-3 pt-3 border-t border-slate-200/80">
+                      {!isSelected ? (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleService(srv.id)}
+                          className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-98 cursor-pointer shadow-2xs"
+                        >
+                          <span>+ Add to Booking</span>
+                        </button>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {isPiece ? (
+                            /* Piece Stepper */
+                            <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-sky-300">
+                              <span className="text-xs font-bold text-slate-700">Quantity:</span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(srv.id, -1)}
+                                  className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center transition active:scale-95 cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="w-8 text-center text-sm font-black text-slate-900 font-mono">
+                                  {currentQty}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(srv.id, 1)}
+                                  className="w-7 h-7 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm flex items-center justify-center transition active:scale-95 cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Weight Stepper & Quick Presets */
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-sky-300">
+                                <span className="text-xs font-bold text-slate-700">Weight:</span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateWeight(srv.id, Math.max(1, currentWeight - 0.5))}
+                                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center transition active:scale-95 cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="w-14 text-center text-sm font-black text-slate-900 font-mono">
+                                    {currentWeight} KG
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateWeight(srv.id, currentWeight + 0.5)}
+                                    className="w-7 h-7 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm flex items-center justify-center transition active:scale-95 cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Quick Presets */}
+                              <div className="grid grid-cols-4 gap-1">
+                                {[4, 6, 8, 10].map((presetKg) => (
+                                  <button
+                                    key={presetKg}
+                                    type="button"
+                                    onClick={() => handleUpdateWeight(srv.id, presetKg)}
+                                    className={`py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
+                                      currentWeight === presetKg
+                                        ? 'bg-sky-600 text-white border-sky-600'
+                                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                                    }`}
+                                  >
+                                    {presetKg} KG
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Item Subtotal */}
+                          <div className="flex items-center justify-between pt-1 text-xs">
+                            <span className="text-slate-500 font-medium">Subtotal:</span>
+                            <span className="font-black text-sky-700 font-mono">฿{cardSubtotal} THB</span>
                           </div>
                         </div>
-
-                        <input
-                          type="range"
-                          min="1.0"
-                          max="20.0"
-                          step="0.5"
-                          value={item.weight}
-                          onChange={(e) => handleUpdateWeight(item.id, e.target.value)}
-                          className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
-                        />
-
-                        <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5 flex-wrap gap-2">
-                          <span>Selected: <strong>{item.weight} KG</strong></span>
-                          <span>Min Billable: <strong>{item.minWeight} KG</strong></span>
-                          <span className="text-slate-600">Billable: <strong className="text-sky-700">{item.billable} KG</strong></span>
-                        </div>
-
-                        {item.weight < item.minWeight && (
-                          <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-center gap-1.5">
-                            <Icon name="shieldAlert" className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            <span>
-                              Min weight of {item.minWeight} KG applies for <strong>{item.name}</strong>.
-                            </span>
-                          </p>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+          </div>
 
-            {/* Total Aggregated Summary Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-900 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-sky-300 tracking-wider block">
-                  Aggregated Service Subtotal ({selectedEntries.length} Items)
-                </span>
-                <div className="text-xs text-slate-300 mt-0.5 flex items-center gap-2 flex-wrap">
-                  {totalWeightKg > 0 && <span>• Laundry Weight: <strong>{totalWeightKg.toFixed(1)} KG</strong></span>}
-                  {totalPieces > 0 && <span>• Specialty Linens: <strong>{totalPieces} pieces</strong></span>}
-                  <span>• {activeSpeed === 'same_day' ? '🚀 Same Day' : activeSpeed === 'next_day_24h' ? '⚡ Next Day' : '🕒 Standard (2 Days)'}</span>
-                  <span className="text-emerald-300 font-semibold">
-                    • {estimatedTotal >= 500 ? '✓ Free Delivery Unlocked (฿500+)' : 'Free Delivery on ฿500+ spend'}
-                  </span>
+          {/* 4. Streamlined Order Summary Bar */}
+          {selectedEntries.length > 0 ? (
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-sky-950 text-white shadow-md">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-sky-300 uppercase tracking-wider">
+                      Selected Items:
+                    </span>
+                    {selectedEntries.map((it) => (
+                      <span key={it.id} className="text-xs bg-white/10 px-2.5 py-0.5 rounded-lg text-slate-200 font-medium">
+                        {it.name} ({it.isPiece ? `${it.qty} pc` : `${it.weight} KG`})
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Speed: <strong className="text-white">{activeSpeed === 'same_day' ? '🚀 Same Day' : activeSpeed === 'next_day_24h' ? '⚡ Next Day' : '🕒 Standard (2 Days)'}</strong> • Delivery calculated in Step 3
+                  </p>
+                </div>
+
+                <div className="flex items-center sm:flex-col sm:items-end justify-between gap-1 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Estimated Subtotal</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl sm:text-3xl font-black text-sky-400 font-mono">฿{estimatedTotal}</span>
+                    <span className="text-xs text-slate-300 font-bold">THB</span>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-baseline gap-1.5 self-end sm:self-auto">
-                <span className="text-2xl sm:text-3xl font-black text-sky-400 font-mono">
-                  ฿{estimatedTotal}
-                </span>
-                <span className="text-xs text-slate-300 font-bold">THB</span>
-              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
+              <p className="text-xs text-slate-500">
+                👉 Please tap <strong>+ Add to Booking</strong> on at least one service above to proceed.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Step 2: Digital Contact Information (WhatsApp / LINE / Email) */}
@@ -1889,33 +1787,23 @@ Please confirm our pickup schedule. Thank you!`
               )}
 
               {/* Delivery Fee Notice Banner */}
-              <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
+              <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
                 <div className="flex items-center gap-2.5">
                   <span className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm shrink-0">
                     🚚
                   </span>
                   <div>
                     <span className="font-bold text-slate-900 block">
-                      Pickup & Delivery: {deliveryInfo.isFree ? (
-                        <span className="text-emerald-600 font-black">FREE (฿0)</span>
-                      ) : (
-                        <span className="text-sky-600 font-black">฿{deliveryInfo.fee} THB</span>
-                      )}
+                      Pickup & Delivery: <span className="text-sky-600 font-black">฿{deliveryInfo.fee} THB</span>
                     </span>
                     <span className="text-[11px] text-slate-500 block">
                       {serviceCity} · {deliveryInfo.subdistrict || subdistrict || deliveryInfo.district} (📮 {postalCode}) · {deliveryInfo.reason || 'Fixed sub-district zone rate'}
                     </span>
                   </div>
                 </div>
-                {deliveryInfo.isFree ? (
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200">
-                    Free Delivery Qualified
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    Added to order total
-                  </span>
-                )}
+                <span className="text-[11px] text-slate-500 font-medium bg-slate-100 px-2.5 py-1 rounded-full">
+                  Added to order total
+                </span>
               </div>
 
               {/* Handover Preference Selection */}

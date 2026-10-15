@@ -2120,7 +2120,7 @@ app.post('/api/orders', async (req, res) => {
     paymentRef: o.paymentRef || null,
     tagNumber: o.tagNumber || 'TAG-PENDING',
     pickupDate: o.pickupDate || now.toISOString().split('T')[0],
-    pickupTime: o.pickupTime || '09:00 - 11:00 (Morning)',
+    pickupTime: o.pickupTime || '10:30 - 12:30 (Morning)',
     deliveryDate: o.deliveryDate || 'Scheduled in 2 Days (Standard)',
     deliveryTime: o.deliveryTime || '16:00 - 18:00 (Early Evening)',
     specialInstructions: o.specialInstructions || '',
