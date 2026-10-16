@@ -13,7 +13,7 @@ import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 import GoogleMapsCondoAutocomplete from './GoogleMapsCondoAutocomplete.jsx';
 import { useTranslation } from '../i18n.jsx';
 
-export function BookingWizard({ services, initialServiceId, initialWeight, initialSelectedItems, initialTurnaroundSpeed, initialCustomer, initialCity, onBookingSuccess, onViewFullTerms }) {
+export function BookingWizard({ services, categories: propCategories, initialServiceId, initialWeight, initialSelectedItems, initialTurnaroundSpeed, initialCustomer, initialCity, onBookingSuccess, onViewFullTerms }) {
   const { t, language } = useTranslation();
   // Support multi-service selection map: { [serviceId]: { weightKg, quantity } }
   // Starts empty unless pre-filled by customer selection
@@ -279,7 +279,9 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
 
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
   const safeServices = (Array.isArray(services) && services.length > 0) ? services : (laundryStore.services || []);
-  const storeCategories = laundryStore.getCategories ? laundryStore.getCategories() : [];
+  const storeCategories = (Array.isArray(propCategories) && propCategories.length > 0)
+    ? propCategories
+    : (laundryStore.getCategories ? laundryStore.getCategories() : []);
   const categories = (Array.isArray(storeCategories) && storeCategories.length > 0) ? storeCategories : INITIAL_CATEGORIES;
   const currentCategory = (activeCategory && activeCategory !== 'all' && categories.some(c => c.id === activeCategory))
     ? activeCategory
@@ -1062,10 +1064,17 @@ Please confirm our pickup schedule. Thank you!`
             <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-slate-100">
               {[
                 { id: 'all', label: language === 'th' ? 'ทุกบริการ' : 'All Services', icon: '🧺' },
-                { id: 'laundry_by_weight', label: language === 'th' ? 'ซักตามน้ำหนัก (กก.)' : 'Laundry by Weight (KG)', icon: '🧺' },
-                { id: 'bedding_linens', label: language === 'th' ? 'เครื่องนอน & ผ้านวม' : 'Bedding & Comforters', icon: '🛏️' },
-                { id: 'household_curtains', label: language === 'th' ? 'ผ้าม่าน & ของใช้' : 'Curtains & Household', icon: '🛋️' },
-                { id: 'delicate_dryclean', label: language === 'th' ? 'ผ้าไหม & ชุดพิเศษ' : 'Delicates & Special Care', icon: '✨' }
+                ...categories.map(c => {
+                  let icon = '🧺';
+                  if (c.id === 'bedding_linens' || c.icon === 'bed') icon = '🛏️';
+                  else if (c.id === 'household_curtains' || c.icon === 'home') icon = '🛋️';
+                  else if (c.id === 'delicate_dryclean' || c.icon === 'sparkles') icon = '✨';
+                  else if (c.icon === 'scale') icon = '🧺';
+                  else if (c.badge) icon = c.badge.split(' ')[0] || '🧺';
+
+                  const label = language === 'th' && c.nameTh ? c.nameTh : c.name;
+                  return { id: c.id, label, icon };
+                })
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1090,7 +1099,13 @@ Please confirm our pickup schedule. Thank you!`
               .filter(s => {
                 if (!s) return false;
                 if (activeCategory === 'all') return true;
-                const cat = s.categoryId || (s.pricingType === 'piece' ? 'bedding_linens' : 'laundry_by_weight');
+                const isPiece = s.pricingType === 'piece' || s.unit === 'piece';
+                let cat = s.categoryId;
+                if (!cat || !categories.some(c => c.id === cat)) {
+                  cat = isPiece
+                    ? (categories.find(c => c.pricingType === 'piece')?.id || categories[0]?.id || 'laundry_by_weight')
+                    : (categories.find(c => c.pricingType === 'weight')?.id || categories[0]?.id || 'laundry_by_weight');
+                }
                 return cat === activeCategory;
               })
               .map((srv) => {

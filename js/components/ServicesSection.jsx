@@ -17,6 +17,10 @@ export function ServicesSection({
     if (Array.isArray(categories) && categories.length > 0) {
       return [...categories].sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
     }
+    const storeCats = laundryStore.getCategories ? laundryStore.getCategories() : [];
+    if (Array.isArray(storeCats) && storeCats.length > 0) {
+      return [...storeCats].sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+    }
     return INITIAL_CATEGORIES;
   }, [categories]);
 
@@ -303,7 +307,12 @@ export function ServicesSection({
 
     services.forEach(srv => {
       const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
-      const catId = srv.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight');
+      let catId = srv.categoryId;
+      if (!catId || !activeCategories.some(c => c.id === catId)) {
+        catId = isPiece
+          ? (activeCategories.find(c => c.pricingType === 'piece')?.id || activeCategories[0]?.id || 'laundry_by_weight')
+          : (activeCategories.find(c => c.pricingType === 'weight')?.id || activeCategories[0]?.id || 'laundry_by_weight');
+      }
       if (!map.has(catId)) {
         map.set(catId, []);
       }

@@ -291,14 +291,8 @@ export class LaundryStore {
     try {
       // Categories
       const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      let parsedCategories = savedCategories ? JSON.parse(savedCategories) : INITIAL_CATEGORIES;
-      if (Array.isArray(parsedCategories)) {
-        const existingCatIds = new Set(parsedCategories.map(c => c.id));
-        const missingCats = INITIAL_CATEGORIES.filter(c => !existingCatIds.has(c.id));
-        if (missingCats.length > 0) {
-          parsedCategories = [...parsedCategories, ...missingCats];
-        }
-      } else {
+      let parsedCategories = savedCategories ? JSON.parse(savedCategories) : null;
+      if (!Array.isArray(parsedCategories) || parsedCategories.length === 0) {
         parsedCategories = INITIAL_CATEGORIES;
       }
       this.categories = parsedCategories.sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
@@ -497,12 +491,8 @@ export class LaundryStore {
       }
       if (data.settings && Object.keys(data.settings).length > 0) {
         this.settings = { ...this.settings, ...data.settings };
-        if (data.settings.categories && Array.isArray(data.settings.categories)) {
-          const remoteCatIds = new Set(data.settings.categories.map(c => c.id));
-          const missingCats = INITIAL_CATEGORIES.filter(c => !remoteCatIds.has(c.id));
-          this.categories = missingCats.length > 0 
-            ? [...data.settings.categories, ...missingCats].sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99))
-            : data.settings.categories.sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+        if (data.settings.categories && Array.isArray(data.settings.categories) && data.settings.categories.length > 0) {
+          this.categories = data.settings.categories.slice().sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
           this.persist(STORAGE_KEYS.CATEGORIES, this.categories);
         }
         if (data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {

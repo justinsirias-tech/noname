@@ -562,6 +562,7 @@ export function App() {
         {currentView === 'book' && (
           <BookingWizard
             services={storeState.services}
+            categories={storeState.categories}
             initialServiceId={bookingPrefillService}
             initialWeight={bookingPrefillWeight}
             initialSelectedItems={bookingPrefillItems}
