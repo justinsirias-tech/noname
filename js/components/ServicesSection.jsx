@@ -32,12 +32,14 @@ export function ServicesSection({
     activeCategories.forEach(cat => map.set(cat.id, []));
 
     services.forEach(srv => {
-      const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
       let catId = srv.categoryId;
+      // Exclude services whose category was deleted or is not active
       if (!catId || !activeCategories.some(c => c.id === catId)) {
-        catId = isPiece
-          ? (activeCategories.find(c => c.pricingType === 'piece')?.id || activeCategories[0]?.id || 'laundry_by_weight')
-          : (activeCategories.find(c => c.pricingType === 'weight')?.id || activeCategories[0]?.id || 'laundry_by_weight');
+        return;
+      }
+      // Guarantee piece-based items never appear under laundry by weight
+      if (catId === 'laundry_by_weight' && (srv.pricingType === 'piece' || srv.unit === 'piece')) {
+        return;
       }
       if (!map.has(catId)) {
         map.set(catId, []);

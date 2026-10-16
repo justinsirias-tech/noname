@@ -1098,15 +1098,12 @@ Please confirm our pickup schedule. Thank you!`
             {safeServices
               .filter(s => {
                 if (!s) return false;
+                // Only allow services that belong to an active category
+                if (!s.categoryId || !categories.some(c => c.id === s.categoryId)) return false;
+                // Guarantee piece-based items never appear under laundry by weight
+                if (s.categoryId === 'laundry_by_weight' && (s.pricingType === 'piece' || s.unit === 'piece')) return false;
                 if (activeCategory === 'all') return true;
-                const isPiece = s.pricingType === 'piece' || s.unit === 'piece';
-                let cat = s.categoryId;
-                if (!cat || !categories.some(c => c.id === cat)) {
-                  cat = isPiece
-                    ? (categories.find(c => c.pricingType === 'piece')?.id || categories[0]?.id || 'laundry_by_weight')
-                    : (categories.find(c => c.pricingType === 'weight')?.id || categories[0]?.id || 'laundry_by_weight');
-                }
-                return cat === activeCategory;
+                return s.categoryId === activeCategory;
               })
               .map((srv) => {
                 const isSelected = Boolean(selectedServicesMap[srv.id]);

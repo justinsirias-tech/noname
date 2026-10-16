@@ -545,7 +545,7 @@ export function AdminPOS({
   };
 
   const handleDeleteCategory = async (catId, catName) => {
-    if (confirm(`Are you sure you want to delete category "${catName}"? Any services inside will be reassigned to Laundry by Weight.`)) {
+    if (confirm(`Are you sure you want to delete category "${catName}"? All services within this category will also be removed.`)) {
       await laundryStore.deleteCategory(catId);
       setPricingSuccessMsg(`Category "${catName}" deleted.`);
       setTimeout(() => setPricingSuccessMsg(''), 3000);

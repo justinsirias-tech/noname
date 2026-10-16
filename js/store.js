@@ -11,7 +11,7 @@ import {
 } from './data/postalCodesData.js';
 
 const STORAGE_KEYS = {
-  SERVICES: 'noname_laundry_services_v2',
+  SERVICES: 'noname_laundry_services_v3',
   CATEGORIES: 'noname_categories_v1',
   ORDERS: 'noname_laundry_orders_v2',
   INCIDENTS: 'noname_laundry_incidents_v2',
@@ -300,13 +300,7 @@ export class LaundryStore {
       // Services
       const savedServices = localStorage.getItem(STORAGE_KEYS.SERVICES);
       let loadedServices = savedServices ? JSON.parse(savedServices) : INITIAL_SERVICES;
-      if (Array.isArray(loadedServices)) {
-        const existingServiceIds = new Set(loadedServices.map(s => s.id));
-        const missingDefaultServices = INITIAL_SERVICES.filter(ds => !existingServiceIds.has(ds.id));
-        if (missingDefaultServices.length > 0) {
-          loadedServices = [...loadedServices, ...missingDefaultServices];
-        }
-      } else {
+      if (!Array.isArray(loadedServices) || loadedServices.length === 0) {
         loadedServices = INITIAL_SERVICES;
       }
 
@@ -463,9 +457,7 @@ export class LaundryStore {
       const data = await res.json();
       
       if (Array.isArray(data.services) && data.services.length > 0) {
-        const remoteIds = new Set(data.services.map(s => s.id));
-        const missingDefaults = INITIAL_SERVICES.filter(ds => !remoteIds.has(ds.id));
-        this.services = missingDefaults.length > 0 ? [...data.services, ...missingDefaults] : data.services;
+        this.services = data.services;
         this.persist(STORAGE_KEYS.SERVICES, this.services);
       }
       if (Array.isArray(data.orders) && data.orders.length > 0) {
@@ -834,14 +826,16 @@ export class LaundryStore {
       alert('Cannot delete the last remaining category.');
       return;
     }
-    const fallbackCatId = this.categories.find(c => c.id !== catId)?.id || 'laundry_by_weight';
-    this.services = this.services.map(s => {
-      if (s.categoryId === catId) {
-        return { ...s, categoryId: fallbackCatId };
-      }
-      return s;
-    });
+    const servicesToDelete = this.services.filter(s => s.categoryId === catId);
+    this.services = this.services.filter(s => s.categoryId !== catId);
     this.persist(STORAGE_KEYS.SERVICES, this.services);
+
+    servicesToDelete.forEach(srv => {
+      fetch(`/api/services/${encodeURIComponent(srv.id)}`, {
+        method: 'DELETE',
+        headers: this.getAdminAuthHeaders()
+      }).catch(err => console.warn('Failed to delete service in category:', err));
+    });
 
     this.categories = this.categories.filter(c => c.id !== catId);
     this.persist(STORAGE_KEYS.CATEGORIES, this.categories);

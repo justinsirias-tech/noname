@@ -163,74 +163,6 @@ let initialServices = [
     turnaround: 48,
     popular: false,
     features: ['Deep extraction cleaning', 'Low-temp tumble drying to protect elastic corners', 'Sanitized packaging']
-  },
-  {
-    id: 'bath_towel',
-    categoryId: 'household_curtains',
-    name: 'Bath Towel (Large)',
-    nameTh: 'ผ้าเช็ดตัวผืนใหญ่',
-    description: 'Hotel-quality wash and high-loft fluff tumble dry for plush, ultra-absorbent bath towels.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 45,
-    nextPrice: 65,
-    samePrice: 85,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: false,
-    features: ['High-absorbency residue-free wash', 'Fluffy tumble dry', 'Neat hotel-style tri-fold']
-  },
-  {
-    id: 'curtains_drapes',
-    categoryId: 'household_curtains',
-    name: 'Curtains & Drapes (per panel)',
-    nameTh: 'ผ้าม่าน (ต่อผืน)',
-    description: 'Specialized fabric care for sheer, blackout, or heavy cotton window curtains with delicate steam pressing.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 160,
-    nextPrice: 210,
-    samePrice: 280,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: false,
-    features: ['Dust & allergen removal', 'Pleat preservation steam pressing', 'Individual hanger or protective fold']
-  },
-  {
-    id: 'blazer_jacket',
-    categoryId: 'delicate_dryclean',
-    name: 'Suit Jacket / Blazer',
-    nameTh: 'สูทและเสื้อเบลเซอร์',
-    description: 'Expert fabric-safe gentle cleansing, collar shaping, and vertical steam pressing on contoured suit hangers.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 190,
-    nextPrice: 250,
-    samePrice: 330,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: false,
-    features: ['Gentle fiber-safe fabric treatment', 'Shoulder and lapel steam shaping', 'Contoured suit hanger included', 'Full-length breathable garment bag']
-  },
-  {
-    id: 'formal_dress',
-    categoryId: 'delicate_dryclean',
-    name: 'Evening Dress / Silk Gown',
-    nameTh: 'ชุดราตรีและผ้าไหมพิเศษ',
-    description: 'Specialty care for evening silk dresses, sequin gowns, pleated skirts, and delicate luxury fabrics.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 240,
-    nextPrice: 310,
-    samePrice: 400,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: false,
-    features: ['Delicate fabric pre-inspection', 'Silk & fine embellishment protection', 'Hand-finished steam pressing', 'Sealed protective hanging cover']
   }
 ];
 
@@ -310,19 +242,17 @@ async function ensureDatabaseSchema() {
     `);
     console.log('[POSTGRES] Orders reconciliation, customer first/last names, delivery fee, categories, and admin users verified.');
 
-    // Seed missing default services
+    // Seed default services ONLY if table is completely empty (first run)
     const existingServices = await query('SELECT id FROM services');
-    const existingIds = new Set(existingServices.rows.map(r => r.id));
-
-    for (const s of initialServices) {
-      if (!existingIds.has(s.id)) {
+    if (existingServices.rows.length === 0) {
+      for (const s of initialServices) {
         await query(`
           INSERT INTO services (id, name, name_th, description, unit, price_per_kg, standard_price_per_kg, next_day_price_per_kg, same_day_price_per_kg, same_day_available, min_weight_kg, turnaround_hours, popular, features, category_id, pricing_type)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         `, [
           s.id, s.name, s.nameTh, s.description, s.unit, s.stdPrice, s.stdPrice, s.nextPrice, s.samePrice, s.sameAvail, s.minWeight, s.turnaround, s.popular, JSON.stringify(s.features), s.categoryId, s.pricingType
         ]);
-        console.log(`[POSTGRES] Seeded missing service: ${s.id} (${s.name})`);
+        console.log(`[POSTGRES] Seeded initial service: ${s.id} (${s.name})`);
       }
     }
 
