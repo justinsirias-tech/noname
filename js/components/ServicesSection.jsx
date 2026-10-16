@@ -997,23 +997,25 @@ export function ServicesSection({
           {/* LEFT COLUMN: Main Services Provided */}
           <div className="lg:col-span-7 xl:col-span-8 min-w-0 space-y-6 sm:space-y-8">
             
-            {/* Clean Live Search Bar + Mobile-Friendly Category Filter Pills */}
-            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/90 shadow-sm space-y-3">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="relative w-full sm:max-w-md">
+            {/* Elevated Category Filter & Live Search Card */}
+            <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-sm space-y-4">
+              
+              {/* Top Row: Search Input + Live Match Counter + Reset Option */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="relative flex-1 max-w-xl">
                   <Icon name="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={language === 'th' ? 'ค้นหาบริการ เช่น ซักอบพับ, ผ้านวม, สูท, ม่าน...' : 'Quick search services (e.g. wash & fold, duvet, suits)...'}
-                    className="w-full pl-9 pr-9 py-2.5 sm:py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 bg-slate-50/50"
+                    className="w-full pl-9 pr-9 py-2.5 rounded-2xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 bg-slate-50/70 transition"
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition"
                       title="Clear search"
                     >
                       <Icon name="x" className="w-3.5 h-3.5" />
@@ -1021,50 +1023,105 @@ export function ServicesSection({
                   )}
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2 text-xs text-slate-500">
-                  <span className="font-semibold">
-                    {language === 'th' ? 'พบทั้งหมด:' : 'Available:'}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-bold border border-slate-200 tabular-nums">
-                    {totalFilteredCount} {language === 'th' ? 'รายการ' : (totalFilteredCount === 1 ? 'Service' : 'Services')}
-                  </span>
+                <div className="flex items-center justify-between md:justify-end gap-2 text-xs">
+                  {(selectedCategory !== 'all' || searchQuery) && (
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
+                      className="text-xs font-bold text-sky-600 hover:text-sky-800 px-2.5 py-1 rounded-lg hover:bg-sky-50 transition cursor-pointer"
+                    >
+                      {language === 'th' ? '↺ แสดงทั้งหมด' : '↺ Show All'}
+                    </button>
+                  )}
+
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold tabular-nums">
+                    <span className="text-[11px] text-slate-500">{language === 'th' ? 'บริการที่แสดง:' : 'Available:'}</span>
+                    <span className="text-slate-900 font-extrabold">{totalFilteredCount}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Touch-Friendly Horizontal Category Filter Pills */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition shrink-0 cursor-pointer border ${
-                    selectedCategory === 'all'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  {language === 'th' ? 'ทั้งหมด' : 'All Categories'}
-                </button>
-                {activeCategories.map(cat => {
-                  const theme = getCategoryTheme(cat.id);
-                  const isCatActive = selectedCategory === cat.id;
-                  const catLabel = language === 'th' && cat.nameTh ? cat.nameTh : cat.name;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setSelectedCategory(cat.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
-                        isCatActive
-                          ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>{theme.emoji}</span>
-                      <span>{catLabel}</span>
-                    </button>
-                  );
-                })}
+              {/* Category Filter Pills (Responsive Wrapping, Zero Awkward Scrollbars) */}
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <span>🏷️</span>
+                    <span>{language === 'th' ? 'เลือกหมวดหมู่บริการ' : 'Select Service Category'}</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {language === 'th' ? 'แตะหมวดหมู่เพื่อดูบริการ' : 'Tap to filter category'}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                  {/* All Categories Option */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('all')}
+                    className={`px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                      selectedCategory === 'all'
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/10'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-2xs'
+                    }`}
+                  >
+                    <span className="text-base">🧺</span>
+                    <span>{language === 'th' ? 'ทุกบริการ' : 'All Categories'}</span>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full tabular-nums ${
+                      selectedCategory === 'all'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}>
+                      {services.length}
+                    </span>
+                  </button>
+
+                  {/* Active Categories */}
+                  {activeCategories.map(cat => {
+                    const theme = getCategoryTheme(cat.id);
+                    const isCatActive = selectedCategory === cat.id;
+                    const catServicesCount = categoryServicesMap.get(cat.id)?.length || 0;
+                    
+                    // Short, crisp localized labels for clean presentation
+                    let shortLabel = cat.name;
+                    if (language === 'th') {
+                      if (cat.id === 'laundry_by_weight') shortLabel = 'ซักตามน้ำหนัก (กก.)';
+                      else if (cat.id === 'bedding_linens') shortLabel = 'เครื่องนอน & ผ้านวม';
+                      else if (cat.id === 'household_curtains') shortLabel = 'ผ้าม่าน & ของใช้';
+                      else if (cat.id === 'delicate_dryclean') shortLabel = 'ผ้าไหม & ชุดพิเศษ';
+                      else shortLabel = cat.nameTh || cat.name;
+                    } else {
+                      if (cat.id === 'laundry_by_weight') shortLabel = 'Laundry by Weight (KG)';
+                      else if (cat.id === 'bedding_linens') shortLabel = 'Bedding & Comforters';
+                      else if (cat.id === 'household_curtains') shortLabel = 'Curtains & Household';
+                      else if (cat.id === 'delicate_dryclean') shortLabel = 'Delicates & Special Care';
+                    }
+
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className={`px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                          isCatActive
+                            ? 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/25 ring-2 ring-sky-500/20'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-2xs'
+                        }`}
+                      >
+                        <span className="text-base">{theme.emoji}</span>
+                        <span>{shortLabel}</span>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full tabular-nums ${
+                          isCatActive
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}>
+                          {catServicesCount}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
             </div>
 
             {/* Categorized Services Groups */}

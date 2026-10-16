@@ -1059,21 +1059,22 @@ Please confirm our pickup schedule. Thank you!`
 
           {/* 2. Category Filter Pills */}
           <div className="space-y-2 pt-1">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-100 no-scrollbar">
+            <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-slate-100">
               {[
                 { id: 'all', label: language === 'th' ? 'ทุกบริการ' : 'All Services', icon: '🧺' },
-                { id: 'laundry_by_weight', label: language === 'th' ? 'เสื้อผ้าทั่วไป (คิดตาม กก.)' : 'Everyday Clothes (By KG)', icon: '👕' },
-                { id: 'bedding_linens', label: language === 'th' ? 'เครื่องนอนและผ้านวม' : 'Bedding & Comforters', icon: '🛏️' },
-                { id: 'household_curtains', label: language === 'th' ? 'ผ้าม่านและของใช้ในบ้าน' : 'Curtains & Household', icon: '🛋️' }
+                { id: 'laundry_by_weight', label: language === 'th' ? 'ซักตามน้ำหนัก (กก.)' : 'Laundry by Weight (KG)', icon: '🧺' },
+                { id: 'bedding_linens', label: language === 'th' ? 'เครื่องนอน & ผ้านวม' : 'Bedding & Comforters', icon: '🛏️' },
+                { id: 'household_curtains', label: language === 'th' ? 'ผ้าม่าน & ของใช้' : 'Curtains & Household', icon: '🛋️' },
+                { id: 'delicate_dryclean', label: language === 'th' ? 'ผ้าไหม & ชุดพิเศษ' : 'Delicates & Special Care', icon: '✨' }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveCategory(tab.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
                     activeCategory === tab.id
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-transparent'
                   }`}
                 >
                   <span>{tab.icon}</span>
