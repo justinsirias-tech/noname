@@ -272,6 +272,7 @@ async function ensureDatabaseSchema() {
             badge: '🧺 By Weight (KG)',
             pricingType: 'weight',
             description: 'Everyday casual clothes, gym wear, shirts, socks, and garments billed transparently by digital certified scale weight.',
+            descriptionTh: 'เสื้อผ้าทั่วไป ชุดลำลอง เสื้อยืด กางเกง ถุงเท้า คิดราคาโปร่งใสตามน้ำหนักจริงบนตาชั่งดิจิทัล',
             displayOrder: 1
           },
           {
@@ -282,30 +283,24 @@ async function ensureDatabaseSchema() {
             badge: '🛏️ Per Piece / Item',
             pricingType: 'piece',
             description: 'Bulky bedsheets, duvet covers, comforters, pillowcases, and blankets washed in heavy-duty commercial machines with hypoallergenic sanitization.',
+            descriptionTh: 'ผ้าปูที่นอน ปลอกผ้านวม ผ้านวม ปลอกหมอน และผ้าห่มหนา ซักด้วยเครื่องซักผ้าขนาดใหญ่มาตรฐานสากล พร้อมอบฆ่าเชื้อ',
             displayOrder: 2
-          },
-          {
-            id: 'household_curtains',
-            name: 'Curtains & Household Items',
-            nameTh: 'ผ้าม่านและของใช้ในบ้าน',
-            icon: 'home',
-            badge: '🛋️ Per Piece / Set',
-            pricingType: 'piece',
-            description: 'Window drapes, curtains, sofa covers, bath towels, and decorative textiles refreshed and steam-pressed.',
-            displayOrder: 3
-          },
-          {
-            id: 'delicate_dryclean',
-            name: 'Delicates & Special Care',
-            nameTh: 'ผ้าไหมและชุดพิเศษ',
-            icon: 'sparkles',
-            badge: '✨ Specialty Care',
-            pricingType: 'piece',
-            description: 'Formal blazers, evening silk dresses, wool suits, and luxury garments requiring gentle care.',
-            displayOrder: 4
           }
         ];
         needsSettingsUpdate = true;
+      } else if (Array.isArray(currentSettings.categories)) {
+        // Ensure existing categories have descriptionTh populated
+        const catDescThMap = {
+          laundry_by_weight: 'เสื้อผ้าทั่วไป ชุดลำลอง เสื้อยืด กางเกง ถุงเท้า คิดราคาโปร่งใสตามน้ำหนักจริงบนตาชั่งดิจิทัล',
+          bedding_linens: 'ผ้าปูที่นอน ปลอกผ้านวม ผ้านวม ปลอกหมอน และผ้าห่มหนา ซักด้วยเครื่องซักผ้าขนาดใหญ่มาตรฐานสากล พร้อมอบฆ่าเชื้อ'
+        };
+        currentSettings.categories = currentSettings.categories.map(c => {
+          if (!c.descriptionTh && catDescThMap[c.id]) {
+            needsSettingsUpdate = true;
+            return { ...c, descriptionTh: catDescThMap[c.id] };
+          }
+          return c;
+        });
       }
 
       if (!currentSettings.postalCodeRates || !Array.isArray(currentSettings.postalCodeRates) || currentSettings.postalCodeRates.length === 0) {
@@ -349,12 +344,80 @@ async function ensureDatabaseSchema() {
 }
 ensureDatabaseSchema();
 
+const SERVICE_DESC_TH_MAP = {
+  wash_fold: 'ซัก อบ พับ เสื้อผ้าทั่วไป ชุดลำลอง เสื้อยืด กางเกงออกกำลังกาย ถุงเท้า และผ้าขนหนู ซักด้วยน้ำยาเกรดพรีเมียม อบแห้ง และพับแยกประเภทอย่างเป็นระเบียบ',
+  wash_iron_fold: 'เหมาะสำหรับชุดทำงาน เสื้อเชิ้ตผ้าฝ้าย กางเกงชิโน่ และชุดเดรส ที่ต้องการการรีดไอน้ำให้เรียบคมและพับบรรจุอย่างประณีต',
+  wash_iron_hang: 'เหมาะสำหรับชุดสูท เสื้อเชิ้ตทางการ ชุดราตรี และเสื้อผ้าลินินเนื้อบาง ส่งคืนไร้รอยยับพร้อมไม้แขวนคุณภาพสูงและถุงคลุมกันฝุ่น',
+  comforter_duvet: 'ซักผ้านวมขนาด King/Queen และผ้าห่มหนานุ่มด้วยเครื่องซักอุตสาหกรรมขนาดใหญ่ พร้อมอบความร้อนกำจัดไรฝุ่นและคืนความฟูนุ่มเหมือนใหม่',
+  bedsheet_set: 'ซักทำความสะอาดผ้าปูที่นอนอย่างล้ำลึก พร้อมน้ำยาปรับผ้านุ่มและรีดไอน้ำเรียบตึงระดับโรงแรม 5 ดาว เพื่อสัมผัสการนอนที่นุ่มสบาย',
+  duvet_cover: 'ซักทำความสะอาดและรีดไอน้ำระดับมืออาชีพสำหรับปลอกผ้านวมทุกเนื้อผ้าและทุกขนาด',
+  pillowcase: 'ซักฆ่าเชื้อด้วยความร้อนสูงเพื่อขจัดความมันบนใบหน้าและสารก่อภูมิแพ้ พร้อมรีดไอน้ำเรียบกริบ',
+  mattress_topper: 'ซักขจัดคราบฝังลึกและอบฆ่าเชื้อสำหรับผ้ารองกันเปื้อนที่นอน ท็อปเปอร์ และแผ่นรองกันน้ำ'
+};
+
+const FEATURE_TH_MAP = {
+  'Eco-friendly detergent': 'น้ำยาซักผ้าและปรับผ้านุ่มสูตรรักษ์โลก',
+  'Eco-friendly detergent & fabric softener': 'น้ำยาซักผ้าและปรับผ้านุ่มสูตรรักษ์โลก',
+  'Gentle tumble drying': 'อบแห้งด้วยอุณหภูมิที่เหมาะสมถนอมใยผ้า',
+  'Neat compact folding': 'พับแยกประเภทเสื้อผ้าอย่างเป็นระเบียบ',
+  'Neat, compact folding by apparel type': 'พับแยกประเภทเสื้อผ้าอย่างเป็นระเบียบ',
+  'Moisture-proof dust bags': 'บรรจุในถุงกันฝุ่นและกันความชื้นอย่างดี',
+  'Sealed in moisture-proof dust bags': 'บรรจุในถุงกันฝุ่นและกันความชื้นอย่างดี',
+  'Pickup & delivery across Bangkok': 'บริการรับ-ส่งถึงที่ทั่วกรุงเทพฯ และพัทยา',
+  'Stain pre-treatment': 'ตรวจเช็คและขจัดคราบเฉพาะจุดก่อนซัก',
+  'Stain inspection pre-treatment': 'ตรวจเช็คและขจัดคราบเฉพาะจุดก่อนซัก',
+  'Fabric conditioning': 'ซักและบำรุงเนื้อผ้าด้วยผลิตภัณฑ์เกรดพรีเมียม',
+  'Premium fabric wash & conditioning': 'ซักและบำรุงเนื้อผ้าด้วยผลิตภัณฑ์เกรดพรีเมียม',
+  'Steam ironing': 'รีดไอน้ำด้วยมือให้เรียบคมทุกตัว',
+  'Hand steam ironing for crisp look': 'รีดไอน้ำด้วยมือให้เรียบคมทุกตัว',
+  'Expert folding with tissue inserts if needed': 'พับอย่างประณีตพร้อมกระดาษดันทรงตามความเหมาะสม',
+  'Clear protective packaging': 'บรรจุในถุงใสกันฝุ่นพร้อมจัดส่ง',
+  'Clear protective garment packaging': 'บรรจุในถุงใสกันฝุ่นพร้อมจัดส่ง',
+  'Delicate temperature-controlled wash': 'ซักด้วยระบบควบคุมอุณหภูมิถนอมผ้าพิเศษ',
+  'Hand steam pressing': 'รีดไอน้ำอย่างละเอียดไร้รอยยับทุกจุด',
+  'Detailed wrinkle-free steam pressing': 'รีดไอน้ำอย่างละเอียดไร้รอยยับทุกจุด',
+  'Heavy-duty hangers included': 'ฟรีไม้แขวนเสื้อคุณภาพสูงแข็งแรงพิเศษ',
+  'Heavy-duty hangers included at no extra cost': 'ฟรีไม้แขวนเสื้อคุณภาพสูงแข็งแรงพิเศษ',
+  'Breathable garment cover': 'ถุงคลุมเสื้อผ้าแบบยาวระบายอากาศได้ดี',
+  'Full-length breathable garment cover': 'ถุงคลุมเสื้อผ้าแบบยาวระบายอากาศได้ดี',
+  'Direct-to-wardrobe ready on delivery': 'พร้อมเข้าตู้เสื้อผ้าได้ทันทีเมื่อจัดส่งถึงมือ',
+  'High-capacity commercial drum washer': 'ซักด้วยเครื่องซักผ้าอุตสาหกรรมขนาดใหญ่พิเศษ',
+  'Anti-dust mite thermal sanitization': 'อบฆ่าเชื้อและกำจัดไรฝุ่นด้วยความร้อน',
+  'Gentle tumble dry for loft restoration': 'อบแห้งถนอมใยผ้าให้ผ้านวมกลับมาฟูนุ่ม',
+  'Breathable zipper storage bag included': 'ฟรีถุงซิปเก็บผ้านวมระบายอากาศอย่างดี',
+  'Deep dirt and sweat extraction': 'ขจัดคราบเหงื่อและสิ่งสกปรกฝังลึกอย่างหมดจด',
+  'Gentle fabric conditioning for silky touch': 'ปรับผ้านุ่มสูตรพิเศษให้สัมผัสนุ่มลื่นสบายผิว',
+  'Steam ironed for smooth hotel-finish crispness': 'รีดไอน้ำเรียบตึงระดับมาตรฐานโรงแรม 5 ดาว',
+  'Individual moisture-proof protective packaging': 'แพ็คแยกชิ้นในถุงกันความชื้นและฝุ่นละออง',
+  'Color-safe detergent formula': 'น้ำยาถนอมสีผ้าให้สดใส',
+  'Color-safe fabric brightening detergent': 'น้ำยาถนอมสีผ้าให้สดใส',
+  'Anti-static soft finish': 'ป้องกันไฟฟ้าสถิต ผิวสัมผัสนุ่ม',
+  'Steam press finish for smooth texture': 'รีดไอน้ำเรียบเนียน',
+  'Crisp steam pressing': 'รีดไอน้ำเรียบเนียน',
+  'Wrinkle-resistant folding': 'พับเก็บกะทัดรัด ลดการเกิดรอยยับ',
+  'Tidy compact folding': 'พับเก็บกะทัดรัด สะดวกต่อการใช้งาน',
+  'Antibacterial hot wash': 'ซักน้ำร้อนฆ่าเชื้อแบคทีเรียและลดสารก่อภูมิแพ้',
+  'Hypoallergenic sanitizing cycle': 'โปรแกรมซักฆ่าเชื้อลดสารก่อภูมิแพ้',
+  'Crisp ironed & sanitized': 'รีดไอน้ำเรียบกริบพร้อมฆ่าเชื้อด้วยความร้อน',
+  'Hand-finished steam ironed': 'รีดไอน้ำด้วยมือเรียบร้อย',
+  'Hypoallergenic fabric conditioner': 'ปรับผ้านุ่มสูตรอ่อนโยน ไม่ระคายเคืองผิว',
+  'Gentle skin-friendly conditioner': 'ปรับผ้านุ่มสูตรอ่อนโยน ไม่ระคายเคืองผิว',
+  'Deep extraction cleaning': 'ซักขจัดคราบฝังลึกและปั่นดึงความชื้นหลายชั้น',
+  'Deep stain lifting pre-treatment': 'ขจัดคราบเฉพาะจุดก่อนเข้าเครื่องซัก',
+  'Multi-layer moisture extraction': 'ปั่นดึงความชื้นหลายชั้นอย่างหมดจด',
+  'Low-temp tumble drying to protect elastic corners': 'อบแห้งอุณหภูมิต่ำเพื่อถนอมยางยืดรัดมุม',
+  'Low-heat protective drying': 'อบแห้งด้วยความร้อนพอเหมาะถนอมแผ่นใย',
+  'Sanitized packaging': 'บรรจุในถุงสะอาดปลอดเชื้อพร้อมใช้งาน'
+};
+
 // Helper row mappers
 function mapService(row) {
   if (!row) return null;
   const stdPrice = Number(row.standard_price_per_kg || row.price_per_kg || 70);
   const nextPrice = Number(row.next_day_price_per_kg || Math.round(stdPrice * 1.3));
   const samePrice = Number(row.same_day_price_per_kg || Math.round(stdPrice * 1.75));
+  const features = Array.isArray(row.features) ? row.features : [];
+  const featuresTh = features.map(f => FEATURE_TH_MAP[f] || f);
   return {
     id: row.id,
     categoryId: row.category_id || 'laundry_by_weight',
@@ -362,6 +425,7 @@ function mapService(row) {
     name: row.name,
     nameTh: row.name_th,
     description: row.description,
+    descriptionTh: row.description_th || SERVICE_DESC_TH_MAP[row.id] || row.description,
     unit: row.unit || 'KG',
     pricePerKg: stdPrice,
     standardPricePerKg: stdPrice,
@@ -371,7 +435,8 @@ function mapService(row) {
     minWeightKg: Number(row.min_weight_kg),
     turnaroundHours: Number(row.turnaround_hours || 48),
     popular: Boolean(row.popular),
-    features: Array.isArray(row.features) ? row.features : []
+    features,
+    featuresTh
   };
 }
 
@@ -1738,6 +1803,7 @@ app.get('/api/state', async (req, res) => {
         name: s.name,
         nameTh: s.nameTh,
         description: s.description,
+        descriptionTh: SERVICE_DESC_TH_MAP[s.id] || s.description,
         unit: s.unit,
         pricePerKg: s.stdPrice,
         standardPricePerKg: s.stdPrice,
@@ -1747,17 +1813,16 @@ app.get('/api/state', async (req, res) => {
         minWeightKg: s.minWeight,
         turnaroundHours: s.turnaround,
         popular: s.popular,
-        features: s.features
+        features: s.features,
+        featuresTh: (s.features || []).map(f => FEATURE_TH_MAP[f] || f)
       })),
       orders: localOrders,
       incidents: [],
       customers: localCustomers,
       settings: {
         categories: [
-          { id: 'laundry_by_weight', name: 'Laundry by Weight (KG)', nameTh: 'ซัก อบ รีด ตามน้ำหนัก (กิโลกรัม)', icon: 'scale', badge: '🧺 By Weight (KG)', pricingType: 'weight', description: 'Everyday casual clothes billed by weight.', displayOrder: 1 },
-          { id: 'bedding_linens', name: 'Bedding, Linens & Comforters', nameTh: 'เครื่องนอนและผ้านวม (คิดเป็นชิ้น)', icon: 'bed', badge: '🛏️ Per Piece / Item', pricingType: 'piece', description: 'Bulky bedsheets and blankets.', displayOrder: 2 },
-          { id: 'household_curtains', name: 'Curtains & Household Items', nameTh: 'ผ้าม่านและของใช้ในบ้าน', icon: 'home', badge: '🛋️ Per Piece / Set', pricingType: 'piece', description: 'Curtains and towels.', displayOrder: 3 },
-          { id: 'delicate_dryclean', name: 'Delicates & Special Care', nameTh: 'ผ้าไหมและชุดพิเศษ', icon: 'sparkles', badge: '✨ Specialty Care', pricingType: 'piece', description: 'Specialty care garments.', displayOrder: 4 }
+          { id: 'laundry_by_weight', name: 'Laundry by Weight (KG)', nameTh: 'ซัก อบ รีด ตามน้ำหนัก (กิโลกรัม)', icon: 'scale', badge: '🧺 By Weight (KG)', pricingType: 'weight', description: 'Everyday casual clothes, gym wear, shirts, socks, and garments billed transparently by digital certified scale weight.', descriptionTh: 'เสื้อผ้าทั่วไป ชุดลำลอง เสื้อยืด กางเกง ถุงเท้า คิดราคาโปร่งใสตามน้ำหนักจริงบนตาชั่งดิจิทัล', displayOrder: 1 },
+          { id: 'bedding_linens', name: 'Bedding, Linens & Comforters', nameTh: 'เครื่องนอนและผ้านวม (คิดเป็นชิ้น)', icon: 'bed', badge: '🛏️ Per Piece / Item', pricingType: 'piece', description: 'Bulky bedsheets, duvet covers, comforters, pillowcases, and blankets washed in heavy-duty commercial machines with hypoallergenic sanitization.', descriptionTh: 'ผ้าปูที่นอน ปลอกผ้านวม ผ้านวม ปลอกหมอน และผ้าห่มหนา ซักด้วยเครื่องซักผ้าขนาดใหญ่มาตรฐานสากล พร้อมอบฆ่าเชื้อ', displayOrder: 2 }
         ],
         lineOaId: '@nonamelaundry',
         whatsappNumber: '@nonamelaundry',

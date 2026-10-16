@@ -7,6 +7,13 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
   const [copiedText, setCopiedText] = useState(false);
   const [sentToast, setSentToast] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [localBillingSentAt, setLocalBillingSentAt] = useState(order?.billingSentAt || null);
+  const [localBillingChannel, setLocalBillingChannel] = useState(order?.billingChannel || null);
+
+  useEffect(() => {
+    setLocalBillingSentAt(order?.billingSentAt || null);
+    setLocalBillingChannel(order?.billingChannel || null);
+  }, [order?.billingSentAt, order?.billingChannel]);
 
   // ESC key listener
   useEffect(() => {
@@ -20,6 +27,9 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
   }, [onClose]);
 
   if (!order) return null;
+
+  const effectiveBillingSentAt = localBillingSentAt || order.billingSentAt;
+  const effectiveBillingChannel = localBillingChannel || order.billingChannel;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
   const paymentUrl = `${origin}/?track=${encodeURIComponent(order.id)}&pay=1`;
@@ -150,7 +160,7 @@ Need assistance? Contact our team:
       });
       const data = await res.json();
       if (data.success) {
-        recordDispatch('EMAIL');
+        recordDispatch('EMAIL', true);
         setSentToast(`✓ Tax invoice & payment link sent automatically to ${order.email || 'customer'}!`);
       } else {
         setSentToast(`⚠ Notice: ${data.error || data.reason || 'Email queued / processed'}`);
@@ -179,20 +189,24 @@ Need assistance? Contact our team:
   };
 
   // Record audit trail event & update dispatch status
-  const recordDispatch = async (channelName) => {
+  const recordDispatch = async (channelName, skipBackend = false) => {
     const nowIso = new Date().toISOString();
     order.billingSentAt = nowIso;
     order.billingChannel = channelName;
+    setLocalBillingSentAt(nowIso);
+    setLocalBillingChannel(channelName);
 
     const note = `Official Tax Invoice (${invoiceNumber}) & Payment Link generated and sent to customer via ${channelName}. Total: ฿${totalPrice} THB.`;
-    try {
-      await fetch(`/api/orders/${encodeURIComponent(order.id)}/record-invoice-sent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel: channelName, note })
-      });
-    } catch (e) {
-      console.warn('Record invoice sent error:', e);
+    if (!skipBackend) {
+      try {
+        await fetch(`/api/orders/${encodeURIComponent(order.id)}/record-invoice-sent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel: channelName, note })
+        });
+      } catch (e) {
+        console.warn('Record invoice sent error:', e);
+      }
     }
 
     if (onInvoiceSent) {
@@ -264,11 +278,11 @@ Need assistance? Contact our team:
         </div>
 
         {/* Invoice Dispatch Status Ribbon */}
-        {order.billingSentAt && (
+        {effectiveBillingSentAt && (
           <div className="bg-emerald-600 text-white text-xs font-bold px-6 py-2.5 flex items-center justify-between border-b border-emerald-700 print:hidden animate-fadeIn">
             <div className="flex items-center gap-2">
               <Icon name="checkCircle" className="w-4 h-4 text-emerald-200" />
-              <span>✓ Tax Invoice already dispatched to customer via {order.billingChannel || 'Email'} ({new Date(order.billingSentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} at {new Date(order.billingSentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})</span>
+              <span>✓ Tax Invoice already dispatched to customer via {effectiveBillingChannel || 'Email'} ({new Date(effectiveBillingSentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} at {new Date(effectiveBillingSentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})</span>
             </div>
             <span className="text-[10px] bg-emerald-800/90 text-white px-2 py-0.5 rounded font-mono uppercase tracking-wider border border-emerald-500">
               DISPATCHED ✓
@@ -289,13 +303,13 @@ Need assistance? Contact our team:
               type="button"
               onClick={handleSendWhatsApp}
               className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
-                order.billingSentAt && order.billingChannel === 'WHATSAPP'
+                effectiveBillingSentAt && effectiveBillingChannel === 'WHATSAPP'
                   ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
                   : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
               }`}
             >
               <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{order.billingSentAt && order.billingChannel === 'WHATSAPP' ? '✓ WhatsApp (Resend)' : 'WhatsApp'}</span>
+              <span>{effectiveBillingSentAt && effectiveBillingChannel === 'WHATSAPP' ? '✓ WhatsApp (Resend)' : 'WhatsApp'}</span>
             </button>
 
             {/* LINE */}
@@ -303,13 +317,13 @@ Need assistance? Contact our team:
               type="button"
               onClick={handleSendLine}
               className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
-                order.billingSentAt && order.billingChannel === 'LINE'
+                effectiveBillingSentAt && effectiveBillingChannel === 'LINE'
                   ? 'bg-green-100 text-green-900 border-green-300'
                   : 'bg-green-50 hover:bg-green-100 text-green-800 border-green-300'
               }`}
             >
               <Icon name="line" className="w-3.5 h-3.5 text-green-600" />
-              <span>{order.billingSentAt && order.billingChannel === 'LINE' ? '✓ LINE OA (Resend)' : 'LINE OA'} {copiedText && <span className="text-[10px] text-green-700 font-extrabold">(Copied!)</span>}</span>
+              <span>{effectiveBillingSentAt && effectiveBillingChannel === 'LINE' ? '✓ LINE OA (Resend)' : 'LINE OA'} {copiedText && <span className="text-[10px] text-green-700 font-extrabold">(Copied!)</span>}</span>
             </button>
 
             {/* Email */}
@@ -318,14 +332,14 @@ Need assistance? Contact our team:
               disabled={sendingEmail}
               onClick={handleSendEmail}
               className={`px-3.5 py-1.5 rounded-xl text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${
-                order.billingSentAt && order.billingChannel === 'EMAIL'
+                effectiveBillingSentAt && effectiveBillingChannel === 'EMAIL'
                   ? 'bg-emerald-700 hover:bg-emerald-600'
                   : 'bg-sky-600 hover:bg-sky-500 disabled:opacity-50'
               }`}
               title="Automatically send official Tax Invoice & Payment Link directly to customer via email"
             >
-              <Icon name={order.billingSentAt && order.billingChannel === 'EMAIL' ? 'check' : 'mail'} className="w-3.5 h-3.5 text-white" />
-              <span>{sendingEmail ? 'Sending Email...' : (order.billingSentAt && order.billingChannel === 'EMAIL' ? '✓ Invoice Sent via Email (Resend)' : 'Send Invoice via Email')}</span>
+              <Icon name={effectiveBillingSentAt && effectiveBillingChannel === 'EMAIL' ? 'check' : 'mail'} className="w-3.5 h-3.5 text-white" />
+              <span>{sendingEmail ? 'Sending Email...' : (effectiveBillingSentAt && effectiveBillingChannel === 'EMAIL' ? '✓ Invoice Sent via Email (Resend)' : 'Send Invoice via Email')}</span>
             </button>
           </div>
 

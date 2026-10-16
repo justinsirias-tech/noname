@@ -287,6 +287,89 @@ export class LaundryStore {
     }
   }
 
+  enrichCategoryBilingual(cat) {
+    if (!cat) return cat;
+    const defCat = INITIAL_CATEGORIES.find(c => c.id === cat.id);
+    return {
+      ...cat,
+      nameTh: cat.nameTh || defCat?.nameTh || cat.name,
+      descriptionTh: cat.descriptionTh || defCat?.descriptionTh || cat.description
+    };
+  }
+
+  enrichServiceBilingual(srv) {
+    if (!srv) return srv;
+    const defSrv = INITIAL_SERVICES.find(s => s.id === srv.id);
+    const featureMap = {
+      'Eco-friendly detergent': 'น้ำยาซักผ้าและปรับผ้านุ่มสูตรรักษ์โลก',
+      'Eco-friendly detergent & fabric softener': 'น้ำยาซักผ้าและปรับผ้านุ่มสูตรรักษ์โลก',
+      'Gentle tumble drying': 'อบแห้งด้วยอุณหภูมิที่เหมาะสมถนอมใยผ้า',
+      'Neat compact folding': 'พับแยกประเภทเสื้อผ้าอย่างเป็นระเบียบ',
+      'Neat, compact folding by apparel type': 'พับแยกประเภทเสื้อผ้าอย่างเป็นระเบียบ',
+      'Moisture-proof dust bags': 'บรรจุในถุงกันฝุ่นและกันความชื้นอย่างดี',
+      'Sealed in moisture-proof dust bags': 'บรรจุในถุงกันฝุ่นและกันความชื้นอย่างดี',
+      'Pickup & delivery across Bangkok': 'บริการรับ-ส่งถึงที่ทั่วกรุงเทพฯ และพัทยา',
+      'Stain pre-treatment': 'ตรวจเช็คและขจัดคราบเฉพาะจุดก่อนซัก',
+      'Stain inspection pre-treatment': 'ตรวจเช็คและขจัดคราบเฉพาะจุดก่อนซัก',
+      'Fabric conditioning': 'ซักและบำรุงเนื้อผ้าด้วยผลิตภัณฑ์เกรดพรีเมียม',
+      'Premium fabric wash & conditioning': 'ซักและบำรุงเนื้อผ้าด้วยผลิตภัณฑ์เกรดพรีเมียม',
+      'Steam ironing': 'รีดไอน้ำด้วยมือให้เรียบคมทุกตัว',
+      'Hand steam ironing for crisp look': 'รีดไอน้ำด้วยมือให้เรียบคมทุกตัว',
+      'Expert folding with tissue inserts if needed': 'พับอย่างประณีตพร้อมกระดาษดันทรงตามความเหมาะสม',
+      'Clear protective packaging': 'บรรจุในถุงใสกันฝุ่นพร้อมจัดส่ง',
+      'Clear protective garment packaging': 'บรรจุในถุงใสกันฝุ่นพร้อมจัดส่ง',
+      'Delicate temperature-controlled wash': 'ซักด้วยระบบควบคุมอุณหภูมิถนอมผ้าพิเศษ',
+      'Hand steam pressing': 'รีดไอน้ำอย่างละเอียดไร้รอยยับทุกจุด',
+      'Detailed wrinkle-free steam pressing': 'รีดไอน้ำอย่างละเอียดไร้รอยยับทุกจุด',
+      'Heavy-duty hangers included': 'ฟรีไม้แขวนเสื้อคุณภาพสูงแข็งแรงพิเศษ',
+      'Heavy-duty hangers included at no extra cost': 'ฟรีไม้แขวนเสื้อคุณภาพสูงแข็งแรงพิเศษ',
+      'Breathable garment cover': 'ถุงคลุมเสื้อผ้าแบบยาวระบายอากาศได้ดี',
+      'Full-length breathable garment cover': 'ถุงคลุมเสื้อผ้าแบบยาวระบายอากาศได้ดี',
+      'Direct-to-wardrobe ready on delivery': 'พร้อมเข้าตู้เสื้อผ้าได้ทันทีเมื่อจัดส่งถึงมือ',
+      'High-capacity commercial drum washer': 'ซักด้วยเครื่องซักผ้าอุตสาหกรรมขนาดใหญ่พิเศษ',
+      'Anti-dust mite thermal sanitization': 'อบฆ่าเชื้อและกำจัดไรฝุ่นด้วยความร้อน',
+      'Gentle tumble dry for loft restoration': 'อบแห้งถนอมใยผ้าให้ผ้านวมกลับมาฟูนุ่ม',
+      'Breathable zipper storage bag included': 'ฟรีถุงซิปเก็บผ้านวมระบายอากาศอย่างดี',
+      'Deep dirt and sweat extraction': 'ขจัดคราบเหงื่อและสิ่งสกปรกฝังลึกอย่างหมดจด',
+      'Gentle fabric conditioning for silky touch': 'ปรับผ้านุ่มสูตรพิเศษให้สัมผัสนุ่มลื่นสบายผิว',
+      'Steam ironed for smooth hotel-finish crispness': 'รีดไอน้ำเรียบตึงระดับมาตรฐานโรงแรม 5 ดาว',
+      'Individual moisture-proof protective packaging': 'แพ็คแยกชิ้นในถุงกันความชื้นและฝุ่นละออง',
+      'Color-safe detergent formula': 'น้ำยาถนอมสีผ้าให้สดใส',
+      'Color-safe fabric brightening detergent': 'น้ำยาถนอมสีผ้าให้สดใส',
+      'Anti-static soft finish': 'ป้องกันไฟฟ้าสถิต ผิวสัมผัสนุ่ม',
+      'Steam press finish for smooth texture': 'รีดไอน้ำเรียบเนียน',
+      'Crisp steam pressing': 'รีดไอน้ำเรียบเนียน',
+      'Wrinkle-resistant folding': 'พับเก็บกะทัดรัด ลดการเกิดรอยยับ',
+      'Tidy compact folding': 'พับเก็บกะทัดรัด สะดวกต่อการใช้งาน',
+      'Antibacterial hot wash': 'ซักน้ำร้อนฆ่าเชื้อแบคทีเรียและลดสารก่อภูมิแพ้',
+      'Hypoallergenic sanitizing cycle': 'โปรแกรมซักฆ่าเชื้อลดสารก่อภูมิแพ้',
+      'Crisp ironed & sanitized': 'รีดไอน้ำเรียบกริบพร้อมฆ่าเชื้อด้วยความร้อน',
+      'Hand-finished steam ironed': 'รีดไอน้ำด้วยมือเรียบร้อย',
+      'Hypoallergenic fabric conditioner': 'ปรับผ้านุ่มสูตรอ่อนโยน ไม่ระคายเคืองผิว',
+      'Gentle skin-friendly conditioner': 'ปรับผ้านุ่มสูตรอ่อนโยน ไม่ระคายเคืองผิว',
+      'Deep extraction cleaning': 'ซักขจัดคราบฝังลึกและปั่นดึงความชื้นหลายชั้น',
+      'Deep stain lifting pre-treatment': 'ขจัดคราบเฉพาะจุดก่อนเข้าเครื่องซัก',
+      'Multi-layer moisture extraction': 'ปั่นดึงความชื้นหลายชั้นอย่างหมดจด',
+      'Low-temp tumble drying to protect elastic corners': 'อบแห้งอุณหภูมิต่ำเพื่อถนอมยางยืดรัดมุม',
+      'Low-heat protective drying': 'อบแห้งด้วยความร้อนพอเหมาะถนอมแผ่นใย',
+      'Sanitized packaging': 'บรรจุในถุงสะอาดปลอดเชื้อพร้อมใช้งาน'
+    };
+    const features = Array.isArray(srv.features) ? srv.features : (defSrv?.features || []);
+    const featuresTh = features.map((f, idx) => {
+      if (featureMap[f]) return featureMap[f];
+      if (Array.isArray(srv.featuresTh) && srv.featuresTh[idx] && srv.featuresTh[idx] !== f) return srv.featuresTh[idx];
+      if (Array.isArray(defSrv?.featuresTh) && defSrv.featuresTh[idx]) return defSrv.featuresTh[idx];
+      return f;
+    });
+    return {
+      ...srv,
+      nameTh: srv.nameTh || defSrv?.nameTh || srv.name,
+      descriptionTh: srv.descriptionTh || defSrv?.descriptionTh || srv.description,
+      features,
+      featuresTh
+    };
+  }
+
   loadState() {
     try {
       // Categories
@@ -295,7 +378,9 @@ export class LaundryStore {
       if (!Array.isArray(parsedCategories) || parsedCategories.length === 0) {
         parsedCategories = INITIAL_CATEGORIES;
       }
-      this.categories = parsedCategories.sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+      this.categories = parsedCategories
+        .map(c => this.enrichCategoryBilingual(c))
+        .sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
 
       // Services
       const savedServices = localStorage.getItem(STORAGE_KEYS.SERVICES);
@@ -326,7 +411,7 @@ export class LaundryStore {
           else if (s.id === 'wash_iron_hang') samePrice = 210;
           else samePrice = Math.round(stdPrice * 1.75);
         }
-        return {
+        return this.enrichServiceBilingual({
           ...s,
           categoryId: s.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight'),
           pricingType: s.pricingType || (isPiece ? 'piece' : 'weight'),
@@ -338,7 +423,7 @@ export class LaundryStore {
           pricePerKg: stdPrice,
           turnaroundHours: s.turnaroundHours ? Number(s.turnaroundHours) : 48,
           minWeightKg: isPiece ? (Number(s.minWeightKg) || 1.0) : (Number(s.minWeightKg) < 4.0 ? 4.0 : Number(s.minWeightKg))
-        };
+        });
       });
 
       const savedOrders = localStorage.getItem(STORAGE_KEYS.ORDERS);
@@ -457,7 +542,7 @@ export class LaundryStore {
       const data = await res.json();
       
       if (Array.isArray(data.services) && data.services.length > 0) {
-        this.services = data.services;
+        this.services = data.services.map(s => this.enrichServiceBilingual(s));
         this.persist(STORAGE_KEYS.SERVICES, this.services);
       }
       if (Array.isArray(data.orders) && data.orders.length > 0) {
@@ -484,7 +569,9 @@ export class LaundryStore {
       if (data.settings && Object.keys(data.settings).length > 0) {
         this.settings = { ...this.settings, ...data.settings };
         if (data.settings.categories && Array.isArray(data.settings.categories) && data.settings.categories.length > 0) {
-          this.categories = data.settings.categories.slice().sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
+          this.categories = data.settings.categories
+            .map(c => this.enrichCategoryBilingual(c))
+            .sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
           this.persist(STORAGE_KEYS.CATEGORIES, this.categories);
         }
         if (data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {

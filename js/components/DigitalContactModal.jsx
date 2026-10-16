@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS, getLineOaAddFriendUrl, getLineQrCodeUrl, laundryStore } from '../store.js';
+import { useTranslation } from '../i18n.jsx';
 
 export function DigitalContactModal({ isOpen, onClose }) {
+  const { language } = useTranslation();
+  const isTh = language === 'th';
   const [activeTab, setActiveTab] = useState('channels'); // 'channels', 'line-qr'
 
   // ESC key listener to close modal
@@ -39,10 +42,10 @@ export function DigitalContactModal({ isOpen, onClose }) {
             </div>
             <div>
               <h3 className="text-lg font-black text-slate-900">
-                Official Digital Contact Channels
+                {isTh ? 'ช่องทางติดต่อออนไลน์อย่างเป็นทางการ' : 'Official Digital Contact Channels'}
               </h3>
               <p className="text-xs text-slate-500">
-                No storefront • Operating exclusively online across Bangkok
+                {isTh ? 'ให้บริการรับ-ส่งถึงคอนโดผ่านระบบออนไลน์ในกรุงเทพฯ และพัทยา' : 'No storefront • Operating exclusively online across Bangkok & Pattaya'}
               </p>
             </div>
           </div>
@@ -50,7 +53,7 @@ export function DigitalContactModal({ isOpen, onClose }) {
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-slate-400 hover:text-slate-700 flex items-center gap-1"
-            title="Close (Esc)"
+            title={isTh ? 'ปิดหน้าต่าง (Esc)' : 'Close (Esc)'}
           >
             <span className="hidden sm:inline text-[10px] font-mono font-bold px-1 rounded bg-slate-100 text-slate-500 border border-slate-200">ESC</span>
             <Icon name="x" className="w-5 h-5" />
@@ -65,7 +68,7 @@ export function DigitalContactModal({ isOpen, onClose }) {
               activeTab === 'channels' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            Chat Channels
+            {isTh ? 'ช่องทางแชทและโทรศัพท์' : 'Chat Channels'}
           </button>
           <button
             onClick={() => setActiveTab('line-qr')}
@@ -74,7 +77,7 @@ export function DigitalContactModal({ isOpen, onClose }) {
             }`}
           >
             <Icon name="line" className="w-3.5 h-3.5 text-green-600" />
-            <span>Scan LINE QR</span>
+            <span>{isTh ? 'สแกน LINE QR' : 'Scan LINE QR'}</span>
           </button>
         </div>
 
@@ -82,10 +85,14 @@ export function DigitalContactModal({ isOpen, onClose }) {
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1">
           <div className="flex items-center gap-1.5 font-bold text-emerald-950">
             <Icon name="phone" className="w-4 h-4 text-emerald-700" />
-            <span>Customer Service & Direct Assistance</span>
+            <span>{isTh ? 'ฝ่ายบริการลูกค้าและช่วยเหลือโดยตรง' : 'Customer Service & Direct Assistance'}</span>
           </div>
           <p className="text-slate-700 leading-relaxed">
-            Reach our service team via direct mobile call or WhatsApp at <strong className="text-slate-900">+66 80 888 9885</strong>, or message us on LINE Official and Email.
+            {isTh ? (
+              <>ติดต่อทีมงานได้โดยตรงทางโทรศัพท์หรือ WhatsApp ที่เบอร์ <strong className="text-slate-900">+66 80 888 9885</strong> หรือทักแชทผ่าน LINE Official และอีเมล</>
+            ) : (
+              <>Reach our service team via direct mobile call or WhatsApp at <strong className="text-slate-900">+66 80 888 9885</strong>, or message us on LINE Official and Email.</>
+            )}
           </p>
         </div>
 
@@ -101,12 +108,12 @@ export function DigitalContactModal({ isOpen, onClose }) {
                   <Icon name="phone" className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">Direct Mobile Call</div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">{isTh ? 'โทรศัพท์ติดต่อโดยตรง' : 'Direct Mobile Call'}</div>
                   <div className="text-xs text-slate-600 font-mono">+66 80 888 9885</div>
                 </div>
               </div>
               <span className="text-xs text-amber-700 font-bold group-hover:translate-x-0.5 transition flex items-center gap-1">
-                <span>Call Now</span>
+                <span>{isTh ? 'โทรเลย' : 'Call Now'}</span>
                 <Icon name="phone" className="w-3.5 h-3.5" />
               </span>
             </a>
@@ -123,13 +130,13 @@ export function DigitalContactModal({ isOpen, onClose }) {
                   <Icon name="line" className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="font-bold text-xs sm:text-sm text-green-950">LINE Official Account (Recommended)</div>
+                  <div className="font-bold text-xs sm:text-sm text-green-950">{isTh ? 'LINE Official Account (แนะนำ)' : 'LINE Official Account (Recommended)'}</div>
                   <div className="text-xs text-green-700 font-mono">{lineOaId}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Tap to Add Friend & start chat</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{isTh ? 'แตะเพื่อเพิ่มเพื่อนและเริ่มแชท' : 'Tap to Add Friend & start chat'}</div>
                 </div>
               </div>
               <span className="text-xs text-green-700 font-bold group-hover:translate-x-0.5 transition flex items-center gap-1">
-                <span>Add Friend</span>
+                <span>{isTh ? 'เพิ่มเพื่อน' : 'Add Friend'}</span>
                 <Icon name="externalLink" className="w-3.5 h-3.5" />
               </span>
             </a>
@@ -146,12 +153,12 @@ export function DigitalContactModal({ isOpen, onClose }) {
                   <Icon name="whatsapp" className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">WhatsApp Support</div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">{isTh ? 'แชทผ่าน WhatsApp' : 'WhatsApp Support'}</div>
                   <div className="text-xs text-slate-500">{CONTACT_CHANNELS.whatsapp.handle}</div>
                 </div>
               </div>
               <span className="text-xs text-emerald-700 font-bold group-hover:translate-x-0.5 transition flex items-center gap-1">
-                <span>Open Chat</span>
+                <span>{isTh ? 'เปิดแชท' : 'Open Chat'}</span>
                 <Icon name="externalLink" className="w-3.5 h-3.5" />
               </span>
             </a>
@@ -166,12 +173,12 @@ export function DigitalContactModal({ isOpen, onClose }) {
                   <Icon name="mail" className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">Email Support</div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">{isTh ? 'ติดต่อทางอีเมล' : 'Email Support'}</div>
                   <div className="text-xs text-slate-500">{CONTACT_CHANNELS.email.handle}</div>
                 </div>
               </div>
               <span className="text-xs text-sky-700 font-bold group-hover:translate-x-0.5 transition flex items-center gap-1">
-                <span>Send Mail</span>
+                <span>{isTh ? 'ส่งอีเมล' : 'Send Mail'}</span>
                 <Icon name="externalLink" className="w-3.5 h-3.5" />
               </span>
             </a>
@@ -185,10 +192,14 @@ export function DigitalContactModal({ isOpen, onClose }) {
             />
             <div>
               <div className="font-extrabold text-sm text-slate-900">
-                Scan with your LINE App
+                {isTh ? 'สแกนด้วยแอปพลิเคชัน LINE' : 'Scan with your LINE App'}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                Open LINE &gt; Tap Add Friend &gt; Tap QR Code &gt; Scan this code to add <strong>{lineOaId}</strong>
+                {isTh ? (
+                  <>เปิดแอป LINE &gt; แตะ เพิ่มเพื่อน &gt; แตะ คิวอาร์โค้ด &gt; สแกนโค้ดนี้เพื่อเพิ่มเพื่อน <strong>{lineOaId}</strong></>
+                ) : (
+                  <>Open LINE &gt; Tap Add Friend &gt; Tap QR Code &gt; Scan this code to add <strong>{lineOaId}</strong></>
+                )}
               </p>
             </div>
           </div>
@@ -199,7 +210,7 @@ export function DigitalContactModal({ isOpen, onClose }) {
             onClick={onClose}
             className="text-xs font-semibold text-slate-500 hover:text-slate-800"
           >
-            Close Window
+            {isTh ? 'ปิดหน้าต่าง' : 'Close Window'}
           </button>
         </div>
 

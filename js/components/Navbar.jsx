@@ -170,7 +170,7 @@ export function Navbar({
                 {currentCity === 'Pattaya' ? (t('brandSubtitlePattaya') || 'Pattaya Door-to-Door By KG') : (t('brandSubtitleBangkok') || 'Bangkok Door-to-Door By KG')}
               </p>
               <p className="text-[10px] text-sky-600 font-bold">
-                100% Cashless • Digital Laundry
+                {language === 'th' ? 'ชำระเงินไร้เงินสด 100% • บริการซักอบรีดดิจิทัล' : '100% Cashless • Digital Laundry'}
               </p>
             </div>
           </div>
@@ -265,7 +265,7 @@ export function Navbar({
                 <div className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">
                   👤
                 </div>
-                <span className="truncate max-w-[100px]">คุณ {customer.nickName || (customer.fullName || '').split(' ')[0]}</span>
+                <span className="truncate max-w-[100px]">{language === 'th' ? 'คุณ ' : ''}{customer.nickName || (customer.fullName || '').split(' ')[0]}</span>
               </button>
             ) : (
               <button
@@ -395,7 +395,11 @@ export function Navbar({
             <div className="flex items-start gap-2 text-emerald-950 text-xs font-medium">
               <Icon name="phone" className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
               <span>
-                <strong>Phone & Online Support:</strong> Call or WhatsApp our team at <a href="tel:+66808889885" className="font-bold underline text-emerald-800">+66 80 888 9885</a>, or connect via LINE Official.
+                {language === 'th' ? (
+                  <><strong>ฝ่ายบริการลูกค้า:</strong> โทรหรือทัก WhatsApp ที่ <a href="tel:+66808889885" className="font-bold underline text-emerald-800">+66 80 888 9885</a> หรือติดต่อผ่าน LINE Official</>
+                ) : (
+                  <><strong>Phone & Online Support:</strong> Call or WhatsApp our team at <a href="tel:+66808889885" className="font-bold underline text-emerald-800">+66 80 888 9885</a>, or connect via LINE Official.</>
+                )}
               </span>
             </div>
           </div>
