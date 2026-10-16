@@ -501,13 +501,15 @@ export function App() {
             <section className="py-14 sm:py-16 bg-gradient-to-r from-sky-700 via-sky-600 to-teal-600 text-white text-center relative overflow-hidden">
               <div className="max-w-4xl mx-auto px-4 relative z-10">
                 <span className="inline-block px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-4 border border-white/20">
-                  Ready to Experience Cloud Laundry?
+                  {language === 'th' ? 'พร้อมสัมผัสประสบการณ์ซักอบรีดส่งถึงที่หรือยัง?' : 'Ready to Experience Cloud Laundry?'}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                  Start Your Doorstep Laundry Order in Minutes
+                  {language === 'th' ? 'จองบริการรับผ้าถึงหน้าประตูในไม่กี่นาที' : 'Start Your Doorstep Laundry Order in Minutes'}
                 </h2>
                 <p className="mt-3 text-sky-100 text-sm sm:text-base max-w-xl mx-auto">
-                  Transparent KG pricing, precision digital scale photo receipts, and full juristic reception drop-off support across Bangkok & Pattaya.
+                  {language === 'th'
+                    ? 'คิดราคาตามน้ำหนักจริงอย่างโปร่งใส ส่งรูปถ่ายเครื่องชั่งดิจิทัลยืนยัน พร้อมรองรับการฝากนิติบุคคลคอนโดทั่วกรุงเทพฯ และพัทยา'
+                    : 'Transparent KG pricing, precision digital scale photo receipts, and full juristic reception drop-off support across Bangkok & Pattaya.'}
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                   <button
@@ -515,14 +517,14 @@ export function App() {
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-sky-900 hover:bg-slate-100 font-extrabold text-base px-8 py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5"
                   >
                     <Icon name="truck" className="w-5 h-5 text-sky-600" />
-                    <span>Book Pickup Now</span>
+                    <span>{language === 'th' ? 'จองรับผ้าทันที' : 'Book Pickup Now'}</span>
                   </button>
                   <button
                     onClick={() => navigateTo('services')}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sky-800/60 hover:bg-sky-800 text-white font-bold text-base px-6 py-3.5 rounded-xl border border-white/30 backdrop-blur-md transition"
                   >
                     <Icon name="scale" className="w-5 h-5" />
-                    <span>View Pricing & Calculator</span>
+                    <span>{language === 'th' ? 'ดูราคาและคำนวณค่าบริการ' : 'View Pricing & Calculator'}</span>
                   </button>
                 </div>
               </div>
@@ -577,10 +579,12 @@ export function App() {
               💬
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-              Customer Support &amp; Order Updates
+              {language === 'th' ? 'ฝ่ายบริการลูกค้าและการติดตามสถานะคำสั่งซื้อ' : 'Customer Support & Order Updates'}
             </h1>
             <p className="text-slate-600 text-sm leading-relaxed max-w-lg mx-auto">
-              To check on your order status, verify pickup or delivery times, or ask questions, please contact our Customer Service team directly. All communications are documented in writing with digital scale verification photos.
+              {language === 'th'
+                ? 'หากต้องการตรวจสอบสถานะคำสั่งซื้อ ตรวจสอบเวลารับ-ส่งผ้า หรือสอบถามข้อมูลเพิ่มเติม สามารถติดต่อทีมงานบริการลูกค้าได้โดยตรง ทุกการติดต่อจะมีบันทึกเป็นลายลักษณ์อักษรพร้อมรูปถ่ายยืนยันการชั่งน้ำหนัก'
+                : 'To check on your order status, verify pickup or delivery times, or ask questions, please contact our Customer Service team directly. All communications are documented in writing with digital scale verification photos.'}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <a
@@ -607,7 +611,7 @@ export function App() {
                 onClick={() => navigateTo('home')}
                 className="text-xs font-semibold text-slate-500 hover:text-slate-800 underline"
               >
-                ← Return to Home
+                {language === 'th' ? '← กลับสู่หน้าหลัก' : '← Return to Home'}
               </button>
             </div>
           </div>
@@ -725,7 +729,7 @@ export function App() {
               <Icon name="whatsapp" className="w-4 h-4 text-white" />
               <Icon name="line" className="w-4 h-4 text-white" />
             </div>
-            <span className="hidden sm:inline">Online Chat Support</span>
+            <span className="hidden sm:inline">{language === 'th' ? 'แชทติดต่อสอบถาม' : 'Online Chat Support'}</span>
             <span className="w-2 h-2 rounded-full bg-white animate-ping-subtle" />
           </button>
         </div>

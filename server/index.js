@@ -254,8 +254,8 @@ async function ensureDatabaseSchema() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS gateway_fee NUMERIC;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS net_payout NUMERIC;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS deposit_bank_ref VARCHAR(128);
-      ALTER TABLE orders ADD COLUMN IF NOT EXISTS assigned_rider VARCHAR(128);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS billing_sent_at TIMESTAMPTZ;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS billing_channel VARCHAR(50);
 
       CREATE TABLE IF NOT EXISTS customers (
         id VARCHAR(64) PRIMARY KEY,
@@ -496,8 +496,8 @@ function mapOrder(row) {
     unit: row.unit || 'KG',
     categoryId: row.category_id || 'laundry_by_weight',
     items: row.items && Array.isArray(row.items) ? row.items : (typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || [])),
-    assignedRider: row.assigned_rider || null,
     billingSentAt: row.billing_sent_at ? new Date(row.billing_sent_at).toISOString() : null,
+    billingChannel: row.billing_channel || (row.billing_sent_at ? 'EMAIL' : null),
     timeline: Array.isArray(row.timeline) ? row.timeline : [],
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
   };
@@ -2470,13 +2470,15 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
 
     const now = new Date();
     const billingSentAt = now.toISOString();
+    const billingChannel = 'EMAIL';
     order.billingSentAt = billingSentAt;
+    order.billingChannel = billingChannel;
 
     // Dispatch the confirmed billing email
     const emailRes = await sendConfirmedBillingEmail(order, recipientEmail || order.email);
 
     // Audit log
-    const auditNote = note || `Admin sent Confirmed Billing & Cashless Payment Link to customer (${order.email || order.contactValue}) for ฿${order.totalPrice} THB.`;
+    const auditNote = note || `Admin sent Official Tax Invoice & Cashless Payment Link to customer (${order.email || order.contactValue}) for ฿${order.totalPrice} THB via Email.`;
     const timelineEntry = { status: order.status || 'BILLING', timestamp: now.toISOString(), note: auditNote };
     order.timeline = [...(order.timeline || []), timelineEntry];
 
@@ -2485,10 +2487,11 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
         await query(`
           UPDATE orders
           SET billing_sent_at = $1,
-              timeline = $2,
+              billing_channel = $2,
+              timeline = $3,
               updated_at = NOW()
-          WHERE id = $3
-        `, [billingSentAt, JSON.stringify(order.timeline), id]);
+          WHERE id = $4
+        `, [billingSentAt, billingChannel, JSON.stringify(order.timeline), id]);
       } catch (dbErr) {
         console.warn('[SERVER] Could not update billing_sent_at in Postgres:', dbErr.message);
       }
@@ -2496,13 +2499,14 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
 
     const locIdx = localOrders.findIndex(o => o.id === id);
     if (locIdx !== -1) {
-      localOrders[locIdx] = { ...localOrders[locIdx], ...order, billingSentAt };
+      localOrders[locIdx] = { ...localOrders[locIdx], ...order, billingSentAt, billingChannel };
       saveLocalOrders(localOrders);
     }
 
     res.json({
       success: emailRes.sent,
       billingSentAt,
+      billingChannel,
       order,
       messageId: emailRes.messageId,
       recipients: emailRes.recipients,
@@ -2510,6 +2514,74 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
     });
   } catch (err) {
     console.error('[SERVER] Failed to send confirmed billing email:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Record that invoice was dispatched via WhatsApp, LINE, Email, etc.
+app.post('/api/orders/:id/record-invoice-sent', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { channel = 'WHATSAPP', note } = req.body || {};
+
+    let order = null;
+    let fromDb = false;
+    try {
+      const dbRes = await query('SELECT * FROM orders WHERE id = $1', [id]);
+      if (dbRes.rows.length > 0) {
+        order = mapOrder(dbRes.rows[0]);
+        fromDb = true;
+      }
+    } catch (e) {
+      console.warn('[SERVER] PostgreSQL query fallback in /api/orders/:id/record-invoice-sent:', e.message);
+    }
+
+    if (!order) {
+      order = localOrders.find(o => o.id === id);
+    }
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const now = new Date();
+    const billingSentAt = now.toISOString();
+    const billingChannel = String(channel).toUpperCase();
+    order.billingSentAt = billingSentAt;
+    order.billingChannel = billingChannel;
+
+    const auditNote = note || `Official Tax Invoice & Cashless Payment Link dispatched to customer via ${billingChannel} (Total: ฿${order.totalPrice || 0} THB).`;
+    const timelineEntry = { status: order.status || 'BILLING', timestamp: billingSentAt, note: auditNote };
+    order.timeline = [...(order.timeline || []), timelineEntry];
+
+    if (fromDb) {
+      try {
+        await query(`
+          UPDATE orders
+          SET billing_sent_at = $1,
+              billing_channel = $2,
+              timeline = $3,
+              updated_at = NOW()
+          WHERE id = $4
+        `, [billingSentAt, billingChannel, JSON.stringify(order.timeline), id]);
+      } catch (dbErr) {
+        console.warn('[SERVER] Could not update billing_sent_at in Postgres:', dbErr.message);
+      }
+    }
+
+    const locIdx = localOrders.findIndex(o => o.id === id);
+    if (locIdx !== -1) {
+      localOrders[locIdx] = { ...localOrders[locIdx], ...order, billingSentAt, billingChannel };
+      saveLocalOrders(localOrders);
+    }
+
+    res.json({
+      success: true,
+      billingSentAt,
+      billingChannel,
+      order
+    });
+  } catch (err) {
+    console.error('[SERVER] Failed to record invoice sent:', err);
     res.status(500).json({ error: err.message });
   }
 });

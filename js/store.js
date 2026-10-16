@@ -1224,6 +1224,9 @@ export class LaundryStore {
         if (serviceUpdates.billingSentAt !== undefined) {
           updated.billingSentAt = serviceUpdates.billingSentAt;
         }
+        if (serviceUpdates.billingChannel !== undefined) {
+          updated.billingChannel = serviceUpdates.billingChannel;
+        }
 
         if (actualWeightKg !== null && actualWeightKg !== undefined && actualWeightKg !== '') {
           updated.actualWeightKg = Number(actualWeightKg);

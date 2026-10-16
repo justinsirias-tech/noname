@@ -1286,16 +1286,30 @@ export function AdminPOS({
 
                             <td className="py-3.5 px-4">
                               <div className="font-black text-slate-900">฿{order.totalPrice}</div>
-                              <div className="mt-0.5">
-                                {isPaid ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                                    <Icon name="check" className="w-2.5 h-2.5" /> PAID (Gateway)
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
-                                    Awaiting Online Pay
-                                  </span>
-                                )}
+                              <div className="mt-0.5 space-y-1">
+                                <div>
+                                  {isPaid ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                      <Icon name="check" className="w-2.5 h-2.5" /> PAID (Gateway)
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                                      Awaiting Online Pay
+                                    </span>
+                                  )}
+                                </div>
+                                <div>
+                                  {order.billingSentAt ? (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-bold border border-emerald-200" title={`Invoice dispatched via ${order.billingChannel || 'Email'} at ${order.billingSentAt}`}>
+                                      <Icon name="checkCircle" className="w-2.5 h-2.5 text-emerald-600" />
+                                      <span>Inv: {order.billingChannel || 'Sent'}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-medium border border-slate-200" title="Tax invoice not dispatched yet">
+                                      <span>No Inv</span>
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </td>
 

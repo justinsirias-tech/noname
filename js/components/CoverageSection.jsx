@@ -177,7 +177,7 @@ export function CoverageSection({ setView, city = 'Bangkok', onSwitchCity }) {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>🏙️ Bangkok (All 50 Districts)</span>
+              <span>{language === 'th' ? '🏙️ กรุงเทพฯ (ครบทั้ง 50 เขต)' : '🏙️ Bangkok (All 50 Districts)'}</span>
             </button>
             <button
               type="button"
@@ -191,7 +191,7 @@ export function CoverageSection({ setView, city = 'Bangkok', onSwitchCity }) {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>🏖️ Pattaya (All Zones)</span>
+              <span>{language === 'th' ? '🏖️ พัทยา (ทุกหาด ทุกโซน)' : '🏖️ Pattaya (All Zones)'}</span>
             </button>
           </div>
         </div>
@@ -229,12 +229,12 @@ export function CoverageSection({ setView, city = 'Bangkok', onSwitchCity }) {
                 <Icon name="check" className="w-4 h-4 text-emerald-600" />
                 <span>
                   {filteredList.length > 0 
-                    ? `${filteredList.length} area zone(s) matched • 100% Daily Pickup & Delivery Guaranteed!`
-                    : `We cover all areas in ${activeCityTab === 'bangkok' ? 'Bangkok' : 'Pattaya'}! Contact our team if not listed.`}
+                    ? (language === 'th' ? `พบ ${filteredList.length} โซนพื้นที่ • รับประกันบริการรับ-ส่งทุกวัน 100%!` : `${filteredList.length} area zone(s) matched • 100% Daily Pickup & Delivery Guaranteed!`)
+                    : (language === 'th' ? `เราให้บริการครอบคลุมทุกพื้นที่ใน${activeCityTab === 'bangkok' ? 'กรุงเทพฯ' : 'พัทยา'}! หากไม่พบในรายการโปรดติดต่อเรา` : `We cover all areas in ${activeCityTab === 'bangkok' ? 'Bangkok' : 'Pattaya'}! Contact our team if not listed.`)}
                 </span>
               </span>
               <span className="text-[10px] text-emerald-600 uppercase tracking-wide">
-                Daily 10:30+
+                {language === 'th' ? 'รอบรับผ้า 10:30+' : 'Daily 10:30+'}
               </span>
             </div>
           )}
@@ -252,14 +252,14 @@ export function CoverageSection({ setView, city = 'Bangkok', onSwitchCity }) {
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
                     <h3 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-sky-700 transition">
-                      {item.district}
+                      {language === 'th' && item.thaiName ? item.thaiName : item.district}
                     </h3>
                     <span className="text-xs font-semibold text-slate-400 block mt-0.5">
-                      {item.thaiName}
+                      {language === 'th' ? item.district : item.thaiName}
                     </span>
                   </div>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold shrink-0 border border-emerald-200">
-                    Active Daily
+                    {language === 'th' ? 'เปิดบริการทุกวัน' : 'Active Daily'}
                   </span>
                 </div>
 
@@ -295,7 +295,7 @@ export function CoverageSection({ setView, city = 'Bangkok', onSwitchCity }) {
               <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                 <span className="flex items-center gap-1 font-semibold text-emerald-700">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping-subtle" />
-                  {item.status}
+                  {language === 'th' ? 'รับ-ส่งถึงหน้าประตูและนิติบุคคลทุกวัน (10:30 - 20:30)' : item.status}
                 </span>
               </div>
             </div>
@@ -319,7 +319,9 @@ export function CoverageSection({ setView, city = 'Bangkok', onSwitchCity }) {
                 onClick={() => setShowAllDistricts(!showAllDistricts)}
                 className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-sky-700 hover:bg-sky-50 shadow-2xs transition cursor-pointer"
               >
-                {showAllDistricts ? 'Hide 50 Districts' : 'Show All 50 Districts'}
+                {showAllDistricts 
+                  ? (language === 'th' ? 'ซ่อนรายชื่อ 50 เขต' : 'Hide 50 Districts') 
+                  : (language === 'th' ? 'แสดงรายชื่อทั้ง 50 เขต' : 'Show All 50 Districts')}
               </button>
             </div>
 

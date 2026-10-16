@@ -6,6 +6,7 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [sentToast, setSentToast] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // ESC key listener
   useEffect(() => {
@@ -130,51 +131,37 @@ Need assistance? Contact our team:
     recordDispatch('LINE');
   };
 
-  // Email Action with clean, structured text and prominent gateway link
-  const handleSendEmail = () => {
-    const subject = encodeURIComponent(`NoName Laundry - Order #${order.id} Summary & Payment Link (฿${totalPrice} THB)`);
-    const emailBody = 
-`Hello ${order.customerName},
-
-Thank you for choosing NoName Laundry Bangkok!
-
-Here is your order summary and secure cashless payment link:
-
-ORDER DETAILS
-----------------------------------------
-Order ID: #${order.id}
-Invoice: ${invoiceNumber}
-Date: ${issueDate}
-Service: ${order.serviceName} (${speedLabel})
-${Array.isArray(order.items) && order.items.length > 0 
-  ? order.items.map(it => `• ${it.name || it.serviceName}: ฿${it.subtotal || 0} THB`).join('\n') 
-  : ''}
-Pickup: ${order.pickupDate || 'Scheduled'} (${order.pickupTime || ''})
-Delivery: ${order.deliveryDate || 'Scheduled'} (${order.deliveryTime || ''})
-Delivery Fee: ${deliveryFee > 0 ? `฿${deliveryFee} THB` : 'FREE'}
-Address: ${[order.condoName, order.roomNumber ? `Unit ${order.roomNumber}` : '', order.subdistrict || order.district, order.city || 'Bangkok'].filter(Boolean).join(', ')}
-
-TOTAL AMOUNT: ฿${totalPrice} THB
-PAYMENT STATUS: ${isPaid ? 'PAID' : 'Pending Payment (100% Cashless)'}
-
-----------------------------------------
-PAY ONLINE VIA SECURE CASHLESS GATEWAY:
-${paymentUrl}
-----------------------------------------
-(Accepts PromptPay QR from all Thai banking apps and Visa / Mastercard / JCB with 3D-Secure)
-
-If you have any questions or wish to modify pickup times, please contact us anytime:
-• Phone / WhatsApp: +66 80 888 9885
-• LINE Official: @nonamelaundry
-• Email: support@nonamelaundry.com
-
-Warm regards,
-NoName Laundry Bangkok
-https://apptest.thatlaundryshop.com`;
-
-    const mailtoUrl = `mailto:${order.email || ''}?subject=${subject}&body=${encodeURIComponent(emailBody)}`;
-    window.location.href = mailtoUrl;
-    recordDispatch('EMAIL');
+  // Email Action: Dispatches official HTML Tax Invoice & Payment Link directly from server
+  const handleSendEmail = async () => {
+    if (!order) return;
+    setSendingEmail(true);
+    setSentToast('');
+    try {
+      const res = await fetch(`/api/orders/${encodeURIComponent(order.id)}/send-billing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: order.email,
+          actualWeightKg: certifiedWeight,
+          totalPrice: totalPrice,
+          serviceName: order.serviceName,
+          items: order.items
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        recordDispatch('EMAIL');
+        setSentToast(`✓ Tax invoice & payment link sent automatically to ${order.email || 'customer'}!`);
+      } else {
+        setSentToast(`⚠ Notice: ${data.error || data.reason || 'Email queued / processed'}`);
+      }
+    } catch (err) {
+      console.warn('Send invoice email error:', err);
+      setSentToast(`⚠ Failed to send email: ${err.message}`);
+    } finally {
+      setSendingEmail(false);
+      setTimeout(() => setSentToast(''), 5000);
+    }
   };
 
   // Copy Link Action
@@ -191,15 +178,32 @@ https://apptest.thatlaundryshop.com`;
     window.print();
   };
 
-  // Record audit trail event
-  const recordDispatch = (channelName) => {
+  // Record audit trail event & update dispatch status
+  const recordDispatch = async (channelName) => {
+    const nowIso = new Date().toISOString();
+    order.billingSentAt = nowIso;
+    order.billingChannel = channelName;
+
     const note = `Official Tax Invoice (${invoiceNumber}) & Payment Link generated and sent to customer via ${channelName}. Total: ฿${totalPrice} THB.`;
-    if (onInvoiceSent) {
-      onInvoiceSent(order.id, note);
-    } else {
-      laundryStore.updateOrderStatus(order.id, order.status, note);
+    try {
+      await fetch(`/api/orders/${encodeURIComponent(order.id)}/record-invoice-sent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: channelName, note })
+      });
+    } catch (e) {
+      console.warn('Record invoice sent error:', e);
     }
-    setSentToast(`Invoice & Payment Link dispatched via ${channelName}!`);
+
+    if (onInvoiceSent) {
+      onInvoiceSent(order.id, note, channelName, nowIso);
+    } else {
+      laundryStore.updateOrderStatus(order.id, order.status, note, null, null, {
+        billingSentAt: nowIso,
+        billingChannel: channelName
+      });
+    }
+    setSentToast(`✓ Invoice & Payment Link dispatched via ${channelName}!`);
     setTimeout(() => setSentToast(''), 4000);
   };
 
@@ -259,6 +263,19 @@ https://apptest.thatlaundryshop.com`;
           </div>
         </div>
 
+        {/* Invoice Dispatch Status Ribbon */}
+        {order.billingSentAt && (
+          <div className="bg-emerald-600 text-white text-xs font-bold px-6 py-2.5 flex items-center justify-between border-b border-emerald-700 print:hidden animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <Icon name="checkCircle" className="w-4 h-4 text-emerald-200" />
+              <span>✓ Tax Invoice already dispatched to customer via {order.billingChannel || 'Email'} ({new Date(order.billingSentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} at {new Date(order.billingSentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})</span>
+            </div>
+            <span className="text-[10px] bg-emerald-800/90 text-white px-2 py-0.5 rounded font-mono uppercase tracking-wider border border-emerald-500">
+              DISPATCHED ✓
+            </span>
+          </div>
+        )}
+
         {/* Action Dispatch Toolbar (Hidden when Printing) */}
         <div className="px-6 py-3 bg-white border-b border-slate-200 flex items-center justify-between gap-3 flex-wrap shrink-0 print:hidden">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -271,30 +288,44 @@ https://apptest.thatlaundryshop.com`;
             <button
               type="button"
               onClick={handleSendWhatsApp}
-              className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs"
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
+                order.billingSentAt && order.billingChannel === 'WHATSAPP'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+              }`}
             >
               <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" />
-              <span>WhatsApp</span>
+              <span>{order.billingSentAt && order.billingChannel === 'WHATSAPP' ? '✓ WhatsApp (Resend)' : 'WhatsApp'}</span>
             </button>
 
             {/* LINE */}
             <button
               type="button"
               onClick={handleSendLine}
-              className="px-3 py-1.5 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 border border-green-300 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs"
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
+                order.billingSentAt && order.billingChannel === 'LINE'
+                  ? 'bg-green-100 text-green-900 border-green-300'
+                  : 'bg-green-50 hover:bg-green-100 text-green-800 border-green-300'
+              }`}
             >
               <Icon name="line" className="w-3.5 h-3.5 text-green-600" />
-              <span>LINE OA {copiedText && <span className="text-[10px] text-green-700 font-extrabold">(Copied!)</span>}</span>
+              <span>{order.billingSentAt && order.billingChannel === 'LINE' ? '✓ LINE OA (Resend)' : 'LINE OA'} {copiedText && <span className="text-[10px] text-green-700 font-extrabold">(Copied!)</span>}</span>
             </button>
 
             {/* Email */}
             <button
               type="button"
+              disabled={sendingEmail}
               onClick={handleSendEmail}
-              className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs"
+              className={`px-3.5 py-1.5 rounded-xl text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${
+                order.billingSentAt && order.billingChannel === 'EMAIL'
+                  ? 'bg-emerald-700 hover:bg-emerald-600'
+                  : 'bg-sky-600 hover:bg-sky-500 disabled:opacity-50'
+              }`}
+              title="Automatically send official Tax Invoice & Payment Link directly to customer via email"
             >
-              <Icon name="mail" className="w-3.5 h-3.5 text-sky-600" />
-              <span>Email</span>
+              <Icon name={order.billingSentAt && order.billingChannel === 'EMAIL' ? 'check' : 'mail'} className="w-3.5 h-3.5 text-white" />
+              <span>{sendingEmail ? 'Sending Email...' : (order.billingSentAt && order.billingChannel === 'EMAIL' ? '✓ Invoice Sent via Email (Resend)' : 'Send Invoice via Email')}</span>
             </button>
           </div>
 

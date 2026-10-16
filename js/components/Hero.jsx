@@ -3,7 +3,7 @@ import { Icon } from './Icons.jsx';
 import { useTranslation } from '../i18n.jsx';
 
 export function Hero({ services, setView, onSelectServiceForBooking, city = 'Bangkok', onSwitchCity, onOpenContactModal }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const scrollToSection = (id) => {
     if (typeof document !== 'undefined') {
@@ -27,9 +27,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-sky-200 shadow-sm text-xs font-semibold text-sky-800">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>
-              {city === 'Pattaya' 
-                ? '🏖️ Pattaya Pickup & Delivery' 
-                : '🏙️ Bangkok Pickup & Delivery'}
+              {city === 'Pattaya' ? t('heroBadgePattaya') : t('heroBadgeBangkok')}
             </span>
           </div>
 
@@ -38,7 +36,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition cursor-pointer"
           >
             <span className="text-amber-500">★★★★★</span>
-            <span>4.9 / 5.0 (650+ Condo Reviews)</span>
+            <span>{t('heroReviewsPill')}</span>
           </button>
 
           <a
@@ -51,23 +49,21 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
             <Icon name="receipt" className="w-3.5 h-3.5 text-emerald-600" />
-            <span>100% Cashless PromptPay / Card</span>
+            <span>{t('heroCashlessPill')}</span>
           </div>
         </div>
 
         {/* Main Hero Header */}
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15] break-words">
-            Purely Digital Laundry by KG across{' '}
+            {t('heroTitlePrefix')}{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-sky-500 to-teal-500">
-              {city === 'Pattaya' ? 'All Pattaya Zones' : 'All Bangkok Sub-Districts'}
+              {city === 'Pattaya' ? t('heroTitleCityPattaya') : t('heroTitleCityBangkok')}
             </span>
           </h1>
 
           <p className="mt-5 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-            {city === 'Pattaya' 
-              ? 'Reliable door-to-door laundry service across Pattaya, Wongamat, Pratumnak, and Jomtien. Book online in 60 seconds with digital scale photo receipts and juristic drop-off support.'
-              : 'Effortless door-to-door laundry service across all 50 Bangkok districts and sub-districts. Book online in 60 seconds with certified digital scale weigh-ins and condominium juristic reception handover.'}
+            {city === 'Pattaya' ? t('heroDescPattaya') : t('heroDescBangkok')}
           </p>
 
           {/* Quick Jump Action Pills */}
@@ -76,25 +72,25 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
               onClick={() => scrollToSection('how-it-works')}
               className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
             >
-              <span>📋 How It Works (4 Steps)</span>
+              <span>{t('heroJumpHiw')}</span>
             </button>
             <button
               onClick={() => scrollToSection('coverage')}
               className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
             >
-              <span>📍 Sub-District Coverage</span>
+              <span>{t('heroJumpCoverage')}</span>
             </button>
             <button
               onClick={() => scrollToSection('reviews')}
               className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
             >
-              <span>💬 Customer Reviews</span>
+              <span>{t('heroJumpReviews')}</span>
             </button>
             <button
               onClick={() => setView('services')}
               className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 text-xs font-bold transition"
             >
-              <span>🏷️ View All Rates</span>
+              <span>{t('heroJumpRates')}</span>
             </button>
           </div>
 
@@ -105,7 +101,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-base px-8 py-3.5 rounded-xl shadow-lg shadow-sky-600/30 hover:shadow-sky-600/40 transition transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
             >
               <Icon name="truck" className="w-5 h-5" />
-              <span>Schedule Online Pickup</span>
+              <span>{t('heroBtnBook')}</span>
             </button>
 
             <button
@@ -113,7 +109,7 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 font-bold text-base px-6 py-3.5 rounded-xl border border-slate-200 shadow-sm transition cursor-pointer"
             >
               <Icon name="scale" className="w-5 h-5 text-sky-600" />
-              <span>Instant Price Calculator</span>
+              <span>{t('heroBtnCalc')}</span>
             </button>
 
             <button
@@ -124,26 +120,26 @@ export function Hero({ services, setView, onSelectServiceForBooking, city = 'Ban
                 <Icon name="whatsapp" className="w-4 h-4 text-emerald-600" />
                 <Icon name="line" className="w-4 h-4 text-emerald-500" />
               </div>
-              <span>Customer Care</span>
+              <span>{t('heroBtnSupport')}</span>
             </button>
           </div>
 
           {/* Trust Guarantees */}
           <div className="mt-6 flex items-center justify-center gap-4 text-xs text-slate-500 flex-wrap">
             <span className="flex items-center gap-1">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" /> Photo & Digital Scale Proof
+              <Icon name="check" className="w-4 h-4 text-emerald-600" /> {t('heroTrustScale')}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" /> Condo Juristic Desk OK
+              <Icon name="check" className="w-4 h-4 text-emerald-600" /> {t('heroTrustJuristic')}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" /> Pickups from 10:30 Daily
+              <Icon name="check" className="w-4 h-4 text-emerald-600" /> {t('heroTrustHours')}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <Icon name="check" className="w-4 h-4 text-emerald-600" /> 100% Cashless
+              <Icon name="check" className="w-4 h-4 text-emerald-600" /> {t('heroTrustCashless')}
             </span>
           </div>
 

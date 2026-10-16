@@ -1,5 +1,134 @@
 [
   {
+    "id": "NNL-9483-BK",
+    "customerName": "Justin test Chan",
+    "firstName": "Justin",
+    "lastName": "test Chan",
+    "contactChannel": "whatsapp",
+    "contactValue": "+66 888949645",
+    "email": "justin.sirias@gmail.com",
+    "serviceId": "wash_iron_fold",
+    "serviceName": "Wash / Iron / Fold",
+    "city": "Bangkok",
+    "district": "Lat Krabang",
+    "subdistrict": "",
+    "condoName": "Centro Rama 9 - Motorway",
+    "roomNumber": "29/58",
+    "leaveWithJuristic": false,
+    "estimatedWeightKg": 4,
+    "actualWeightKg": 20,
+    "minWeightAppliedKg": 4,
+    "pricePerKg": 300,
+    "totalPrice": 1290,
+    "turnaroundSpeed": "same_day",
+    "status": "SCHEDULED",
+    "paymentStatus": "PENDING",
+    "paymentMethod": null,
+    "paymentRef": null,
+    "tagNumber": "TAG-PENDING",
+    "pickupDate": "2026-10-18",
+    "pickupTime": "12:30 - 14:30 (Midday)",
+    "deliveryDate": "Same Day (Delivered before 18:00)",
+    "deliveryTime": "Before 18:00 hrs",
+    "specialInstructions": "",
+    "agreedTerms": true,
+    "cashlessPolicyAcknowledged": true,
+    "reconciliationStatus": "UNRECONCILED",
+    "reconciledAt": null,
+    "reconciledBy": null,
+    "reconciliationNotes": "",
+    "customerId": "CUST-6921",
+    "bankAccountRef": "",
+    "gatewayFee": null,
+    "netPayout": null,
+    "depositBankRef": "",
+    "postalCode": "10520",
+    "deliveryFee": 90,
+    "quantity": 0,
+    "unit": "bundle",
+    "categoryId": "laundry_by_weight",
+    "items": [
+      {
+        "name": "Wash / Iron / Fold",
+        "rate": 300,
+        "unit": "KG",
+        "quantity": 1,
+        "subtotal": 1200,
+        "serviceId": "wash_iron_fold",
+        "pricePerKg": 300,
+        "pricingType": "weight",
+        "serviceName": "Wash / Iron / Fold",
+        "billableAmount": 4,
+        "estimatedWeightKg": 4
+      }
+    ],
+    "billingSentAt": "2026-10-16T15:35:05.746Z",
+    "billingChannel": "WHATSAPP",
+    "timeline": [
+      {
+        "note": "Booking created online via WHATSAPP. Details to be confirmed with customer.",
+        "status": "TBA",
+        "timestamp": "2026-10-16 15:10"
+      },
+      {
+        "note": "Admin sent Confirmed Billing & Cashless Payment Link to customer (justin.sirias@gmail.com) for ฿1290 THB.",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:10:57.135Z"
+      },
+      {
+        "note": "Admin sent Confirmed Billing & Cashless Payment Link to customer (justin.sirias@gmail.com) for ฿1290 THB.",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:11:13.343Z"
+      },
+      {
+        "note": "Admin sent Confirmed Billing & Cashless Payment Link to customer (nonamelaundrybooking@gmail.com) for ฿1290 THB.",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:20:18.025Z"
+      },
+      {
+        "note": "Admin sent Confirmed Billing & Cashless Payment Link to customer (justin.sirias@gmail.com) for ฿1290 THB.",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:20:47.599Z"
+      },
+      {
+        "note": "Admin sent Confirmed Billing & Cashless Payment Link to customer (justin.sirias@gmail.com) for ฿1290 THB.",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:21:08.468Z"
+      },
+      {
+        "note": "Admin sent Confirmed Billing & Cashless Payment Link to customer (justin.sirias@gmail.com) for ฿1290 THB.",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:24:45.188Z"
+      },
+      {
+        "note": "Admin sent Confirmed Billing & Cashless Payment Link to customer (justin.sirias@gmail.com) for ฿1290 THB.",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:25:16.261Z"
+      },
+      {
+        "note": "Order details updated by staff.",
+        "status": "TBA",
+        "timestamp": "2026-10-16 15:26"
+      },
+      {
+        "note": "Admin sent Confirmed Billing & Cashless Payment Link to customer (justin.sirias@gmail.com) for ฿6090 THB.",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:26:29.698Z"
+      },
+      {
+        "note": "Official Tax Invoice & Cashless Payment Link dispatched to customer via WHATSAPP (Total: ฿6090 THB).",
+        "status": "TBA",
+        "timestamp": "2026-10-16T15:35:05.746Z"
+      },
+      {
+        "note": "Moved to 2. Scheduled via Kanban drag & drop.",
+        "status": "SCHEDULED",
+        "timestamp": "2026-10-16 15:35"
+      }
+    ],
+    "createdAt": "2026-10-16T15:10:32.920Z"
+  },
+  {
     "id": "NNL-9670-BK",
     "customerName": "Test Workflow Customer",
     "firstName": "Test",

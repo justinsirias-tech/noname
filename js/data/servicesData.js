@@ -70,6 +70,7 @@ export const INITIAL_CATEGORIES = [
     badge: '🧺 By Weight (KG)',
     pricingType: 'weight',
     description: 'Everyday casual clothes, gym wear, shirts, socks, and garments billed transparently by digital certified scale weight.',
+    descriptionTh: 'เสื้อผ้าทั่วไป ชุดลำลอง เสื้อยืด กางเกง ถุงเท้า คิดราคาโปร่งใสตามน้ำหนักจริงบนตาชั่งดิจิทัล',
     displayOrder: 1
   },
   {
@@ -80,6 +81,7 @@ export const INITIAL_CATEGORIES = [
     badge: '🛏️ Per Piece / Item',
     pricingType: 'piece',
     description: 'Bulky bedsheets, duvet covers, comforters, pillowcases, and blankets washed in heavy-duty commercial machines with hypoallergenic sanitization.',
+    descriptionTh: 'ผ้าปูที่นอน ปลอกผ้านวม ผ้านวม ปลอกหมอน และผ้าห่มหนา ซักด้วยเครื่องซักผ้าขนาดใหญ่มาตรฐานสากล พร้อมอบฆ่าเชื้อ',
     displayOrder: 2
   },
   {
@@ -90,6 +92,7 @@ export const INITIAL_CATEGORIES = [
     badge: '🛋️ Per Piece / Set',
     pricingType: 'piece',
     description: 'Window drapes, curtains, sofa covers, bath towels, and decorative textiles refreshed and steam-pressed.',
+    descriptionTh: 'ผ้าม่าน มู่ลี่ผ้า ผ้าคลุมโซฟา ผ้าเช็ดตัว และของใช้ในบ้าน ซักสะอาดและรีดไอน้ำอย่างประณีต',
     displayOrder: 3
   },
   {
@@ -100,6 +103,7 @@ export const INITIAL_CATEGORIES = [
     badge: '✨ Specialty Care',
     pricingType: 'piece',
     description: 'Formal blazers, evening silk dresses, wool suits, and luxury garments requiring gentle care.',
+    descriptionTh: 'ชุดสูท เสื้อเบลเซอร์ ชุดราตรี ผ้าไหม และผ้าที่ต้องการการดูแลเป็นพิเศษ คืนผ้าเรียบสวยพร้อมไม้แขวน',
     displayOrder: 4
   }
 ];
@@ -111,6 +115,7 @@ export const INITIAL_SERVICES = [
     name: 'Wash / Fold',
     nameTh: 'ซัก อบ พับ',
     description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
+    descriptionTh: 'เสื้อผ้าทั่วไป เสื้อยืด ชุดออกกำลังกาย กางเกงขาสั้น ถุงเท้า ผ้าเช็ดตัว ซักด้วยน้ำยาคุณภาพ อบแห้ง และพับจัดระเบียบอย่างประณีต',
     unit: 'KG',
     pricingType: 'weight',
     pricePerKg: 70,
@@ -127,6 +132,13 @@ export const INITIAL_SERVICES = [
       'Neat, compact folding by apparel type',
       'Sealed in moisture-proof dust bags',
       'Pickup & delivery across Bangkok'
+    ],
+    featuresTh: [
+      'น้ำยาซักผ้าและปรับผ้านุ่มสูตรอ่อนโยน',
+      'อบผ้าด้วยอุณหภูมิที่ถนอมเนื้อผ้า',
+      'พับแยกตามประเภทชุดอย่างเรียบร้อย',
+      'บรรจุในถุงกันฝุ่นและกันความชื้น',
+      'บริการรับ-ส่งตรงถึงคอนโดและที่พัก'
     ]
   },
   {
@@ -135,6 +147,7 @@ export const INITIAL_SERVICES = [
     name: 'Wash / Iron / Fold',
     nameTh: 'ซัก อบ รีด พับ',
     description: 'Ideal for workwear, cotton shirts, chinos, and dresses that require crisp steam ironing and tidy folded packaging.',
+    descriptionTh: 'เหมาะสำหรับชุดทำงาน เสื้อเชิ้ต กางเกงสแล็ค และเดรส ที่ต้องการการรีดไอน้ำเรียบกริบ พร้อมพับจัดเก็บอย่างเรียบร้อย',
     unit: 'KG',
     pricingType: 'weight',
     pricePerKg: 95,
@@ -151,6 +164,13 @@ export const INITIAL_SERVICES = [
       'Hand steam ironing for crisp look',
       'Expert folding with tissue inserts if needed',
       'Clear protective garment packaging'
+    ],
+    featuresTh: [
+      'ตรวจสอบและป้ายขจัดคราบก่อนซัก',
+      'ซักและปรับสภาพเส้นใยผ้าเกรดพรีเมียม',
+      'รีดไอน้ำด้วยมือเพื่อความเรียบเนียน',
+      'พับอย่างประณีตพร้อมกระดาษรองทรง',
+      'บรรจุในซองป้องกันฝุ่นอย่างดี'
     ]
   },
   {
@@ -159,6 +179,7 @@ export const INITIAL_SERVICES = [
     name: 'Wash / Iron / Hang',
     nameTh: 'ซัก อบ รีด แขวน',
     description: 'Perfect for business suits, formal button-downs, evening dresses, and delicate linen blouses returned wrinkle-free on high-grade hangers.',
+    descriptionTh: 'เหมาะสำหรับเสื้อเชิ้ตทางการ ชุดสูท เดรสออกงาน และเสื้อผ้าลินิน คืนผ้าเรียบไร้รอยยับพร้อมไม้แขวนคุณภาพสูง',
     unit: 'KG',
     pricingType: 'weight',
     pricePerKg: 120,
@@ -175,6 +196,13 @@ export const INITIAL_SERVICES = [
       'Heavy-duty hangers included at no extra cost',
       'Full-length breathable garment cover',
       'Direct-to-wardrobe ready on delivery'
+    ],
+    featuresTh: [
+      'ซักด้วยระบบควบคุมอุณหภูมิถนอมเนื้อผ้า',
+      'รีดไอน้ำละเอียดระดับมืออาชีพ ไร้รอยยับ',
+      'พร้อมไม้แขวนเสื้อคุณภาพดีฟรี',
+      'คลุมด้วยถุงคลุมเสื้อผ้าแบบระบายอากาศ',
+      'ส่งถึงที่พร้อมแขวนเข้าตู้เสื้อผ้าทันที'
     ]
   },
   {
@@ -183,6 +211,7 @@ export const INITIAL_SERVICES = [
     name: 'Duvet / Comforter / Blanket',
     nameTh: 'ผ้านวม / ไส้ผ้านวม / ผ้าห่มหนา',
     description: 'Bulky King/Queen comforters and thick winter blankets washed in high-capacity drums with anti-dust mite heat sanitization and fluffy loft restoration.',
+    descriptionTh: 'ผ้านวมขนาด King/Queen และผ้าห่มหนา ซักด้วยเครื่องซักผ้าขนาดใหญ่ ฆ่าเชื้อไรฝุ่นด้วยความร้อน พร้อมอบฟูนุ่ม',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 220,
@@ -198,6 +227,12 @@ export const INITIAL_SERVICES = [
       'Anti-dust mite thermal sanitization',
       'Gentle tumble dry for loft restoration',
       'Breathable zipper storage bag included'
+    ],
+    featuresTh: [
+      'ซักด้วยเครื่องซักความจุสูงมาตรฐานสากล',
+      'ฆ่าเชื้อและกำจัดไรฝุ่นด้วยความร้อน',
+      'อบแห้งถนอมเนื้อผ้า คืนความฟู นุ่มนวล',
+      'บรรจุในถุงซิปอย่างดี สะอาดหมดจด'
     ]
   },
   {
@@ -206,6 +241,7 @@ export const INITIAL_SERVICES = [
     name: 'Bed Sheet / Fitted Sheet',
     nameTh: 'ผ้าปูที่นอน (King / Queen / Single)',
     description: 'Deep-cleaned bed sheets with fabric softening conditioner and hotel-grade flatwork steam ironing for an ultra-smooth bedtime feel.',
+    descriptionTh: 'ทำความสะอาดล้ำลึกสำหรับผ้าปูที่นอน พร้อมน้ำยาปรับผ้านุ่ม และรีดไอน้ำแบบเรียบเนียนมาตรฐานโรงแรม',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 80,
@@ -221,6 +257,12 @@ export const INITIAL_SERVICES = [
       'Gentle fabric conditioning for silky touch',
       'Steam ironed for smooth hotel-finish crispness',
       'Individual moisture-proof protective packaging'
+    ],
+    featuresTh: [
+      'ขจัดคราบเหงื่อไคลและสิ่งสกปรกฝังลึก',
+      'ปรับผ้านุ่มเพื่อสัมผัสที่นุ่มสบายผิว',
+      'รีดเรียบมาตรฐานโรงแรมระดับห้าดาว',
+      'บรรจุในถุงป้องกันความชื้นเฉพาะชิ้น'
     ]
   },
   {
@@ -229,6 +271,7 @@ export const INITIAL_SERVICES = [
     name: 'Duvet Cover',
     nameTh: 'ปลอกผ้านวม',
     description: 'Premium washing and professional steam ironing for duvet covers of all fabric blends and thread counts.',
+    descriptionTh: 'ซักทำความสะอาดและรีดไอน้ำระดับมืออาชีพสำหรับปลอกผ้านวมทุกเนื้อผ้า',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 90,
@@ -244,6 +287,12 @@ export const INITIAL_SERVICES = [
       'Anti-static soft finish',
       'Crisp steam pressing',
       'Tidy compact folding'
+    ],
+    featuresTh: [
+      'น้ำยาถนอมสีผ้าให้สดใส',
+      'ป้องกันไฟฟ้าสถิต ผิวสัมผัสนุ่ม',
+      'รีดไอน้ำเรียบเนียน',
+      'พับเก็บกะทัดรัด สะดวกต่อการใช้งาน'
     ]
   },
   {
@@ -252,6 +301,7 @@ export const INITIAL_SERVICES = [
     name: 'Pillowcase / Bolstercase',
     nameTh: 'ปลอกหมอน / ปลอกหมอนข้าง',
     description: 'Sanitized hot wash treatment to remove facial oils and allergens, finished with steam pressing.',
+    descriptionTh: 'ซักฆ่าเชื้อด้วยความร้อนเพื่อขจัดความมันบนใบหน้าและสารก่อภูมิแพ้ พร้อมรีดเรียบ',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 30,
@@ -266,6 +316,11 @@ export const INITIAL_SERVICES = [
       'Hypoallergenic sanitizing cycle',
       'Gentle skin-friendly conditioner',
       'Hand-finished steam ironed'
+    ],
+    featuresTh: [
+      'โปรแกรมซักฆ่าเชื้อลดสารก่อภูมิแพ้',
+      'ปรับผ้านุ่มสูตรอ่อนโยน ไม่ระคายเคืองผิว',
+      'รีดไอน้ำด้วยมือเรียบร้อย'
     ]
   },
   {
@@ -274,6 +329,7 @@ export const INITIAL_SERVICES = [
     name: 'Mattress Protector / Topper',
     nameTh: 'ผ้ารองกันเปื้อนที่นอน / ท็อปเปอร์',
     description: 'Deep stain extraction and sanitized drying for quilted mattress protectors, toppers, and waterproof pads.',
+    descriptionTh: 'ขจัดคราบฝังลึกและอบฆ่าเชื้อสำหรับผ้ารองกันเปื้อน ท็อปเปอร์ และแผ่นรองกันน้ำ',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 180,
@@ -288,6 +344,11 @@ export const INITIAL_SERVICES = [
       'Deep stain lifting pre-treatment',
       'Multi-layer moisture extraction',
       'Low-heat protective drying'
+    ],
+    featuresTh: [
+      'ขจัดคราบเฉพาะจุดก่อนเข้าเครื่องซัก',
+      'ปั่นดึงความชื้นหลายชั้นอย่างหมดจด',
+      'อบแห้งด้วยความร้อนพอเหมาะถนอมแผ่นใย'
     ]
   },
   {
@@ -296,6 +357,7 @@ export const INITIAL_SERVICES = [
     name: 'Bath Towel & Bath Mat',
     nameTh: 'ผ้าเช็ดตัวและผ้าเช็ดเท้า',
     description: 'Plush washing, fabric conditioning, and high-heat sanitizing for fluffy, absorbent, fresh-smelling towels.',
+    descriptionTh: 'ซักอบฟู ปรับผ้านุ่ม และฆ่าเชื้อด้วยความร้อนสูง คืนความนุ่มฟู ซึมซับน้ำได้ดี ไร้กลิ่นอับ',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 45,
@@ -310,6 +372,11 @@ export const INITIAL_SERVICES = [
       'Fluffy loft restoration cycle',
       'Anti-bacterial sanitizing rinse',
       'Hotel-style compact rolling or folding'
+    ],
+    featuresTh: [
+      'โปรแกรมคืนความฟูนุ่มของเส้นใยผ้า',
+      'ล้างฆ่าเชื้อและลดการสะสมของแบคทีเรีย',
+      'ม้วนหรือพับสไตล์โรงแรมอย่างประณีต'
     ]
   },
   {
@@ -318,6 +385,7 @@ export const INITIAL_SERVICES = [
     name: 'Curtains / Window Drapes',
     nameTh: 'ผ้าม่านและมู่ลี่ผ้า',
     description: 'Dust mite removal, gentle fabric wash, and vertical steam pressing for blackout curtains and sheer drapes.',
+    descriptionTh: 'กำจัดไรฝุ่น ซักถนอมเนื้อผ้า และรีดไอน้ำแนวตั้งสำหรับผ้าม่านทึบแสงและม่านโปร่ง',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 160,
@@ -333,6 +401,12 @@ export const INITIAL_SERVICES = [
       'Fabric shape and pleat preservation',
       'Wrinkle-free steam finishing',
       'Protective hanging or folded delivery'
+    ],
+    featuresTh: [
+      'กำจัดไรฝุ่นและสารก่อภูมิแพ้ด้วยความร้อน',
+      'รักษารูปทรงและจับจีบผ้าม่านอย่างสวยงาม',
+      'รีดไอน้ำให้เรียบ ทิ้งตัวสวย',
+      'จัดส่งแบบแขวนหรือพับอย่างทะนุถนอม'
     ]
   },
   {
@@ -341,6 +415,7 @@ export const INITIAL_SERVICES = [
     name: 'Suit Jacket / Blazer',
     nameTh: 'สูทและเสื้อเบลเซอร์',
     description: 'Expert fabric-safe gentle cleansing, collar shaping, and vertical steam pressing on contoured suit hangers.',
+    descriptionTh: 'ดูแลทำความสะอาดถนอมเส้นใย จัดทรงปก และรีดไอน้ำแนวตั้งบนไม้แขวนสูทเข้ารูป',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 190,
@@ -356,6 +431,12 @@ export const INITIAL_SERVICES = [
       'Shoulder and lapel steam shaping',
       'Contoured suit hanger included',
       'Full-length breathable garment bag'
+    ],
+    featuresTh: [
+      'ดูแลรักษาเนื้อผ้าอย่างนุ่มนวลและปลอดภัย',
+      'รีดไอน้ำจัดทรงช่วงไหล่และปกสูท',
+      'แถมไม้แขวนสูทเฉพาะรูปทรง',
+      'ถุงคลุมเสื้อสูทแบบยาวกันฝุ่น'
     ]
   },
   {
@@ -364,6 +445,7 @@ export const INITIAL_SERVICES = [
     name: 'Evening Dress / Silk Gown',
     nameTh: 'ชุดราตรีและผ้าไหมพิเศษ',
     description: 'Specialty care for evening silk dresses, sequin gowns, pleated skirts, and delicate luxury fabrics.',
+    descriptionTh: 'การดูแลพิเศษสำหรับชุดราตรีผ้าไหม ชุดปักเลื่อม กระโปรงพลีท และผ้าหรูหราที่ต้องการความละเอียดอ่อน',
     unit: 'piece',
     pricingType: 'piece',
     pricePerKg: 240,
@@ -379,6 +461,12 @@ export const INITIAL_SERVICES = [
       'Silk & fine embellishment protection',
       'Hand-finished steam pressing',
       'Sealed protective hanging cover'
+    ],
+    featuresTh: [
+      'ตรวจสอบเนื้อผ้าอย่างละเอียดก่อนทำความสะอาด',
+      'ปกป้องผ้าไหมและของประดับตกแต่งชุด',
+      'รีดไอน้ำเก็บรายละเอียดด้วยมืออย่างประณีต',
+      'ส่งมอบพร้อมถุงคลุมชุดแบบยาวกันฝุ่น'
     ]
   }
 ];

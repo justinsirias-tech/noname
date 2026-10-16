@@ -1,8 +1,11 @@
 import React, { useEffect } from 'react';
 import { Icon } from './Icons.jsx';
 import { TERMS_SUMMARY_POINTS } from '../data/termsData.js';
+import { useTranslation } from '../i18n.jsx';
 
 export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) {
+  const { language } = useTranslation();
+
   // ESC key listener to close modal
   useEffect(() => {
     if (!isOpen) return;
@@ -35,10 +38,10 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
             </div>
             <div>
               <h3 className="text-lg font-extrabold text-white">
-                Important Terms & Conditions Summary
+                {language === 'th' ? 'สรุปสาระสำคัญของข้อกำหนดและเงื่อนไข' : 'Important Terms & Conditions Summary'}
               </h3>
               <p className="text-xs text-slate-300">
-                Please review our digital operating policies before completing your booking
+                {language === 'th' ? 'โปรดตรวจสอบนโยบายการให้บริการก่อนยืนยันการจอง' : 'Please review our digital operating policies before completing your booking'}
               </p>
             </div>
           </div>
@@ -60,9 +63,11 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
             <Icon name="phone" className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
             <div className="text-xs text-emerald-950 leading-relaxed">
               <strong className="font-bold block text-sm mb-1 text-emerald-950">
-                Customer Support & Assistance
+                {language === 'th' ? 'ฝ่ายบริการลูกค้าและการติดต่อ' : 'Customer Support & Assistance'}
               </strong>
-              NoName Laundry provides direct phone call and WhatsApp support at <strong>+66 80 888 9885</strong>, alongside <strong>LINE Official</strong> and <strong>Email</strong>.
+              {language === 'th'
+                ? 'NoName Laundry มีบริการดูแลลูกค้าผ่านทางโทรศัพท์และ WhatsApp ที่เบอร์ +66 80 888 9885 รวมถึง LINE Official (@nonamelaundry) และอีเมล'
+                : 'NoName Laundry provides direct phone call and WhatsApp support at +66 80 888 9885, alongside LINE Official and Email.'}
             </div>
           </div>
 
@@ -77,10 +82,10 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
                 </div>
                 <div>
                   <div className="font-bold text-slate-900 text-xs sm:text-sm">
-                    {pt.title}
+                    {language === 'th' && pt.titleTh ? pt.titleTh : pt.title}
                   </div>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    {pt.desc}
+                    {language === 'th' && pt.descTh ? pt.descTh : pt.desc}
                   </p>
                 </div>
               </div>
@@ -92,7 +97,7 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
               onClick={onViewFullTerms}
               className="text-xs text-sky-600 hover:text-sky-700 font-semibold inline-flex items-center gap-1 underline underline-offset-4"
             >
-              <span>Read Full Legal Terms & Conditions Page</span>
+              <span>{language === 'th' ? 'อ่านข้อกำหนดและเงื่อนไขฉบับเต็ม' : 'Read Full Legal Terms & Conditions Page'}</span>
               <Icon name="externalLink" className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -102,7 +107,7 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
         {/* Modal Footer */}
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <span className="text-xs text-slate-500 text-center sm:text-left">
-            By acknowledging, you confirm reading these policies.
+            {language === 'th' ? 'การกดยอมรับแสดงว่าคุณได้รับทราบและยินยอมตามนโยบายนี้' : 'By acknowledging, you confirm reading these policies.'}
           </span>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -110,7 +115,7 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
               onClick={onClose}
               className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition"
             >
-              Close
+              {language === 'th' ? 'ปิด' : 'Close'}
             </button>
             <button
               onClick={() => {
@@ -120,7 +125,7 @@ export function TermsModal({ isOpen, onClose, onAcknowledge, onViewFullTerms }) 
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md transition flex items-center justify-center gap-1.5"
             >
               <Icon name="check" className="w-4 h-4" />
-              <span>I Understand & Acknowledge Terms</span>
+              <span>{language === 'th' ? 'ฉันเข้าใจและยอมรับข้อกำหนด' : 'I Understand & Acknowledge Terms'}</span>
             </button>
           </div>
         </div>

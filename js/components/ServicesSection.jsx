@@ -461,11 +461,12 @@ export function ServicesSection({
                   </option>
                   {services.map(srv => {
                     const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
-                    const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
+                    const unitLabel = isPiece ? (language === 'th' ? 'ชิ้น' : (srv.unit || 'piece')) : (language === 'th' ? 'กก.' : 'KG');
                     const stdPrice = srv.standardPricePerKg || srv.pricePerKg || 70;
+                    const displayName = (language === 'th' && srv.nameTh) ? srv.nameTh : srv.name;
                     return (
                       <option key={srv.id} value={srv.id}>
-                        {srv.name} — ฿{stdPrice}/{unitLabel}
+                        {displayName} — ฿{stdPrice}/{unitLabel}
                       </option>
                     );
                   })}
@@ -475,18 +476,21 @@ export function ServicesSection({
           ) : (
             /* Added Services List with Quantity / Weight Steppers */
             <div className="space-y-1.5 max-h-56 sm:max-h-64 overflow-y-auto pr-0.5">
-              {selectedEntries.map((item) => (
+              {selectedEntries.map((item) => {
+                const displayName = (language === 'th' && item.nameTh) ? item.nameTh : item.name;
+                const displayUnit = item.isPiece ? (language === 'th' ? 'ชิ้น' : item.unitLabel) : (language === 'th' ? 'กก.' : 'KG');
+                return (
                 <div key={item.id} className="bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/90 shadow-2xs space-y-1.5">
                   <div className="flex items-center justify-between gap-1.5">
                     <div className="min-w-0 flex items-center gap-1.5 flex-wrap flex-1">
-                      <span className="font-extrabold text-xs text-slate-900 truncate">{item.name}</span>
+                      <span className="font-extrabold text-xs text-slate-900 truncate">{displayName}</span>
                       <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded shrink-0 ${
                         item.isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
                       }`}>
-                        {item.isPiece ? 'Piece' : 'KG'}
+                        {item.isPiece ? (language === 'th' ? 'ชิ้น' : 'Piece') : (language === 'th' ? 'กก.' : 'KG')}
                       </span>
                       <span className="text-[10px] text-slate-500 font-medium tabular-nums">
-                        (฿{item.rate}/{item.unitLabel})
+                        (฿{item.rate}/{displayUnit})
                       </span>
                     </div>
 
@@ -518,7 +522,7 @@ export function ServicesSection({
                           -
                         </button>
                         <span className="min-w-[48px] px-1 text-center font-extrabold text-xs text-slate-900 tabular-nums">
-                          {item.qty} {item.unitLabel}
+                          {item.qty} {displayUnit}
                         </span>
                         <button
                           type="button"
@@ -545,7 +549,7 @@ export function ServicesSection({
                             -
                           </button>
                           <span className="min-w-[58px] text-center font-black text-xs text-sky-700 bg-white px-1.5 py-0.5 rounded border border-sky-200 tabular-nums">
-                            {item.weight} KG
+                            {item.weight} {language === 'th' ? 'กก.' : 'KG'}
                           </span>
                           <button
                             type="button"
@@ -568,13 +572,14 @@ export function ServicesSection({
                       />
                       {Number(item.weight) < Number(item.minWeight) && (
                         <div className="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                          Min {item.minWeight} KG applied (฿{item.subtotal} THB)
+                          {language === 'th' ? `คิดน้ำหนักขั้นต่ำ ${item.minWeight} กก. (฿${item.subtotal} บาท)` : `Min ${item.minWeight} KG applied (฿${item.subtotal} THB)`}
                         </div>
                       )}
                     </div>
                   )}
                 </div>
-              ))}
+              );
+              })}
 
               {/* Add Another Service Dropdown */}
               <select
@@ -589,11 +594,12 @@ export function ServicesSection({
                 </option>
                 {services.filter(s => !selectedServicesMap[s.id]).map(srv => {
                   const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
-                  const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
+                  const unitLabel = isPiece ? (language === 'th' ? 'ชิ้น' : (srv.unit || 'piece')) : (language === 'th' ? 'กก.' : 'KG');
                   const stdPrice = srv.standardPricePerKg || srv.pricePerKg || 70;
+                  const displayName = (language === 'th' && srv.nameTh) ? srv.nameTh : srv.name;
                   return (
                     <option key={srv.id} value={srv.id}>
-                      {srv.name} — ฿{stdPrice}/{unitLabel}
+                      {displayName} — ฿{stdPrice}/{unitLabel}
                     </option>
                   );
                 })}
@@ -910,38 +916,40 @@ export function ServicesSection({
               </div>
               <div>
                 <span className="px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-                  Booking Confirmed
+                  {language === 'th' ? '✓ ยืนยันการจองเรียบร้อยแล้ว' : 'Booking Confirmed'}
                 </span>
                 <h3 className="text-xl font-black text-slate-900 mt-1">
-                  Order #{quickBookedOrder.id}
+                  {language === 'th' ? `หมายเลขคำสั่งซื้อ #${quickBookedOrder.id}` : `Order #${quickBookedOrder.id}`}
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  Thank you, {quickBookedOrder.customerName}! Your pickup is scheduled for {quickBookedOrder.pickupDate} ({quickBookedOrder.pickupTime}).
+                  {language === 'th'
+                    ? `ขอบคุณคุณ ${quickBookedOrder.customerName}! เราได้บันทึกการนัดรับผ้าในวันที่ ${quickBookedOrder.pickupDate} (${quickBookedOrder.pickupTime}) เรียบร้อยแล้ว`
+                    : `Thank you, ${quickBookedOrder.customerName}! Your pickup is scheduled for ${quickBookedOrder.pickupDate} (${quickBookedOrder.pickupTime}).`}
                 </p>
               </div>
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Services:</span>
+                  <span className="text-slate-500">{language === 'th' ? 'บริการที่เลือก:' : 'Services:'}</span>
                   <span className="font-bold text-slate-900">{quickBookedOrder.serviceName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Turnaround:</span>
+                  <span className="text-slate-500">{language === 'th' ? 'ระยะเวลาส่งคืน:' : 'Turnaround:'}</span>
                   <span className="font-bold text-sky-700">
                     {quickBookedOrder.turnaroundSpeed === 'same_day'
-                      ? 'Same Day'
+                      ? (language === 'th' ? 'วันเดียว (Same Day)' : 'Same Day')
                       : quickBookedOrder.turnaroundSpeed === 'next_day_24h'
-                        ? 'Next Day'
-                        : 'Standard (2 Days)'}
+                        ? (language === 'th' ? 'วันถัดไป (Next Day)' : 'Next Day')
+                        : (language === 'th' ? 'มาตรฐาน (2 วัน)' : 'Standard (2 Days)')}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Delivery Fee:</span>
+                  <span className="text-slate-500">{language === 'th' ? 'ค่าจัดส่ง:' : 'Delivery Fee:'}</span>
                   <span className="font-bold text-emerald-600">
-                    {Number(quickBookedOrder.deliveryFee) === 0 ? 'FREE (฿0)' : `฿${quickBookedOrder.deliveryFee}`}
+                    {Number(quickBookedOrder.deliveryFee) === 0 ? (language === 'th' ? 'ฟรี (฿0)' : 'FREE (฿0)') : `฿${quickBookedOrder.deliveryFee}`}
                   </span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-slate-200 text-sm font-black text-slate-900">
-                  <span>Estimated Total:</span>
+                  <span>{language === 'th' ? 'ยอดประเมินรวม:' : 'Estimated Total:'}</span>
                   <span className="text-sky-600">฿{quickBookedOrder.totalPrice} THB</span>
                 </div>
               </div>
@@ -950,7 +958,7 @@ export function ServicesSection({
                 onClick={() => setQuickBookedOrder(null)}
                 className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer"
               >
-                Done
+                {language === 'th' ? 'เสร็จสิ้น' : 'Done'}
               </button>
             </div>
           </div>
@@ -1118,7 +1126,7 @@ export function ServicesSection({
                             </div>
 
                             <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-                              {cat.description}
+                              {(language === 'th' && cat.descriptionTh) ? cat.descriptionTh : cat.description}
                             </p>
                           </div>
                         </div>
@@ -1136,16 +1144,18 @@ export function ServicesSection({
                           const nextPrice = service.nextDayPricePerKg || Math.round(stdPrice * 1.3);
                           const samePrice = service.sameDayPricePerKg || Math.round(stdPrice * 1.75);
                           const minWeight = Number(service.minWeightKg) || (serviceIsPiece ? 1.0 : 4.0);
+                          const srvName = (language === 'th' && service.nameTh) ? service.nameTh : service.name;
+                          const srvDesc = (language === 'th' && service.descriptionTh) ? service.descriptionTh : service.description;
 
                           return (
                             <div
                               key={service.id}
                               className={`relative rounded-3xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-200 bg-white border ${
                                 isSelectedInCalc
-                                  ? 'border-2 border-sky-500 ring-2 ring-sky-500/15 shadow-lg shadow-sky-500/10'
-                                  : isPopular
-                                    ? 'border-2 border-sky-400 shadow-md hover:shadow-xl hover:border-sky-500'
-                                    : 'border-slate-200/90 shadow-sm hover:border-slate-300 hover:shadow-md'
+                                   ? 'border-2 border-sky-500 ring-2 ring-sky-500/15 shadow-lg shadow-sky-500/10'
+                                   : isPopular
+                                     ? 'border-2 border-sky-400 shadow-md hover:shadow-xl hover:border-sky-500'
+                                     : 'border-slate-200/90 shadow-sm hover:border-slate-300 hover:shadow-md'
                               }`}
                             >
                               {/* Popular Choice Ribbon */}
@@ -1160,9 +1170,9 @@ export function ServicesSection({
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
                                     <h4 className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug">
-                                      {service.name}
+                                      {srvName}
                                     </h4>
-                                    {service.nameTh && (
+                                    {service.nameTh && language !== 'th' && (
                                       <div className="text-xs text-sky-600 font-bold mt-0.5">
                                         {service.nameTh}
                                       </div>
@@ -1175,7 +1185,7 @@ export function ServicesSection({
 
                                 {/* Service Description */}
                                 <p className="mt-2.5 text-xs text-slate-600 leading-relaxed min-h-[36px]">
-                                  {service.description}
+                                  {srvDesc}
                                 </p>
 
                                 {/* 3-Tier Turnaround Pricing Badges (Standard 2 Days, Next Day, Same Day) */}
@@ -1256,14 +1266,19 @@ export function ServicesSection({
                                   <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
                                     {language === 'th' ? 'สิ่งที่รวมในบริการ:' : 'Included in Service:'}
                                   </div>
-                                  {(service.features || []).map((feat, fIdx) => (
-                                    <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700">
-                                      <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                                        <Icon name="check" className="w-2.5 h-2.5" />
+                                  {(service.features || []).map((feat, fIdx) => {
+                                    const featDisplay = (language === 'th' && service.featuresTh && service.featuresTh[fIdx])
+                                      ? service.featuresTh[fIdx]
+                                      : feat;
+                                    return (
+                                      <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700">
+                                        <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                                          <Icon name="check" className="w-2.5 h-2.5" />
+                                        </div>
+                                        <span className="leading-tight">{featDisplay}</span>
                                       </div>
-                                      <span className="leading-tight">{feat}</span>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
 

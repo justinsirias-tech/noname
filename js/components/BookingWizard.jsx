@@ -606,20 +606,22 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                  <span>Booking Confirmed • Pick-up Scheduled</span>
+                  <span>{language === 'th' ? 'ยืนยันการจองเรียบร้อย • กำหนดเวลารับผ้าแล้ว' : 'Booking Confirmed • Pick-up Scheduled'}</span>
                 </span>
                 <h3 className="text-2xl font-black text-slate-900 mt-1">
-                  Thank You, {completedOrder.customerName || 'Customer'}!
+                  {language === 'th' ? `ขอบคุณ คุณ ${completedOrder.customerName || 'ลูกค้า'}!` : `Thank You, ${completedOrder.customerName || 'Customer'}!`}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Your laundry pickup request has been dispatched to our operations team.
+                  {language === 'th' ? 'รายการจองรับผ้าของคุณถูกส่งต่อไปยังทีมงานเรียบร้อยแล้ว' : 'Your laundry pickup request has been dispatched to our operations team.'}
                 </p>
               </div>
 
               {/* Order Tracking Reference Card with Copy */}
               <div className="p-3 bg-sky-50 rounded-2xl border border-sky-200 flex flex-wrap items-center justify-between gap-3 text-left">
                 <div>
-                  <span className="text-[10px] text-sky-800 uppercase font-bold tracking-wider block">Booking Reference & Live Tracking ID</span>
+                  <span className="text-[10px] text-sky-800 uppercase font-bold tracking-wider block">
+                    {language === 'th' ? 'รหัสอ้างอิงการจอง & ติดตามสถานะสด' : 'Booking Reference & Live Tracking ID'}
+                  </span>
                   <span className="text-lg font-black font-mono text-sky-950">{completedOrder.id}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -635,16 +637,16 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                     className="px-3 py-1.5 rounded-xl bg-white border border-sky-300 text-sky-800 hover:bg-sky-100 text-xs font-bold shadow-2xs transition flex items-center gap-1.5"
                   >
                     <Icon name={copiedOrderId ? "check" : "copy"} className="w-3.5 h-3.5" />
-                    <span>{copiedOrderId ? 'Copied ID!' : 'Copy ID'}</span>
+                    <span>{copiedOrderId ? (language === 'th' ? 'คัดลอกรหัสแล้ว!' : 'Copied ID!') : (language === 'th' ? 'คัดลอกรหัส' : 'Copy ID')}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => window.print()}
                     className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold shadow-2xs transition flex items-center gap-1.5"
-                    title="Print or Save Summary as PDF"
+                    title={language === 'th' ? 'พิมพ์หรือบันทึกเป็น PDF' : 'Print or Save Summary as PDF'}
                   >
                     <Icon name="fileText" className="w-3.5 h-3.5" />
-                    <span>Print / Save</span>
+                    <span>{language === 'th' ? 'พิมพ์ / บันทึก' : 'Print / Save'}</span>
                   </button>
                 </div>
               </div>
@@ -653,7 +655,11 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                 <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200 text-left text-xs text-blue-900 flex items-center gap-2">
                   <Icon name="mail" className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>
-                    A detailed confirmation receipt and itemized breakdown has been emailed to <strong>{completedOrder.email}</strong>.
+                    {language === 'th' ? (
+                      <>ใบเสร็จยืนยันและรายละเอียดรายการได้ถูกส่งไปยังอีเมล <strong>{completedOrder.email}</strong> เรียบร้อยแล้ว</>
+                    ) : (
+                      <>A detailed confirmation receipt and itemized breakdown has been emailed to <strong>{completedOrder.email}</strong>.</>
+                    )}
                   </span>
                 </div>
               )}
@@ -664,43 +670,46 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               <div className="bg-slate-100/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Icon name="package" className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Itemized Booking Summary</span>
+                  <span>{language === 'th' ? 'สรุปรายการคำสั่งซื้อ' : 'Itemized Booking Summary'}</span>
                 </span>
-                <span className="text-[10px] text-slate-500 font-semibold">Prices as set on website</span>
+                <span className="text-[10px] text-slate-500 font-semibold">
+                  {language === 'th' ? 'ราคาตามที่ระบุบนเว็บไซต์' : 'Prices as set on website'}
+                </span>
               </div>
 
               <div className="p-4 space-y-3">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="text-[10px] text-slate-400 uppercase font-semibold border-b border-slate-200">
-                      <th className="pb-2 font-bold">Service / Item</th>
-                      <th className="pb-2 font-bold text-center">Pricing</th>
-                      <th className="pb-2 font-bold text-right">Unit Rate</th>
-                      <th className="pb-2 font-bold text-right">Est. Qty / Wt</th>
-                      <th className="pb-2 font-bold text-right">Subtotal</th>
+                      <th className="pb-2 font-bold">{language === 'th' ? 'บริการ / รายการ' : 'Service / Item'}</th>
+                      <th className="pb-2 font-bold text-center">{language === 'th' ? 'การคิดราคา' : 'Pricing'}</th>
+                      <th className="pb-2 font-bold text-right">{language === 'th' ? 'อัตราต่อหน่วย' : 'Unit Rate'}</th>
+                      <th className="pb-2 font-bold text-right">{language === 'th' ? 'ประมาณการ' : 'Est. Qty / Wt'}</th>
+                      <th className="pb-2 font-bold text-right">{language === 'th' ? 'ยอดรวม' : 'Subtotal'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     {Array.isArray(completedOrder.items) && completedOrder.items.length > 0 ? (
                       completedOrder.items.map((it, idx) => {
                         const isPiece = it.pricingType === 'piece' || it.unit === 'piece';
+                        const itName = (language === 'th' && (it.nameTh || it.serviceNameTh)) ? (it.nameTh || it.serviceNameTh) : (it.name || it.serviceName);
                         return (
                           <tr key={idx} className="hover:bg-white/60">
                             <td className="py-2 font-semibold text-slate-900">
-                              {it.name || it.serviceName}
+                              {itName}
                             </td>
                             <td className="py-2 text-center">
                               <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${
                                 isPiece ? 'bg-purple-100 text-purple-800' : 'bg-sky-100 text-sky-800'
                               }`}>
-                                {isPiece ? 'Per Piece' : 'By Weight'}
+                                {isPiece ? (language === 'th' ? 'คิดเป็นชิ้น' : 'Per Piece') : (language === 'th' ? 'คิดตามน้ำหนัก' : 'By Weight')}
                               </span>
                             </td>
                             <td className="py-2 text-right font-mono text-slate-600">
-                              ฿{it.rate || it.pricePerKg} {isPiece ? '/ pc' : '/ KG'}
+                              ฿{it.rate || it.pricePerKg} {isPiece ? (language === 'th' ? '/ ชิ้น' : '/ pc') : (language === 'th' ? '/ กก.' : '/ KG')}
                             </td>
                             <td className="py-2 text-right font-mono text-slate-600">
-                              {isPiece ? `${it.quantity || 1} pcs` : `${it.estimatedWeightKg || it.billableAmount} KG`}
+                              {isPiece ? `${it.quantity || 1} ${language === 'th' ? 'ชิ้น' : 'pcs'}` : `${it.estimatedWeightKg || it.billableAmount} ${language === 'th' ? 'กก.' : 'KG'}`}
                             </td>
                             <td className="py-2 text-right font-mono font-bold text-slate-900">
                               ฿{it.subtotal || Math.round((it.quantity || it.billableAmount || 1) * (it.rate || it.pricePerKg))} THB
@@ -712,35 +721,43 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                       <tr>
                         <td className="py-2 font-semibold text-slate-900">{completedOrder.serviceName}</td>
                         <td className="py-2 text-center">
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-100 text-sky-800">By Weight</span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-100 text-sky-800">
+                            {language === 'th' ? 'คิดตามน้ำหนัก' : 'By Weight'}
+                          </span>
                         </td>
-                        <td className="py-2 text-right font-mono text-slate-600">฿{completedOrder.pricePerKg} / KG</td>
-                        <td className="py-2 text-right font-mono text-slate-600">{completedOrder.estimatedWeightKg} KG</td>
+                        <td className="py-2 text-right font-mono text-slate-600">฿{completedOrder.pricePerKg} / {language === 'th' ? 'กก.' : 'KG'}</td>
+                        <td className="py-2 text-right font-mono text-slate-600">{completedOrder.estimatedWeightKg} {language === 'th' ? 'กก.' : 'KG'}</td>
                         <td className="py-2 text-right font-mono font-bold text-slate-900">฿{completedOrder.serviceSubtotal} THB</td>
                       </tr>
                     )}
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-slate-200 text-xs">
-                      <td colSpan="4" className="pt-2 text-right text-slate-500 font-medium">Services Subtotal:</td>
+                      <td colSpan="4" className="pt-2 text-right text-slate-500 font-medium">
+                        {language === 'th' ? 'ยอดรวมค่าบริการ:' : 'Services Subtotal:'}
+                      </td>
                       <td className="pt-2 text-right font-mono font-bold text-slate-900">฿{completedOrder.serviceSubtotal} THB</td>
                     </tr>
                     <tr className="text-xs">
                       <td colSpan="4" className="py-1 text-right text-slate-500 font-medium">
-                        Delivery ({completedOrder.city || 'Bangkok'} · {completedOrder.subdistrict || completedOrder.district}):
+                        {language === 'th' ? 'ค่าจัดส่ง' : 'Delivery'} ({completedOrder.city === 'Pattaya' ? (language === 'th' ? 'พัทยา' : 'Pattaya') : (language === 'th' ? 'กรุงเทพฯ' : 'Bangkok')} · {completedOrder.subdistrict || completedOrder.district}):
                       </td>
                       <td className="py-1 text-right font-mono font-bold text-slate-900">
-                        {Number(completedOrder.deliveryFee) > 0 ? `฿${completedOrder.deliveryFee} THB` : <span className="text-emerald-600">FREE</span>}
+                        {Number(completedOrder.deliveryFee) > 0 ? `฿${completedOrder.deliveryFee} THB` : <span className="text-emerald-600">{language === 'th' ? 'ฟรี' : 'FREE'}</span>}
                       </td>
                     </tr>
                     <tr className="border-t border-slate-300 text-sm font-black text-slate-900">
-                      <td colSpan="4" className="pt-2.5 text-right">Grand Estimated Total:</td>
+                      <td colSpan="4" className="pt-2.5 text-right">
+                        {language === 'th' ? 'ยอดประเมินรวมทั้งสิ้น:' : 'Grand Estimated Total:'}
+                      </td>
                       <td className="pt-2.5 text-right font-mono text-sky-900 text-base">฿{completedOrder.totalPrice} THB</td>
                     </tr>
                   </tfoot>
                 </table>
                 <p className="text-[10px] text-slate-400 italic">
-                  * Note: For weight-based laundry, final bill is verified on our calibrated digital scale upon intake. Cashless invoice is issued before return delivery.
+                  {language === 'th'
+                    ? '* หมายเหตุ: สำหรับบริการซักตามน้ำหนัก ยอดรวมสุดท้ายจะคำนวณตามน้ำหนักจริงจากเครื่องชั่งดิจิทัลที่ผ่านการสอบเทียบ ณ ศูนย์ซัก และออกใบแจ้งหนี้ก่อนนำส่งคืน'
+                    : '* Note: For weight-based laundry, final bill is verified on our calibrated digital scale upon intake. Cashless invoice is issued before return delivery.'}
                 </p>
               </div>
             </div>
@@ -748,19 +765,25 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
             {/* 2. Schedule, Address & Handover Logistics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-left">
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Pickup & Delivery Logistics</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                  {language === 'th' ? 'ข้อมูลการรับ-ส่งผ้า' : 'Pickup & Delivery Logistics'}
+                </span>
                 <div>
-                  <strong className="text-slate-900 block font-bold">📅 Pickup Window:</strong>
+                  <strong className="text-slate-900 block font-bold">
+                    {language === 'th' ? '📅 รอบเวลารับผ้า:' : '📅 Pickup Window:'}
+                  </strong>
                   <span className="text-slate-700">{completedOrder.pickupDate} • {completedOrder.pickupTime}</span>
                 </div>
                 <div>
-                  <strong className="text-slate-900 block font-bold">🕒 Target Turnaround:</strong>
+                  <strong className="text-slate-900 block font-bold">
+                    {language === 'th' ? '🕒 ความเร็วบริการ:' : '🕒 Target Turnaround:'}
+                  </strong>
                   <span className="text-slate-700">
                     {completedOrder.turnaroundSpeed === 'same_day'
-                      ? 'Same Day Turnaround'
+                      ? (language === 'th' ? 'ส่งด่วนวันเดียว' : 'Same Day Turnaround')
                       : (completedOrder.turnaroundSpeed === 'next_day_24h' || completedOrder.turnaroundSpeed === 'next_day')
-                        ? 'Next Day Turnaround' 
-                        : 'Standard Turnaround (2 Days)'}
+                        ? (language === 'th' ? 'วันถัดไป (24 ชม.)' : 'Next Day Turnaround') 
+                        : (language === 'th' ? 'มาตรฐาน (2 วัน)' : 'Standard Turnaround (2 Days)')}
                   </span>
                   <span className="text-[11px] text-slate-500 block">
                     {completedOrder.deliveryDate} • {completedOrder.deliveryTime}
@@ -769,22 +792,28 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               </div>
 
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Address & Handover Method</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                  {language === 'th' ? 'ที่อยู่และรูปแบบการส่งมอบผ้า' : 'Address & Handover Method'}
+                </span>
                 <div>
-                  <strong className="text-slate-900 block font-bold">📍 Location:</strong>
+                  <strong className="text-slate-900 block font-bold">
+                    {language === 'th' ? '📍 สถานที่:' : '📍 Location:'}
+                  </strong>
                   <span className="text-slate-700 block">
-                    {completedOrder.condoName}{completedOrder.roomNumber ? `, Room ${completedOrder.roomNumber}` : ''}
+                    {completedOrder.condoName}{completedOrder.roomNumber ? `, ${language === 'th' ? 'ห้อง' : 'Room'} ${completedOrder.roomNumber}` : ''}
                   </span>
                   <span className="text-[11px] text-slate-500 block">
-                    {completedOrder.subdistrict || completedOrder.district}, {completedOrder.district}, {completedOrder.city || 'Bangkok'} {completedOrder.postalCode}
+                    {completedOrder.subdistrict || completedOrder.district}, {completedOrder.district}, {completedOrder.city === 'Pattaya' ? (language === 'th' ? 'พัทยา' : 'Pattaya') : (language === 'th' ? 'กรุงเทพฯ' : 'Bangkok')} {completedOrder.postalCode}
                   </span>
                 </div>
                 <div>
-                  <strong className="text-slate-900 block font-bold">🤝 Handover Preference:</strong>
+                  <strong className="text-slate-900 block font-bold">
+                    {language === 'th' ? '🤝 การส่งมอบผ้า:' : '🤝 Handover Preference:'}
+                  </strong>
                   <span className="text-slate-700">
                     {completedOrder.leaveWithJuristic 
-                      ? '🏢 Leave with Juristic / Condo Front Desk' 
-                      : '🤝 Meet in person (Subject to rider availability)'}
+                      ? (language === 'th' ? '🏢 ฝากที่นิติบุคคล / ล็อบบี้คอนโด' : '🏢 Leave with Juristic / Condo Front Desk') 
+                      : (language === 'th' ? '🤝 ส่งมอบกับคนขับโดยตรง (ขึ้นอยู่กับคิวคนขับ)' : '🤝 Meet in person (Subject to rider availability)')}
                   </span>
                 </div>
               </div>
@@ -798,7 +827,9 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                 </div>
                 <div>
                   <h4 className="text-sm font-black text-green-950">
-                    Connect on LINE Official Account for Live Photo Updates
+                    {language === 'th'
+                      ? 'เชื่อมต่อ LINE Official เพื่อรับภาพถ่ายเครื่องชั่งน้ำหนักและอัปเดตสถานะ'
+                      : 'Connect on LINE Official Account for Live Photo Updates'}
                   </h4>
                   <span className="text-[11px] text-green-700 font-semibold font-mono">
                     {lineOaId}
@@ -807,7 +838,9 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
               </div>
 
               <p className="text-xs text-slate-700 leading-relaxed">
-                Due to LINE privacy regulations in Thailand, businesses cannot initiate messages directly. Tap below to send your Booking ID to our LINE OA so we can send your digital scale photos and delivery ETA!
+                {language === 'th'
+                  ? 'เนื่องจากนโยบายความเป็นส่วนตัวของ LINE ในประเทศไทย ร้านค้าไม่สามารถทักหาลูกค้าก่อนได้ แตะปุ่มด้านล่างเพื่อส่งรหัสการจองไปยัง LINE OA ของเรา เพื่อให้เราสามารถส่งรูปถ่ายเครื่องชั่งดิจิทัลและแจ้งเวลาจัดส่งให้คุณได้ทันที!'
+                  : 'Due to LINE privacy regulations in Thailand, businesses cannot initiate messages directly. Tap below to send your Booking ID to our LINE OA so we can send your digital scale photos and delivery ETA!'}
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -818,7 +851,7 @@ export function BookingWizard({ services, initialServiceId, initialWeight, initi
                   className="py-3 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 text-center"
                 >
                   <Icon name="line" className="w-4 h-4" />
-                  <span>Add LINE OA ({lineOaId})</span>
+                  <span>{language === 'th' ? `เพิ่มเพื่อน LINE OA (${lineOaId})` : `Add LINE OA (${lineOaId})`}</span>
                 </a>
 
                 <a
@@ -857,7 +890,11 @@ Please confirm our pickup schedule. Thank you!`
                   className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs shadow-2xs transition flex items-center justify-center gap-2 text-center"
                 >
                   <Icon name="copy" className="w-4 h-4 text-slate-500" />
-                  <span>{copiedSummaryText ? 'Copied Booking Summary! ✓' : '📋 Copy Booking Summary'}</span>
+                  <span>
+                    {copiedSummaryText 
+                      ? (language === 'th' ? 'คัดลอกสรุปรายการแล้ว! ✓' : 'Copied Booking Summary! ✓') 
+                      : (language === 'th' ? '📋 คัดลอกสรุปข้อมูลการจอง' : '📋 Copy Booking Summary')}
+                  </span>
                 </button>
               </div>
 
@@ -868,7 +905,11 @@ Please confirm our pickup schedule. Thank you!`
                   onClick={() => setShowQrCode(!showQrCode)}
                   className="text-xs text-green-800 hover:text-green-950 font-bold inline-flex items-center gap-1 underline underline-offset-2"
                 >
-                  <span>{showQrCode ? 'Hide QR Code' : 'On Desktop? Scan QR Code with Phone Camera'}</span>
+                  <span>
+                    {showQrCode 
+                      ? (language === 'th' ? 'ซ่อน QR Code' : 'Hide QR Code') 
+                      : (language === 'th' ? 'อยู่บนคอมพิวเตอร์? สแกน QR Code ด้วยมือถือ' : 'On Desktop? Scan QR Code with Phone Camera')}
+                  </span>
                   <Icon name="chevronRight" className="w-3.5 h-3.5" />
                 </button>
 
@@ -880,7 +921,7 @@ Please confirm our pickup schedule. Thank you!`
                       className="w-44 h-44 mx-auto rounded-lg"
                     />
                     <p className="text-[11px] text-slate-500 mt-2 font-mono">
-                      Scan to add <strong>{lineOaId}</strong>
+                      {language === 'th' ? 'สแกนเพื่อเพิ่มเพื่อน' : 'Scan to add'} <strong>{lineOaId}</strong>
                     </p>
                   </div>
                 )}
@@ -890,7 +931,9 @@ Please confirm our pickup schedule. Thank you!`
             {/* Direct Phone Support Notice */}
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="text-slate-600">
-                Need urgent assistance or change pickup time? Call Phone Support:
+                {language === 'th'
+                  ? 'ต้องการความช่วยเหลือด่วน หรือเปลี่ยนเวลารับผ้า? โทรหาเรา:'
+                  : 'Need urgent assistance or change pickup time? Call Phone Support:'}
               </span>
               <a
                 href="tel:+66808889885"
@@ -911,7 +954,7 @@ Please confirm our pickup schedule. Thank you!`
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 font-bold text-xs shadow-2xs transition flex items-center justify-center gap-1.5"
               >
                 <Icon name="search" className="w-4 h-4 text-sky-600" />
-                <span>Track Order Online</span>
+                <span>{language === 'th' ? 'ติดตามสถานะคำสั่งซื้อ' : 'Track Order Online'}</span>
               </button>
 
               <button
@@ -919,7 +962,7 @@ Please confirm our pickup schedule. Thank you!`
                 onClick={() => onBookingSuccess(completedOrder)}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap"
               >
-                <span>Done • Return to Home</span>
+                <span>{language === 'th' ? 'เสร็จสิ้น • กลับสู่หน้าหลัก' : 'Done • Return to Home'}</span>
                 <Icon name="chevronRight" className="w-4 h-4" />
               </button>
             </div>
@@ -949,13 +992,17 @@ Please confirm our pickup schedule. Thank you!`
             <div className="flex items-center gap-2">
               <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">1</span>
               <div>
-                <h2 className="text-lg font-bold text-slate-900">Choose Services & Turnaround</h2>
-                <p className="text-xs text-slate-500">Pick turnaround speed, then tap the services you need.</p>
+                <h2 className="text-lg font-bold text-slate-900">
+                  {language === 'th' ? 'เลือกบริการและความเร็วการจัดส่ง' : 'Choose Services & Turnaround'}
+                </h2>
+                <p className="text-xs text-slate-500">
+                  {language === 'th' ? 'เลือกระดับความเร็ว จากนั้นแตะเลือกบริการที่ต้องการ' : 'Pick turnaround speed, then tap the services you need.'}
+                </p>
               </div>
             </div>
             {selectedEntries.length > 0 && (
               <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold">
-                {selectedEntries.length} {selectedEntries.length === 1 ? 'item' : 'items'} in order • ฿{estimatedTotal}
+                {selectedEntries.length} {language === 'th' ? 'รายการในคำสั่งซื้อ' : (selectedEntries.length === 1 ? 'item' : 'items')} • ฿{estimatedTotal}
               </span>
             )}
           </div>
@@ -963,13 +1010,28 @@ Please confirm our pickup schedule. Thank you!`
           {/* 1. Turnaround Speed Segment Bar */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-              Turnaround Speed *
+              {language === 'th' ? 'ระดับความเร็วบริการ *' : 'Turnaround Speed *'}
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {[
-                { id: 'standard_48h', label: '🕒 Standard (2 Days)', tag: 'Base Rate', desc: 'Returned clean in 2 days' },
-                { id: 'next_day_24h', label: '⚡ Next Day', tag: 'Fast Express', desc: 'Returned clean the next day' },
-                { id: 'same_day', label: '🚀 Same Day', tag: 'Priority', desc: 'Morning pickup, delivered today' }
+                { 
+                  id: 'standard_48h', 
+                  label: language === 'th' ? '🕒 มาตรฐาน (2 วัน)' : '🕒 Standard (2 Days)', 
+                  tag: language === 'th' ? 'ราคาปกติ' : 'Base Rate', 
+                  desc: language === 'th' ? 'จัดส่งคืนภายใน 2 วัน' : 'Returned clean in 2 days' 
+                },
+                { 
+                  id: 'next_day_24h', 
+                  label: language === 'th' ? '⚡ วันถัดไป (24 ชม.)' : '⚡ Next Day', 
+                  tag: language === 'th' ? 'ด่วนพิเศษ' : 'Fast Express', 
+                  desc: language === 'th' ? 'จัดส่งคืนสะอาดในวันรุ่งขึ้น' : 'Returned clean the next day' 
+                },
+                { 
+                  id: 'same_day', 
+                  label: language === 'th' ? '🚀 ส่งด่วนวันเดียว' : '🚀 Same Day', 
+                  tag: language === 'th' ? 'เร่งด่วน' : 'Priority', 
+                  desc: language === 'th' ? 'รับผ้าช่วงเช้า ส่งคืนภายในวันเดียวกัน' : 'Morning pickup, delivered today' 
+                }
               ].map((sp) => (
                 <button
                   key={sp.id}
@@ -999,10 +1061,10 @@ Please confirm our pickup schedule. Thank you!`
           <div className="space-y-2 pt-1">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-100 no-scrollbar">
               {[
-                { id: 'all', label: 'All Services', icon: '🧺' },
-                { id: 'laundry_by_weight', label: 'Everyday Clothes (By KG)', icon: '👕' },
-                { id: 'bedding_linens', label: 'Bedding & Comforters', icon: '🛏️' },
-                { id: 'household_curtains', label: 'Curtains & Household', icon: '🛋️' }
+                { id: 'all', label: language === 'th' ? 'ทุกบริการ' : 'All Services', icon: '🧺' },
+                { id: 'laundry_by_weight', label: language === 'th' ? 'เสื้อผ้าทั่วไป (คิดตาม กก.)' : 'Everyday Clothes (By KG)', icon: '👕' },
+                { id: 'bedding_linens', label: language === 'th' ? 'เครื่องนอนและผ้านวม' : 'Bedding & Comforters', icon: '🛏️' },
+                { id: 'household_curtains', label: language === 'th' ? 'ผ้าม่านและของใช้ในบ้าน' : 'Curtains & Household', icon: '🛋️' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1047,6 +1109,11 @@ Please confirm our pickup schedule. Thank you!`
                 const billable = isPiece ? currentQty : Math.max(currentWeight, Number(srv.minWeightKg || 4.0));
                 const cardSubtotal = Math.round(billable * activePrice);
 
+                const srvName = (language === 'th' && srv.nameTh) ? srv.nameTh : srv.name;
+                const srvSubname = (language === 'th') ? srv.name : srv.nameTh;
+                const srvDesc = (language === 'th' && srv.descriptionTh) ? srv.descriptionTh : srv.description;
+                const unitDisplay = isPiece ? (language === 'th' ? 'ชิ้น' : unitLabel) : (language === 'th' ? 'กก.' : 'KG');
+
                 return (
                   <div
                     key={srv.id}
@@ -1061,14 +1128,16 @@ Please confirm our pickup schedule. Thank you!`
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="font-extrabold text-sm text-slate-900">{srv.name}</h3>
+                            <h3 className="font-extrabold text-sm text-slate-900">{srvName}</h3>
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                               isPiece ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
                             }`}>
-                              {isPiece ? '🛏️ Per Piece' : '🧺 By Weight'}
+                              {isPiece ? (language === 'th' ? '🛏️ คิดเป็นชิ้น' : '🛏️ Per Piece') : (language === 'th' ? '🧺 คิดตามน้ำหนัก' : '🧺 By Weight')}
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-400 font-medium">{srv.nameTh}</div>
+                          {srvSubname && (
+                            <div className="text-[11px] text-slate-400 font-medium">{srvSubname}</div>
+                          )}
                         </div>
 
                         {isSelected && (
@@ -1085,15 +1154,17 @@ Please confirm our pickup schedule. Thank you!`
 
                       {/* Description */}
                       <p className="text-[11px] text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
-                        {srv.description}
+                        {srvDesc}
                       </p>
 
                       {/* Single Clear Rate Display */}
                       <div className="mt-3 flex items-baseline gap-1">
                         <span className="text-xl font-black text-slate-900 font-mono">฿{activePrice}</span>
-                        <span className="text-xs text-slate-500 font-semibold">/ {unitLabel}</span>
+                        <span className="text-xs text-slate-500 font-semibold">/ {unitDisplay}</span>
                         <span className="text-[10px] text-slate-400 ml-auto">
-                          {isPiece ? `Min 1 ${unitLabel}` : `Min ${srv.minWeightKg || 4} KG`}
+                          {isPiece 
+                            ? (language === 'th' ? `ขั้นต่ำ 1 ชิ้น` : `Min 1 ${unitLabel}`) 
+                            : (language === 'th' ? `ขั้นต่ำ ${srv.minWeightKg || 4} กก.` : `Min ${srv.minWeightKg || 4} KG`)}
                         </span>
                       </div>
                     </div>
@@ -1106,14 +1177,16 @@ Please confirm our pickup schedule. Thank you!`
                           onClick={() => handleToggleService(srv.id)}
                           className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-98 cursor-pointer shadow-2xs"
                         >
-                          <span>+ Add to Booking</span>
+                          <span>{language === 'th' ? '+ เพิ่มในรายการจอง' : '+ Add to Booking'}</span>
                         </button>
                       ) : (
                         <div className="space-y-2.5">
                           {isPiece ? (
                             /* Piece Stepper */
                             <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-sky-300">
-                              <span className="text-xs font-bold text-slate-700">Quantity:</span>
+                              <span className="text-xs font-bold text-slate-700">
+                                {language === 'th' ? 'จำนวน:' : 'Quantity:'}
+                              </span>
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
@@ -1138,7 +1211,9 @@ Please confirm our pickup schedule. Thank you!`
                             /* Weight Stepper & Quick Presets */
                             <div className="space-y-2">
                               <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-sky-300">
-                                <span className="text-xs font-bold text-slate-700">Weight:</span>
+                                <span className="text-xs font-bold text-slate-700">
+                                  {language === 'th' ? 'น้ำหนัก:' : 'Weight:'}
+                                </span>
                                 <div className="flex items-center gap-2">
                                   <button
                                     type="button"
@@ -1148,7 +1223,7 @@ Please confirm our pickup schedule. Thank you!`
                                     -
                                   </button>
                                   <span className="w-14 text-center text-sm font-black text-slate-900 font-mono">
-                                    {currentWeight} KG
+                                    {currentWeight} {language === 'th' ? 'กก.' : 'KG'}
                                   </span>
                                   <button
                                     type="button"
@@ -1173,7 +1248,7 @@ Please confirm our pickup schedule. Thank you!`
                                         : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
                                     }`}
                                   >
-                                    {presetKg} KG
+                                    {presetKg} {language === 'th' ? 'กก.' : 'KG'}
                                   </button>
                                 ))}
                               </div>
@@ -1182,7 +1257,9 @@ Please confirm our pickup schedule. Thank you!`
 
                           {/* Item Subtotal */}
                           <div className="flex items-center justify-between pt-1 text-xs">
-                            <span className="text-slate-500 font-medium">Subtotal:</span>
+                            <span className="text-slate-500 font-medium">
+                              {language === 'th' ? 'ยอดรวม:' : 'Subtotal:'}
+                            </span>
                             <span className="font-black text-sky-700 font-mono">฿{cardSubtotal} THB</span>
                           </div>
                         </div>
@@ -1200,24 +1277,33 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-sky-300 uppercase tracking-wider">
-                      Selected Items:
+                      {language === 'th' ? 'รายการที่เลือก:' : 'Selected Items:'}
                     </span>
-                    {selectedEntries.map((it) => (
-                      <span key={it.id} className="text-xs bg-white/10 px-2.5 py-0.5 rounded-lg text-slate-200 font-medium">
-                        {it.name} ({it.isPiece ? `${it.qty} pc` : `${it.weight} KG`})
-                      </span>
-                    ))}
+                    {selectedEntries.map((it) => {
+                      const itName = (language === 'th' && (it.nameTh || it.serviceNameTh)) ? (it.nameTh || it.serviceNameTh) : (it.name || it.serviceName);
+                      return (
+                        <span key={it.id} className="text-xs bg-white/10 px-2.5 py-0.5 rounded-lg text-slate-200 font-medium">
+                          {itName} ({it.isPiece ? `${it.qty} ${language === 'th' ? 'ชิ้น' : 'pc'}` : `${it.weight} ${language === 'th' ? 'กก.' : 'KG'}`})
+                        </span>
+                      );
+                    })}
                   </div>
                   <p className="text-xs text-slate-400">
-                    Speed: <strong className="text-white">{activeSpeed === 'same_day' ? '🚀 Same Day' : activeSpeed === 'next_day_24h' ? '⚡ Next Day' : '🕒 Standard (2 Days)'}</strong> • Delivery calculated in Step 3
+                    {language === 'th' ? (
+                      <>ความเร็ว: <strong className="text-white">{activeSpeed === 'same_day' ? '🚀 ส่งด่วนวันเดียว' : activeSpeed === 'next_day_24h' ? '⚡ วันถัดไป' : '🕒 มาตรฐาน (2 วัน)'}</strong> • ค่าจัดส่งคำนวณในขั้นตอนที่ 3</>
+                    ) : (
+                      <>Speed: <strong className="text-white">{activeSpeed === 'same_day' ? '🚀 Same Day' : activeSpeed === 'next_day_24h' ? '⚡ Next Day' : '🕒 Standard (2 Days)'}</strong> • Delivery calculated in Step 3</>
+                    )}
                   </p>
                 </div>
 
                 <div className="flex items-center sm:flex-col sm:items-end justify-between gap-1 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Estimated Subtotal</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">
+                    {language === 'th' ? 'ยอดรวมประเมิน' : 'Estimated Subtotal'}
+                  </span>
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl sm:text-3xl font-black text-sky-400 font-mono">฿{estimatedTotal}</span>
-                    <span className="text-xs text-slate-300 font-bold">THB</span>
+                    <span className="text-xs text-slate-300 font-bold">{language === 'th' ? 'บาท' : 'THB'}</span>
                   </div>
                 </div>
               </div>
@@ -1225,7 +1311,9 @@ Please confirm our pickup schedule. Thank you!`
           ) : (
             <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
               <p className="text-xs text-slate-500">
-                👉 Please tap <strong>+ Add to Booking</strong> on at least one service above to proceed.
+                {language === 'th' 
+                  ? '👉 กรุณากด "+ เพิ่มในรายการจอง" อย่างน้อย 1 บริการเพื่อดำเนินการต่อ' 
+                  : '👉 Please tap + Add to Booking on at least one service above to proceed.'}
               </p>
             </div>
           )}
@@ -1235,10 +1323,14 @@ Please confirm our pickup schedule. Thank you!`
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
           <div className="flex items-center gap-2 mb-2">
             <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">2</span>
-            <h2 className="text-lg font-bold text-slate-900">Digital Contact Channel</h2>
+            <h2 className="text-lg font-bold text-slate-900">
+              {language === 'th' ? 'ช่องทางการติดต่อดิจิทัล' : 'Digital Contact Channel'}
+            </h2>
           </div>
           <p className="text-xs text-slate-500 mb-6">
-            We send pickup alerts, scale weigh-in confirmations, and invoices digitally. Reach us anytime via Mobile Call & WhatsApp (+66 80 888 9885).
+            {language === 'th'
+              ? 'เราจะส่งการแจ้งเตือนเข้ารับผ้า ภาพถ่ายยืนยันการชั่งน้ำหนัก และใบแจ้งหนี้ผ่านช่องทางออนไลน์ สามารถติดต่อเราได้เสมอผ่านโทรศัพท์และ WhatsApp (+66 80 888 9885)'
+              : 'We send pickup alerts, scale weigh-in confirmations, and invoices digitally. Reach us anytime via Mobile Call & WhatsApp (+66 80 888 9885).'}
           </p>
 
           <div className="space-y-4">
@@ -1246,12 +1338,12 @@ Please confirm our pickup schedule. Thank you!`
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  First Name (ชื่อจริง) <span className="text-red-500">*</span>
+                  {language === 'th' ? 'ชื่อจริง' : 'First Name (ชื่อจริง)'} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Alex / กิตติพัฒน์"
+                  placeholder={language === 'th' ? 'เช่น กิตติพัฒน์ / Alex' : 'e.g. Alex / กิตติพัฒน์'}
                   value={firstName}
                   onChange={(e) => {
                     setFirstName(e.target.value);
@@ -1263,12 +1355,12 @@ Please confirm our pickup schedule. Thank you!`
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Last Name (นามสกุล) <span className="text-red-500">*</span>
+                  {language === 'th' ? 'นามสกุล' : 'Last Name (นามสกุล)'} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Thorne / วงศ์สุวรรณ"
+                  placeholder={language === 'th' ? 'เช่น วงศ์สุวรรณ / Thorne' : 'e.g. Thorne / วงศ์สุวรรณ'}
                   value={lastName}
                   onChange={(e) => {
                     setLastName(e.target.value);
@@ -1283,11 +1375,11 @@ Please confirm our pickup schedule. Thank you!`
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nickname / Preferred Name (ชื่อเล่น)
+                  {language === 'th' ? 'ชื่อเล่น / ชื่อที่สะดวกให้เรียก' : 'Nickname / Preferred Name (ชื่อเล่น)'}
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Alex / บอย"
+                  placeholder={language === 'th' ? 'เช่น บอย / Alex' : 'e.g. Alex / บอย'}
                   value={nickName}
                   onChange={(e) => setNickName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
@@ -1296,7 +1388,7 @@ Please confirm our pickup schedule. Thank you!`
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Email Address (อีเมล) <span className="text-red-500">*</span>
+                  {language === 'th' ? 'ที่อยู่อีเมล' : 'Email Address (อีเมล)'} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -1307,7 +1399,9 @@ Please confirm our pickup schedule. Thank you!`
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
                 />
                 <p className="text-[10px] text-sky-700 font-semibold mt-1">
-                  * Required for sending invoices, booking confirmations, and delivery updates.
+                  {language === 'th'
+                    ? '* จำเป็นสำหรับรับใบแจ้งหนี้ ยืนยันการจอง และอัปเดตสถานะจัดส่ง'
+                    : '* Required for sending invoices, booking confirmations, and delivery updates.'}
                 </p>
               </div>
             </div>
@@ -1315,9 +1409,11 @@ Please confirm our pickup schedule. Thank you!`
             {/* Primary Mobile Number with Live CRM Detection */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-                <span>Primary Mobile Number (เบอร์โทรศัพท์หลัก) <span className="text-red-500">*</span></span>
+                <span>{language === 'th' ? 'เบอร์โทรศัพท์หลัก' : 'Primary Mobile Number (เบอร์โทรศัพท์หลัก)'} <span className="text-red-500">*</span></span>
                 {isCheckingPhone && (
-                  <span className="text-[10px] text-sky-600 font-semibold animate-pulse">Checking CRM profile...</span>
+                  <span className="text-[10px] text-sky-600 font-semibold animate-pulse">
+                    {language === 'th' ? 'กำลังตรวจสอบข้อมูลในระบบ CRM...' : 'Checking CRM profile...'}
+                  </span>
                 )}
               </label>
               <CountryPhoneInput
@@ -1338,8 +1434,16 @@ Please confirm our pickup schedule. Thank you!`
                   <div className="flex items-center gap-2">
                     <span className="text-lg">👋</span>
                     <div>
-                      <span className="font-extrabold text-emerald-900">Welcome back, {detectedCustomer.firstName || detectedCustomer.fullName}!</span>
-                      <span className="block text-[11px] text-emerald-700">Existing CRM member profile found. Details and primary condo address loaded automatically.</span>
+                      <span className="font-extrabold text-emerald-900">
+                        {language === 'th' 
+                          ? `ยินดีต้อนรับกลับมา, คุณ ${detectedCustomer.firstName || detectedCustomer.fullName}!` 
+                          : `Welcome back, ${detectedCustomer.firstName || detectedCustomer.fullName}!`}
+                      </span>
+                      <span className="block text-[11px] text-emerald-700">
+                        {language === 'th'
+                          ? 'พบข้อมูลสมาชิกในระบบ CRM ดึงข้อมูลและที่อยู่คอนโดหลักให้อัตโนมัติ'
+                          : 'Existing CRM member profile found. Details and primary condo address loaded automatically.'}
+                      </span>
                     </div>
                   </div>
                   <span className="text-[10px] uppercase font-mono font-bold bg-emerald-200/70 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-400">
@@ -1349,7 +1453,11 @@ Please confirm our pickup schedule. Thank you!`
               ) : (
                 <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5">
                   <span>✨</span>
-                  <span>New customer profile will be automatically saved to our CRM upon booking.</span>
+                  <span>
+                    {language === 'th'
+                      ? 'ข้อมูลลูกค้าใหม่จะถูกบันทึกในระบบ CRM อัตโนมัติเมื่อทำการจอง'
+                      : 'New customer profile will be automatically saved to our CRM upon booking.'}
+                  </span>
                 </p>
               )}
             </div>
@@ -1357,13 +1465,13 @@ Please confirm our pickup schedule. Thank you!`
             {/* Preferred Online Communication Channel */}
             <div className="pt-2">
               <label className="block text-xs font-bold text-slate-700 mb-2">
-                Preferred Online Notification Channel <span className="text-red-500">*</span>
+                {language === 'th' ? 'ช่องทางแจ้งเตือนออนไลน์ที่ต้องการ' : 'Preferred Online Notification Channel'} <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { id: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp', color: 'emerald' },
                   { id: 'line', label: 'LINE OA', icon: 'line', color: 'green' },
-                  { id: 'email', label: 'Email', icon: 'mail', color: 'sky' }
+                  { id: 'email', label: language === 'th' ? 'อีเมล' : 'Email', icon: 'mail', color: 'sky' }
                 ].map((ch) => (
                   <button
                     key={ch.id}
@@ -1393,12 +1501,16 @@ Please confirm our pickup schedule. Thank you!`
                   <div className="flex items-start gap-2">
                     <Icon name="line" className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
                     <span>
-                      <strong>LINE OA Notice:</strong> After booking, you can add <strong>{lineOaId}</strong> in 1 click to receive immediate driver alerts.
+                      {language === 'th' ? (
+                        <><strong>คำแนะนำ LINE OA:</strong> หลังจองเสร็จ คุณสามารถเพิ่มเพื่อน <strong>{lineOaId}</strong> ใน 1 คลิกเพื่อรับการแจ้งเตือนจากคนขับได้ทันที</>
+                      ) : (
+                        <><strong>LINE OA Notice:</strong> After booking, you can add <strong>{lineOaId}</strong> in 1 click to receive immediate driver alerts.</>
+                      )}
                     </span>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-green-950 mb-1">
-                      Your LINE ID (Optional)
+                      {language === 'th' ? 'LINE ID ของคุณ (ระบุหรือไม่ก็ได้)' : 'Your LINE ID (Optional)'}
                     </label>
                     <input
                       type="text"
@@ -1423,24 +1535,26 @@ Please confirm our pickup schedule. Thank you!`
                 />
                 <span className="flex items-center gap-1.5">
                   <Icon name="building2" className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Request Thai Corporate Tax Receipt (ขอใบกำกับภาษีเต็มรูปแบบ)</span>
+                  <span>{language === 'th' ? 'ขอใบกำกับภาษีเต็มรูปแบบในนามนิติบุคคล' : 'Request Thai Corporate Tax Receipt (ขอใบกำกับภาษีเต็มรูปแบบ)'}</span>
                 </span>
               </label>
 
               {isCompanyTax && (
                 <div className="mt-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                   <p className="text-[11px] text-slate-500">
-                    Official tax deduction receipt will be issued and synced into your customer profile.
+                    {language === 'th'
+                      ? 'ใบกำกับภาษีจะถูกออกให้และบันทึกในระบบสำหรับใช้ลดหย่อนภาษี'
+                      : 'Official tax deduction receipt will be issued and synced into your customer profile.'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        Company Name (ชื่อนิติบุคคล) <span className="text-red-500">*</span>
+                        {language === 'th' ? 'ชื่อนิติบุคคล / บริษัท' : 'Company Name (ชื่อนิติบุคคล)'} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         required={isCompanyTax}
-                        placeholder="e.g. Siam Hospitality Co., Ltd."
+                        placeholder={language === 'th' ? 'เช่น บริษัท สยาม ฮอสพิทาลิตี้ จำกัด' : 'e.g. Siam Hospitality Co., Ltd.'}
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
                         className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
@@ -1448,7 +1562,7 @@ Please confirm our pickup schedule. Thank you!`
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        13-Digit Tax ID (เลขประจำตัวผู้เสียภาษี) <span className="text-red-500">*</span>
+                        {language === 'th' ? 'เลขประจำตัวผู้เสียภาษี 13 หลัก' : '13-Digit Tax ID (เลขประจำตัวผู้เสียภาษี)'} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1463,11 +1577,11 @@ Please confirm our pickup schedule. Thank you!`
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Branch / Office (สำนักงานใหญ่ / เลขที่สาขา)
+                      {language === 'th' ? 'สำนักงานใหญ่ / เลขที่สาขา' : 'Branch / Office (สำนักงานใหญ่ / เลขที่สาขา)'}
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Head Office (สำนักงานใหญ่)"
+                      placeholder={language === 'th' ? 'เช่น สำนักงานใหญ่ หรือ สาขา 00001' : 'e.g. Head Office (สำนักงานใหญ่)'}
                       value={companyBranch}
                       onChange={(e) => setCompanyBranch(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
@@ -1479,14 +1593,20 @@ Please confirm our pickup schedule. Thank you!`
           </div>
         </div>
 
-        {/* Step 3: Bangkok Address & Condo Info */}
+        {/* Step 3: Bangkok / Pattaya Address & Condo Info */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
           <div className="flex items-center gap-2.5 mb-2">
             <span className="w-7 h-7 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">3</span>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Bangkok Location & Schedule</h2>
+              <h2 className="text-lg font-bold text-slate-900">
+                {language === 'th'
+                  ? `${serviceCity === 'Pattaya' ? 'พัทยา' : 'กรุงเทพฯ'}: สถานที่รับผ้าและเวลานัดหมาย`
+                  : `${serviceCity === 'Pattaya' ? 'Pattaya' : 'Bangkok'} Location & Schedule`}
+              </h2>
               <p className="text-xs text-slate-500">
-                Specify your Bangkok residence details and preferred pickup schedule.
+                {language === 'th'
+                  ? 'ระบุข้อมูลที่พักอาศัยและเลือกวันเวลารับผ้าที่คุณสะดวก'
+                  : 'Specify your residence details and preferred pickup schedule.'}
               </p>
             </div>
           </div>
@@ -1500,7 +1620,7 @@ Please confirm our pickup schedule. Thank you!`
                     📍
                   </span>
                   <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                    Pickup Location & Residence
+                    {language === 'th' ? 'สถานที่รับผ้าและข้อมูลที่พักอาศัย' : 'Pickup Location & Residence'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 shadow-2xs">
@@ -1512,14 +1632,16 @@ Please confirm our pickup schedule. Thank you!`
                     <span className="text-green-500">l</span>
                     <span className="text-red-500">e</span>
                   </span>
-                  <span className="text-[10px] text-slate-400">Maps Powered</span>
+                  <span className="text-[10px] text-slate-400">
+                    {language === 'th' ? 'ระบบแผนที่' : 'Maps Powered'}
+                  </span>
                 </div>
               </div>
 
               {/* Service City Selector: Bangkok vs Pattaya */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Service City / Destination <span className="text-red-500">*</span>
+                  {language === 'th' ? 'พื้นที่ให้บริการ / ปลายทาง' : 'Service City / Destination'} <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
@@ -1541,8 +1663,10 @@ Please confirm our pickup schedule. Thank you!`
                   >
                     <span className="text-base">🏙️</span>
                     <div className="text-left">
-                      <div className="leading-tight">Bangkok</div>
-                      <div className="text-[10px] font-medium opacity-75">กรุงเทพฯ (Khwaeng rates)</div>
+                      <div className="leading-tight">{language === 'th' ? 'กรุงเทพฯ' : 'Bangkok'}</div>
+                      <div className="text-[10px] font-medium opacity-75">
+                        {language === 'th' ? 'กรุงเทพฯ (ตามอัตราเขต/แขวง)' : 'กรุงเทพฯ (Khwaeng rates)'}
+                      </div>
                     </div>
                   </button>
 
@@ -1563,7 +1687,7 @@ Please confirm our pickup schedule. Thank you!`
                   >
                     <span className="text-base">🏖️</span>
                     <div className="text-left">
-                      <div className="leading-tight">Pattaya</div>
+                      <div className="leading-tight">{language === 'th' ? 'พัทยา' : 'Pattaya'}</div>
                       <div className="text-[10px] font-medium opacity-75">พัทยา / บางละมุง / สัตหีบ</div>
                     </div>
                   </button>
@@ -1573,7 +1697,9 @@ Please confirm our pickup schedule. Thank you!`
               {/* Primary Search: Condominium / Hotel / Building / House */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {serviceCity === 'Pattaya' ? 'Hotel / Condominium / Villa / House / Address' : 'Building / Condominium / House / Address'} <span className="text-red-500">*</span>
+                  {serviceCity === 'Pattaya'
+                    ? (language === 'th' ? 'โรงแรม / คอนโด / วิลล่า / บ้าน / ที่อยู่' : 'Hotel / Condominium / Villa / House / Address')
+                    : (language === 'th' ? 'อาคาร / คอนโดมิเนียม / บ้าน / ที่อยู่' : 'Building / Condominium / House / Address')} <span className="text-red-500">*</span>
                 </label>
                 <GoogleMapsCondoAutocomplete
                   value={condoName}
@@ -1588,7 +1714,11 @@ Please confirm our pickup schedule. Thank you!`
                     applyLocationUpdate(place);
                   }}
                   apiKey={laundryStore.settings?.googleMapsApiKey || ''}
-                  placeholder={serviceCity === 'Pattaya' ? 'Search hotel, condo, villa, house or address (e.g. Riviera / Unixx / Jomtien)...' : 'Search building, condo, house, villa, hotel or address (e.g. Centro Rama 9 / Ideo / Baan Sansiri)...'}
+                  placeholder={
+                    serviceCity === 'Pattaya'
+                      ? (language === 'th' ? 'ค้นหาโรงแรม คอนโด วิลล่า บ้าน หรือที่อยู่ (เช่น Riviera / Unixx / จอมเทียน)...' : 'Search hotel, condo, villa, house or address (e.g. Riviera / Unixx / Jomtien)...')
+                      : (language === 'th' ? 'ค้นหาอาคาร คอนโด บ้าน วิลล่า โรงแรม หรือที่อยู่ (เช่น Centro พระราม 9 / Ideo / Baan Sansiri)...' : 'Search building, condo, house, villa, hotel or address (e.g. Centro Rama 9 / Ideo / Baan Sansiri)...')
+                  }
                   required
                 />
 
@@ -1599,12 +1729,13 @@ Please confirm our pickup schedule. Thank you!`
                       <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
                       <span className="truncate font-semibold text-[11px] sm:text-xs">
                         {serviceCity === 'Pattaya' 
-                          ? `📍 Location: ${subdistrict}, ${district} (${postalCode})`
-                          : `📍 Location: Khwaeng ${subdistrict}, Khet ${district} (📮 ${postalCode})`}
+                          ? (language === 'th' ? `📍 ตำแหน่ง: ${subdistrict}, ${district} (${postalCode})` : `📍 Location: ${subdistrict}, ${district} (${postalCode})`)
+                          : (language === 'th' ? `📍 ตำแหน่ง: แขวง${subdistrict}, เขต${district} (📮 ${postalCode})` : `📍 Location: Khwaeng ${subdistrict}, Khet ${district} (📮 ${postalCode})`)}
                       </span>
                     </div>
                     <span className="shrink-0 font-bold px-2 py-0.5 bg-white rounded-md text-[10px] sm:text-[11px] text-emerald-800 border border-emerald-300 shadow-2xs">
-                      Delivery: {deliveryInfo.isFree ? 'FREE (฿0)' : `฿${deliveryInfo.fee}`}
+                      {language === 'th' ? 'ค่าจัดส่ง: ' : 'Delivery: '}
+                      {deliveryInfo.isFree ? (language === 'th' ? 'ฟรี (฿0)' : 'FREE (฿0)') : `฿${deliveryInfo.fee}`}
                     </span>
                   </div>
                 )}
@@ -1616,7 +1747,7 @@ Please confirm our pickup schedule. Thank you!`
                   {/* Bangkok District */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      District (Khet) <span className="text-red-500">*</span>
+                      {language === 'th' ? 'เขต' : 'District (Khet)'} <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={district}
@@ -1643,10 +1774,10 @@ Please confirm our pickup schedule. Thank you!`
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">
-                        Sub-district (Khwaeng) <span className="text-red-500">*</span>
+                        {language === 'th' ? 'แขวง' : 'Sub-district (Khwaeng)'} <span className="text-red-500">*</span>
                       </label>
                       <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-1 py-0.5 rounded">
-                        Fee rate
+                        {language === 'th' ? 'อัตราค่าส่ง' : 'Fee rate'}
                       </span>
                     </div>
                     <select
@@ -1666,7 +1797,7 @@ Please confirm our pickup schedule. Thank you!`
                         { name: subdistrict || 'Central', nameTh: 'ชั้นใน', code: postalCode, fee: 50 }
                       ]).map((sub, idx) => (
                         <option key={idx} value={sub.name}>
-                          {sub.name} {sub.nameTh ? `(${sub.nameTh})` : ''} — ฿{sub.fee || 50}
+                          {language === 'th' && sub.nameTh ? `${sub.nameTh} (${sub.name})` : sub.name} {sub.nameTh && language !== 'th' ? `(${sub.nameTh})` : ''} — ฿{sub.fee || 50}
                         </option>
                       ))}
                     </select>
@@ -1676,14 +1807,14 @@ Please confirm our pickup schedule. Thank you!`
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">
-                        Postal Code <span className="text-red-500">*</span>
+                        {language === 'th' ? 'รหัสไปรษณีย์' : 'Postal Code'} <span className="text-red-500">*</span>
                       </label>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
                         deliveryInfo.isFree 
                           ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
                           : 'text-sky-700 bg-sky-50 border-sky-200'
                       }`}>
-                        {deliveryInfo.isFree ? 'FREE' : `฿${deliveryInfo.fee}`}
+                        {deliveryInfo.isFree ? (language === 'th' ? 'ฟรี' : 'FREE') : `฿${deliveryInfo.fee}`}
                       </span>
                     </div>
                     <input
@@ -1700,11 +1831,11 @@ Please confirm our pickup schedule. Thank you!`
                   {/* Room / Unit */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Tower / Unit
+                      {language === 'th' ? 'อาคาร / ชั้น / ห้อง' : 'Tower / Unit'}
                     </label>
                     <input
                       type="text"
-                      placeholder="Tower B, Rm 1402"
+                      placeholder={language === 'th' ? 'เช่น ตึก B ห้อง 1402' : 'Tower B, Rm 1402'}
                       value={roomNumber}
                       onChange={(e) => setRoomNumber(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white shadow-2xs"
@@ -1718,10 +1849,10 @@ Please confirm our pickup schedule. Thank you!`
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">
-                        Pattaya Sub-district / Area <span className="text-red-500">*</span>
+                        {language === 'th' ? 'ตำบล / โซนในพัทยา' : 'Pattaya Sub-district / Area'} <span className="text-red-500">*</span>
                       </label>
                       <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-1 py-0.5 rounded">
-                        Zone fee
+                        {language === 'th' ? 'ค่าส่งตามโซน' : 'Zone fee'}
                       </span>
                     </div>
                     <select
@@ -1739,7 +1870,7 @@ Please confirm our pickup schedule. Thank you!`
                     >
                       {PATTAYA_SUBDISTRICTS_LIST.map((zone, idx) => (
                         <option key={idx} value={zone.name}>
-                          {zone.name} ({zone.nameTh}) — ฿{zone.fee}
+                          {language === 'th' ? `${zone.nameTh} (${zone.name})` : `${zone.name} (${zone.nameTh})`} — ฿{zone.fee}
                         </option>
                       ))}
                     </select>
@@ -1749,14 +1880,14 @@ Please confirm our pickup schedule. Thank you!`
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-slate-700">
-                        Postal Code <span className="text-red-500">*</span>
+                        {language === 'th' ? 'รหัสไปรษณีย์' : 'Postal Code'} <span className="text-red-500">*</span>
                       </label>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
                         deliveryInfo.isFree 
                           ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
                           : 'text-sky-700 bg-sky-50 border-sky-200'
                       }`}>
-                        {deliveryInfo.isFree ? 'FREE' : `฿${deliveryInfo.fee}`}
+                        {deliveryInfo.isFree ? (language === 'th' ? 'ฟรี' : 'FREE') : `฿${deliveryInfo.fee}`}
                       </span>
                     </div>
                     <input
@@ -1773,11 +1904,11 @@ Please confirm our pickup schedule. Thank you!`
                   {/* Room / Suite / Villa */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Room / Villa / Floor
+                      {language === 'th' ? 'ห้อง / วิลล่า / ชั้น' : 'Room / Villa / Floor'}
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Villa 4 / Rm 801"
+                      placeholder={language === 'th' ? 'เช่น วิลล่า 4 / ห้อง 801' : 'e.g. Villa 4 / Rm 801'}
                       value={roomNumber}
                       onChange={(e) => setRoomNumber(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white shadow-2xs"
@@ -1794,15 +1925,18 @@ Please confirm our pickup schedule. Thank you!`
                   </span>
                   <div>
                     <span className="font-bold text-slate-900 block">
-                      Pickup & Delivery: <span className="text-sky-600 font-black">฿{deliveryInfo.fee} THB</span>
+                      {language === 'th' ? 'ค่าบริการรับและส่งผ้า: ' : 'Pickup & Delivery: '}
+                      <span className="text-sky-600 font-black">
+                        {deliveryInfo.isFree ? (language === 'th' ? 'ฟรี (฿0 บาท)' : 'FREE (฿0)') : `฿${deliveryInfo.fee} THB`}
+                      </span>
                     </span>
                     <span className="text-[11px] text-slate-500 block">
-                      {serviceCity} · {deliveryInfo.subdistrict || subdistrict || deliveryInfo.district} (📮 {postalCode}) · {deliveryInfo.reason || 'Fixed sub-district zone rate'}
+                      {serviceCity} · {deliveryInfo.subdistrict || subdistrict || deliveryInfo.district} (📮 {postalCode}) · {language === 'th' ? (deliveryInfo.reason || 'คิดอัตราตามโซนพื้นที่') : (deliveryInfo.reason || 'Fixed sub-district zone rate')}
                     </span>
                   </div>
                 </div>
                 <span className="text-[11px] text-slate-500 font-medium bg-slate-100 px-2.5 py-1 rounded-full">
-                  Added to order total
+                  {language === 'th' ? 'รวมในยอดสรุปแล้ว' : 'Added to order total'}
                 </span>
               </div>
 
@@ -1810,10 +1944,10 @@ Please confirm our pickup schedule. Thank you!`
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-slate-800">
-                    Laundry Handover Method <span className="text-red-500">*</span>
+                    {language === 'th' ? 'วิธีส่งมอบผ้า' : 'Laundry Handover Method'} <span className="text-red-500">*</span>
                   </label>
                   <span className="text-[11px] text-slate-500">
-                    Choose how our rider collects & delivers
+                    {language === 'th' ? 'เลือกรูปแบบการรับและส่งผ้าที่คุณสะดวก' : 'Choose how our rider collects & delivers'}
                   </span>
                 </div>
 
@@ -1832,15 +1966,17 @@ Please confirm our pickup schedule. Thank you!`
                         <div className="flex items-center gap-2">
                           <span className="text-base">🏢</span>
                           <span className="font-bold text-slate-900 text-xs">
-                            Condo Juristic / Front Lobby
+                            {language === 'th' ? 'ฝากที่นิติบุคคล / ล็อบบี้คอนโด' : 'Condo Juristic / Front Lobby'}
                           </span>
                         </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-                          Recommended
+                          {language === 'th' ? 'แนะนำ สะดวกที่สุด' : 'Recommended'}
                         </span>
                       </div>
                       <p className="text-slate-600 leading-relaxed text-[11px]">
-                        Driver collects & returns directly at your building's reception or juristic desk without disturbing you. Tag your laundry bag with your name & unit.
+                        {language === 'th'
+                          ? 'คนขับจะเข้ารับและส่งผ้าคืนที่ล็อบบี้หรือเคาน์เตอร์นิติบุคคลโดยตรง ไม่รบกวนเวลาส่วนตัวของคุณ เพียงติดป้ายชื่อและเลขห้องที่ถุงผ้า'
+                          : "Driver collects & returns directly at your building's reception or juristic desk without disturbing you. Tag your laundry bag with your name & unit."}
                       </p>
                     </div>
 
@@ -1854,7 +1990,9 @@ Please confirm our pickup schedule. Thank you!`
                         className="w-4 h-4 text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer"
                       />
                       <span className={`text-[11px] font-bold ${leaveWithJuristic ? 'text-sky-700' : 'text-slate-500'}`}>
-                        {leaveWithJuristic ? '✓ Juristic Drop-Off Selected' : 'Select Juristic Drop-Off'}
+                        {leaveWithJuristic
+                          ? (language === 'th' ? '✓ เลือกฝากนิติบุคคล / ล็อบบี้' : '✓ Juristic Drop-Off Selected')
+                          : (language === 'th' ? 'เลือกฝากนิติบุคคล / ล็อบบี้' : 'Select Juristic Drop-Off')}
                       </span>
                     </div>
                   </div>
@@ -1873,15 +2011,19 @@ Please confirm our pickup schedule. Thank you!`
                         <div className="flex items-center gap-2">
                           <span className="text-base">🤝</span>
                           <span className="font-bold text-slate-900 text-xs">
-                            Meet Up in Person with Rider
+                            {language === 'th' ? 'ส่งมอบกับคนขับโดยตรง' : 'Meet Up in Person with Rider'}
                           </span>
                         </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
-                          Subject to Rider Availability
+                          {language === 'th' ? 'ขึ้นอยู่กับคิวคนขับ' : 'Subject to Rider Availability'}
                         </span>
                       </div>
                       <p className="text-slate-600 leading-relaxed text-[11px]">
-                        Meet our rider in person at your lobby or entrance. <strong className="text-amber-900">Kindly note that in-person meet up is subjected to the availability of the riders.</strong> Rider coordinates via Mobile / WhatsApp upon arrival.
+                        {language === 'th' ? (
+                          <>พบคนขับที่ล็อบบี้หรือหน้าทางเข้าอาคาร <strong className="text-amber-900">โปรดทราบว่าการส่งมอบกับคนขับโดยตรงขึ้นอยู่กับคิวและเวลาของคนขับในแต่ละช่วง</strong> คนขับจะโทรหรือทัก WhatsApp / LINE ก่อนถึง</>
+                        ) : (
+                          <>Meet our rider in person at your lobby or entrance. <strong className="text-amber-900">Kindly note that in-person meet up is subjected to the availability of the riders.</strong> Rider coordinates via Mobile / WhatsApp upon arrival.</>
+                        )}
                       </p>
                     </div>
 
@@ -1895,7 +2037,9 @@ Please confirm our pickup schedule. Thank you!`
                         className="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer"
                       />
                       <span className={`text-[11px] font-bold ${!leaveWithJuristic ? 'text-amber-900' : 'text-slate-500'}`}>
-                        {!leaveWithJuristic ? '✓ Meet Up in Person Selected' : 'Select Meet Up in Person'}
+                        {!leaveWithJuristic
+                          ? (language === 'th' ? '✓ เลือกส่งมอบกับคนขับโดยตรง' : '✓ Meet Up in Person Selected')
+                          : (language === 'th' ? 'เลือกส่งมอบกับคนขับโดยตรง' : 'Select Meet Up in Person')}
                       </span>
                     </div>
                   </div>
@@ -1911,7 +2055,7 @@ Please confirm our pickup schedule. Thank you!`
                     🕒
                   </span>
                   <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                    Pickup Schedule & Turnaround Speed
+                    {language === 'th' ? 'เวลานัดหมายและระยะเวลาซักอบ' : 'Pickup Schedule & Turnaround Speed'}
                   </span>
                 </div>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -1921,7 +2065,11 @@ Please confirm our pickup schedule. Thank you!`
                       ? 'bg-sky-100 text-sky-900 border border-sky-300'
                       : 'bg-slate-200 text-slate-800 border border-slate-300'
                 }`}>
-                  {activeSpeed === 'same_day' ? '🚀 Same Day' : activeSpeed === 'next_day_24h' ? '⚡ Next Day' : '🕒 Standard (2 Days)'}
+                  {activeSpeed === 'same_day'
+                    ? (language === 'th' ? '🚀 ซักด่วนวันเดียว (Same Day)' : '🚀 Same Day')
+                    : activeSpeed === 'next_day_24h'
+                      ? (language === 'th' ? '⚡ ด่วนวันถัดไป (Next Day)' : '⚡ Next Day')
+                      : (language === 'th' ? '🕒 ซักมาตรฐาน 2 วัน (Standard)' : '🕒 Standard (2 Days)')}
                 </span>
               </div>
 
@@ -1930,9 +2078,13 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-2.5">
                   <span className="text-base">🚀</span>
                   <div className="text-xs text-amber-950">
-                    <span className="font-bold block">Same Day Return: Delivered before 18:00 hrs</span>
+                    <span className="font-bold block">
+                      {language === 'th' ? 'จัดส่งคืนภายในวันเดียวกัน: ส่งคืนก่อน 18:00 น.' : 'Same Day Return: Delivered before 18:00 hrs'}
+                    </span>
                     <span className="text-[11px] text-amber-900/80 mt-0.5 block leading-relaxed">
-                      Morning pickup returned fresh, sealed, and packaged before 18:00 hrs on the same day.
+                      {language === 'th'
+                        ? 'รับผ้าช่วงเช้า ส่งคืนสะอาด หอมสดชื่น บรรจุถุงอย่างดีก่อน 18:00 น. ในวันเดียวกัน'
+                        : 'Morning pickup returned fresh, sealed, and packaged before 18:00 hrs on the same day.'}
                     </span>
                   </div>
                 </div>
@@ -1940,9 +2092,13 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="p-3 bg-sky-50/90 border border-sky-200 rounded-xl flex items-start gap-2.5">
                   <span className="text-base">⚡</span>
                   <div className="text-xs text-sky-950">
-                    <span className="font-bold block">Next Day Return: Delivered the next day</span>
+                    <span className="font-bold block">
+                      {language === 'th' ? 'จัดส่งคืนวันถัดไป: ส่งคืนในวันถัดไป' : 'Next Day Return: Delivered the next day'}
+                    </span>
                     <span className="text-[11px] text-sky-900/80 mt-0.5 block leading-relaxed">
-                      Pickup on your scheduled date and returned fresh, sealed, and packaged the next day.
+                      {language === 'th'
+                        ? 'รับผ้าตามวันที่นัดหมาย ส่งคืนสะอาดเรียบร้อยในวันรุ่งขึ้น'
+                        : 'Pickup on your scheduled date and returned fresh, sealed, and packaged the next day.'}
                     </span>
                   </div>
                 </div>
@@ -1950,9 +2106,13 @@ Please confirm our pickup schedule. Thank you!`
                 <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-start gap-2.5">
                   <span className="text-base">🕒</span>
                   <div className="text-xs text-slate-800">
-                    <span className="font-bold block">Standard Turnaround: Return in 2 Days</span>
+                    <span className="font-bold block">
+                      {language === 'th' ? 'ระยะเวลามาตรฐาน: ส่งคืนภายใน 2 วัน' : 'Standard Turnaround: Return in 2 Days'}
+                    </span>
                     <span className="text-[11px] text-slate-500 mt-0.5 block leading-relaxed">
-                      Pickup on your scheduled date and delivery returned fresh and sealed within 2 days.
+                      {language === 'th'
+                        ? 'รับผ้าตามวันนัดหมายและส่งคืนสะอาด หอม บรรจุถุงมิดชิดภายใน 2 วัน'
+                        : 'Pickup on your scheduled date and delivery returned fresh and sealed within 2 days.'}
                     </span>
                   </div>
                 </div>
@@ -1962,7 +2122,7 @@ Please confirm our pickup schedule. Thank you!`
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Pickup Date <span className="text-red-500">*</span>
+                    {language === 'th' ? 'วันที่ต้องการให้เข้ารับผ้า' : 'Pickup Date'} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -1975,7 +2135,7 @@ Please confirm our pickup schedule. Thank you!`
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Preferred Pickup Window <span className="text-red-500">*</span>
+                    {language === 'th' ? 'ช่วงเวลาเข้ารับผ้า' : 'Preferred Pickup Window'} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={pickupTime}
@@ -1993,13 +2153,19 @@ Please confirm our pickup schedule. Thank you!`
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold text-slate-700">
-                    Special Care or Delivery Notes (Optional)
+                    {language === 'th' ? 'หมายเหตุพิเศษหรือคำแนะนำถึงคนขับ (ไม่บังคับ)' : 'Special Care or Delivery Notes (Optional)'}
                   </label>
-                  <span className="text-[10px] text-slate-400">Juristic staff name, fabric care</span>
+                  <span className="text-[10px] text-slate-400">
+                    {language === 'th' ? 'ชื่อเจ้าหน้าที่นิติ, ข้อควรระวังเนื้อผ้า' : 'Juristic staff name, fabric care'}
+                  </span>
                 </div>
                 <textarea
                   rows="2"
-                  placeholder="e.g. Leave with K. Somchai at front desk. Please avoid high-heat tumble dry for gym shirts."
+                  placeholder={
+                    language === 'th'
+                      ? 'เช่น ฝากไว้กับคุณสมชายที่เคาน์เตอร์ หรือกรุณาอย่าอบแห้งด้วยความร้อนสูงสำหรับชุดออกกำลังกาย'
+                      : 'e.g. Leave with K. Somchai at front desk. Please avoid high-heat tumble dry for gym shirts.'
+                  }
                   value={specialInstructions}
                   onChange={(e) => setSpecialInstructions(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white placeholder:text-slate-400 shadow-2xs"
@@ -2013,7 +2179,9 @@ Please confirm our pickup schedule. Thank you!`
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border-2 border-slate-300 space-y-4">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center">4</span>
-            <h2 className="text-lg font-bold text-slate-900">Terms & Conditions Review</h2>
+            <h2 className="text-lg font-bold text-slate-900">
+              {language === 'th' ? 'ตรวจสอบข้อกำหนดและเงื่อนไข' : 'Terms & Conditions Review'}
+            </h2>
           </div>
 
           {/* Prompt to read summary */}
@@ -2021,8 +2189,12 @@ Please confirm our pickup schedule. Thank you!`
             <div className="flex items-start gap-2.5">
               <Icon name="phone" className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
               <div className="text-xs text-emerald-950">
-                <span className="font-bold block text-sm">Customer Support & Assistance</span>
-                Questions or special requests? Reach our team via Mobile Call & WhatsApp (+66 80 888 9885), LINE Official, or Email.
+                <span className="font-bold block text-sm">
+                  {language === 'th' ? 'ฝ่ายบริการลูกค้าและการดูแล' : 'Customer Support & Assistance'}
+                </span>
+                {language === 'th'
+                  ? 'มีข้อสงสัยหรือคำขอพิเศษ? ติดต่อทีมงานของเราได้ทางโทรศัพท์และ WhatsApp (+66 80 888 9885), LINE Official หรืออีเมล'
+                  : 'Questions or special requests? Reach our team via Mobile Call & WhatsApp (+66 80 888 9885), LINE Official, or Email.'}
               </div>
             </div>
 
@@ -2032,7 +2204,11 @@ Please confirm our pickup schedule. Thank you!`
               className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5"
             >
               <Icon name="fileText" className="w-4 h-4" />
-              <span>{hasReviewedSummary ? 'Review Summary Again' : 'Read Summary of Terms'}</span>
+              <span>
+                {hasReviewedSummary 
+                  ? (language === 'th' ? 'ดูสรุปเงื่อนไขอีกครั้ง' : 'Review Summary Again') 
+                  : (language === 'th' ? 'อ่านสรุปข้อกำหนด' : 'Read Summary of Terms')}
+              </span>
             </button>
           </div>
 
@@ -2050,17 +2226,33 @@ Please confirm our pickup schedule. Thank you!`
               />
               <div className="text-xs text-slate-800 leading-relaxed">
                 <strong className="text-slate-900 block font-bold text-sm mb-1">
-                  I Agree to the Terms and Conditions <span className="text-red-600">*</span>
+                  {language === 'th' ? 'ข้าพเจ้ายอมรับข้อกำหนดและเงื่อนไขการบริการ' : 'I Agree to the Terms and Conditions'} <span className="text-red-600">*</span>
                 </strong>
-                I have read, understood, and agreed to the{' '}
-                <button
-                  type="button"
-                  onClick={() => setIsTermsModalOpen(true)}
-                  className="text-sky-600 font-bold underline hover:text-sky-800"
-                >
-                  Important Terms & Conditions
-                </button>
-                , including the policy that <strong>customer support, status tracking, and incident claims are coordinated via Mobile (+66 80 888 9885), WhatsApp, LINE, or Email</strong>, and that final billing is subject to central facility digital scale weigh-in.
+                {language === 'th' ? (
+                  <>
+                    ข้าพเจ้าได้อ่าน เข้าใจ และยอมรับ{' '}
+                    <button
+                      type="button"
+                      onClick={() => setIsTermsModalOpen(true)}
+                      className="text-sky-600 font-bold underline hover:text-sky-800"
+                    >
+                      ข้อกำหนดและเงื่อนไขสำคัญ
+                    </button>
+                    {' '}รวมถึงนโยบายที่ว่า <strong>การติดต่อฝ่ายบริการลูกค้า การติดตามสถานะ และการเคลมประกัน จะประสานงานผ่านเบอร์โทรศัพท์ (+66 80 888 9885), WhatsApp, LINE หรืออีเมล</strong> และยอดชำระเงินสุทธิจะคำนวณตามน้ำหนักจริงจากเครื่องชั่งดิจิทัล ณ ศูนย์บริการส่วนกลาง
+                  </>
+                ) : (
+                  <>
+                    I have read, understood, and agreed to the{' '}
+                    <button
+                      type="button"
+                      onClick={() => setIsTermsModalOpen(true)}
+                      className="text-sky-600 font-bold underline hover:text-sky-800"
+                    >
+                      Important Terms & Conditions
+                    </button>
+                    , including the policy that <strong>customer support, status tracking, and incident claims are coordinated via Mobile (+66 80 888 9885), WhatsApp, LINE, or Email</strong>, and that final billing is subject to central facility digital scale weigh-in.
+                  </>
+                )}
               </div>
             </label>
           </div>
@@ -2077,48 +2269,60 @@ Please confirm our pickup schedule. Thank you!`
           <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 text-xs space-y-2">
             <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider flex items-center justify-between pb-1 border-b border-slate-200/80">
               <span className="flex items-center gap-1.5">
-                <span>Order Estimated Breakdown</span>
+                <span>{language === 'th' ? 'สรุปรายการประมาณการ' : 'Order Estimated Breakdown'}</span>
                 <span className="text-[10px] bg-sky-100 text-sky-800 font-bold px-1.5 py-0.2 rounded">
-                  {selectedEntries.length} {selectedEntries.length === 1 ? 'Item' : 'Items'}
+                  {selectedEntries.length} {language === 'th' ? 'รายการ' : (selectedEntries.length === 1 ? 'Item' : 'Items')}
                 </span>
               </span>
-              <span className="text-slate-400 font-mono font-normal">{serviceCity} Postal Code: {postalCode}</span>
+              <span className="text-slate-400 font-mono font-normal">
+                {serviceCity} {language === 'th' ? 'รหัสไปรษณีย์' : 'Postal Code'}: {postalCode}
+              </span>
             </div>
 
-            {selectedEntries.map((item) => (
-              <div key={item.id} className="flex items-center justify-between text-slate-600 text-xs">
-                <span className="truncate pr-2">
-                  <strong className="text-slate-800">{item.name}</strong> ({item.isPiece ? `${item.qty} ${item.unitLabel} × ฿${item.rate}/${item.unitLabel}` : `${item.billable} KG × ฿${item.rate}/KG`}):
-                </span>
-                <span className="font-bold text-slate-800 shrink-0 font-mono">฿{item.subtotal} THB</span>
-              </div>
-            ))}
+            {selectedEntries.map((item) => {
+              const itName = language === 'th' && item.nameTh ? item.nameTh : item.name;
+              const unitStr = language === 'th' ? (item.unit === 'pair' ? 'คู่' : item.unit === 'set' ? 'ชุด' : 'ชิ้น') : item.unitLabel;
+              return (
+                <div key={item.id} className="flex items-center justify-between text-slate-600 text-xs">
+                  <span className="truncate pr-2">
+                    <strong className="text-slate-800">{itName}</strong> ({item.isPiece ? `${item.qty} ${unitStr} × ฿${item.rate}/${unitStr}` : `${item.billable} ${language === 'th' ? 'กก.' : 'KG'} × ฿${item.rate}/${language === 'th' ? 'กก.' : 'KG'}`}):
+                  </span>
+                  <span className="font-bold text-slate-800 shrink-0 font-mono">฿{item.subtotal} THB</span>
+                </div>
+              );
+            })}
 
             <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200/60">
               <span className="flex items-center gap-1.5">
-                <span>Fixed Pickup & Delivery ({deliveryInfo.subdistrict || deliveryInfo.district} - {postalCode}):</span>
+                <span>
+                  {language === 'th'
+                    ? `ค่าบริการรับและส่งผ้า (${deliveryInfo.subdistrict || deliveryInfo.district} - ${postalCode}):`
+                    : `Fixed Pickup & Delivery (${deliveryInfo.subdistrict || deliveryInfo.district} - ${postalCode}):`}
+                </span>
                 {deliveryInfo.isFree && (
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
-                    Free Promo
+                    {language === 'th' ? 'โปรโมชั่นฟรี' : 'Free Promo'}
                   </span>
                 )}
               </span>
               <span className={`font-semibold ${deliveryInfo.isFree ? 'text-emerald-600 font-bold' : 'text-slate-800'}`}>
-                {deliveryInfo.isFree ? 'FREE (฿0)' : `฿${deliveryInfo.fee} THB`}
+                {deliveryInfo.isFree ? (language === 'th' ? 'ฟรี (฿0)' : 'FREE (฿0)') : `฿${deliveryInfo.fee} THB`}
               </span>
             </div>
 
             <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200/60">
               <span className="flex items-center gap-1.5">
-                <span>Handover Preference:</span>
+                <span>{language === 'th' ? 'วิธีส่งมอบผ้า:' : 'Handover Preference:'}</span>
               </span>
               <span className={`font-bold ${leaveWithJuristic ? 'text-sky-700' : 'text-amber-800'}`}>
-                {leaveWithJuristic ? '🏢 Condo Juristic / Front Lobby' : '🤝 Meet Up in Person (Subject to Rider Availability)'}
+                {leaveWithJuristic
+                  ? (language === 'th' ? '🏢 ฝากที่นิติบุคคล / ล็อบบี้คอนโด' : '🏢 Condo Juristic / Front Lobby')
+                  : (language === 'th' ? '🤝 ส่งมอบกับคนขับโดยตรง (ขึ้นอยู่กับคิวคนขับ)' : '🤝 Meet Up in Person (Subject to Rider Availability)')}
               </span>
             </div>
 
             <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm font-black text-slate-900">
-              <span>Total Estimated Booking:</span>
+              <span>{language === 'th' ? 'ยอดรวมประมาณการทั้งหมด:' : 'Total Estimated Booking:'}</span>
               <span className="text-sky-600 text-base font-mono">฿{grandEstimatedTotal} THB</span>
             </div>
           </div>
@@ -2134,17 +2338,23 @@ Please confirm our pickup schedule. Thank you!`
             }`}
           >
             {isSubmitting ? (
-              <span>Generating Bangkok Order...</span>
+              <span>{language === 'th' ? 'กำลังบันทึกข้อมูลการจอง...' : 'Generating Booking Order...'}</span>
             ) : (
               <>
                 <Icon name="check" className="w-5 h-5" />
-                <span>Confirm & Submit Booking (Est. ฿{grandEstimatedTotal} THB)</span>
+                <span>
+                  {language === 'th'
+                    ? `ยืนยันและส่งการจอง (ประมาณ ฿${grandEstimatedTotal} บาท)`
+                    : `Confirm & Submit Booking (Est. ฿${grandEstimatedTotal} THB)`}
+                </span>
               </>
             )}
           </button>
 
           <p className="text-[11px] text-center text-slate-400">
-            You will receive a unique tracking ID and 1-click button to connect with our LINE Official Account immediately.
+            {language === 'th'
+              ? 'คุณจะได้รับรหัสติดตามสถานะคำสั่งซื้อ พร้อมปุ่มกดเชื่อมต่อ LINE Official Account และ WhatsApp ได้ทันที'
+              : 'You will receive a unique tracking ID and 1-click button to connect with our LINE Official Account immediately.'}
           </p>
 
         </div>

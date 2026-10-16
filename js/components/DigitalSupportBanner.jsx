@@ -4,7 +4,7 @@ import { CONTACT_CHANNELS } from '../store.js';
 import { useTranslation } from '../i18n.jsx';
 
 export function DigitalSupportBanner({ onOpenContactModal }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   return (
     <section className="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8 border-y border-sky-900/50">
       <div className="max-w-7xl mx-auto">
@@ -19,7 +19,7 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold mb-4">
                 <Icon name="phone" className="w-4 h-4 text-emerald-400" />
-                <span>Call & WhatsApp: +66 80 888 9885 • LINE • Email</span>
+                <span>{language === 'th' ? 'ติดต่อโทร & WhatsApp: +66 80 888 9885 • LINE • อีเมล' : 'Call & WhatsApp: +66 80 888 9885 • LINE • Email'}</span>
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -59,12 +59,14 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
                     <Icon name="phone" className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-amber-300">Direct Mobile Call</div>
+                    <div className="font-bold text-sm text-amber-300">
+                      {language === 'th' ? 'โทรศัพท์สายตรง' : 'Direct Mobile Call'}
+                    </div>
                     <div className="text-xs text-slate-300">+66 80 888 9885</div>
                   </div>
                 </div>
                 <span className="text-[11px] font-semibold bg-amber-500/30 text-amber-200 px-2 py-0.5 rounded-md">
-                  Call Now
+                  {language === 'th' ? 'โทรเลย' : 'Call Now'}
                 </span>
               </a>
               
@@ -80,12 +82,14 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
                     <Icon name="whatsapp" className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-emerald-300">WhatsApp Official</div>
+                    <div className="font-bold text-sm text-emerald-300">
+                      {language === 'th' ? 'WhatsApp ทางการ' : 'WhatsApp Official'}
+                    </div>
                     <div className="text-xs text-slate-300">{CONTACT_CHANNELS.whatsapp.handle}</div>
                   </div>
                 </div>
                 <span className="text-[11px] font-semibold bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded-md">
-                  Active
+                  {language === 'th' ? 'พร้อมให้บริการ' : 'Active'}
                 </span>
               </a>
 
@@ -101,12 +105,14 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
                     <Icon name="line" className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-green-300">LINE Official Account</div>
+                    <div className="font-bold text-sm text-green-300">
+                      {language === 'th' ? 'LINE บัญชีทางการ' : 'LINE Official Account'}
+                    </div>
                     <div className="text-xs text-slate-300">{CONTACT_CHANNELS.line.handle}</div>
                   </div>
                 </div>
                 <span className="text-[11px] font-semibold bg-green-500/30 text-green-200 px-2 py-0.5 rounded-md">
-                  Active
+                  {language === 'th' ? 'พร้อมให้บริการ' : 'Active'}
                 </span>
               </a>
 
@@ -120,12 +126,14 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
                     <Icon name="mail" className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-sky-300">Email Support</div>
+                    <div className="font-bold text-sm text-sky-300">
+                      {language === 'th' ? 'ฝ่ายบริการทางอีเมล' : 'Email Support'}
+                    </div>
                     <div className="text-xs text-slate-300">{CONTACT_CHANNELS.email.handle}</div>
                   </div>
                 </div>
                 <span className="text-[11px] font-semibold bg-sky-500/30 text-sky-200 px-2 py-0.5 rounded-md">
-                  Inquiries
+                  {language === 'th' ? 'สอบถามข้อมูล' : 'Inquiries'}
                 </span>
               </a>
 

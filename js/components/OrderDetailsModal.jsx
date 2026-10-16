@@ -279,6 +279,16 @@ Need assistance? Phone / WhatsApp: +66 80 888 9885
 LINE: @nonamelaundry`;
   };
 
+  const formatDispatchTime = (isoString) => {
+    if (!isoString) return '';
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' at ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return isoString;
+    }
+  };
+
   const handleSendBillingEmail = async () => {
     if (!order) return;
     setSendingBillingEmail(true);
@@ -298,21 +308,78 @@ LINE: @nonamelaundry`;
       });
       const data = await res.json();
       if (data.success) {
-        setBillingEmailSentToast(`✓ Confirmed billing email sent to ${order.email || 'customer'}!`);
+        const sentAt = data.billingSentAt || new Date().toISOString();
+        order.billingSentAt = sentAt;
+        order.billingChannel = 'EMAIL';
+        setBillingEmailSentToast(`✓ Tax invoice & cashless payment link sent automatically to ${order.email || 'customer'}!`);
+        if (onUpdateOrder) {
+          onUpdateOrder(order.id, order.status, `Official Tax Invoice sent via Email to ${order.email || order.contactValue}`, finalWeight, order.tagNumber, {
+            billingSentAt: sentAt,
+            billingChannel: 'EMAIL'
+          });
+        }
       } else {
-        // Fallback to mailto
-        const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-        const paymentUrl = `${origin}/?track=${encodeURIComponent(order.id)}&pay=1`;
-        const subject = encodeURIComponent(`NoName Laundry - Confirmed Billing & Payment Link - Order #${order.id} (฿${previewPrice} THB)`);
-        const body = encodeURIComponent(`Hello ${order.customerName},\n\nYour laundry has arrived and all needed weighing is complete.\n\nVerified Weight: ${finalWeight || 4.0} KG\nConfirmed Total: ฿${previewPrice} THB\n\nPlease complete your cashless payment online:\n👉 ${paymentUrl}\n\nNeed assistance? Phone / WhatsApp: +66 80 888 9885`);
-        window.location.href = `mailto:${order.email || ''}?subject=${subject}&body=${body}`;
-        setBillingEmailSentToast(`Opened email client to send confirmed billing.`);
+        setBillingEmailSentToast(`⚠ Email sending notice: ${data.error || data.reason || 'Email queued / processed'}`);
       }
       setTimeout(() => setBillingEmailSentToast(''), 5000);
     } catch (err) {
       console.warn('Send billing error:', err);
+      setBillingEmailSentToast(`⚠ Network error sending email: ${err.message}`);
+      setTimeout(() => setBillingEmailSentToast(''), 5000);
     } finally {
       setSendingBillingEmail(false);
+    }
+  };
+
+  const handleOpenWhatsApp = async () => {
+    const url = getCustomerChatUrl();
+    if (url && url !== '#') {
+      window.open(url, '_blank');
+    }
+    const nowIso = new Date().toISOString();
+    order.billingSentAt = nowIso;
+    order.billingChannel = 'WHATSAPP';
+    setBillingEmailSentToast(`✓ Invoice dispatched to customer via WhatsApp!`);
+    setTimeout(() => setBillingEmailSentToast(''), 5000);
+    try {
+      await fetch(`/api/orders/${encodeURIComponent(order.id)}/record-invoice-sent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: 'WHATSAPP' })
+      });
+    } catch (e) {
+      console.warn('Failed to record whatsapp invoice sent:', e);
+    }
+    if (onUpdateOrder) {
+      onUpdateOrder(order.id, order.status, `Official Tax Invoice dispatched to customer via WhatsApp`, order.actualWeightKg, order.tagNumber, {
+        billingSentAt: nowIso,
+        billingChannel: 'WHATSAPP'
+      });
+    }
+  };
+
+  const handleOpenLine = async () => {
+    const lineUrl = getLineOaAddFriendUrl(order.contactValue);
+    if (lineUrl) window.open(lineUrl, '_blank');
+    const nowIso = new Date().toISOString();
+    order.billingSentAt = nowIso;
+    order.billingChannel = 'LINE';
+    setBillingEmailSentToast(`✓ Invoice dispatched to customer via LINE OA!`);
+    setTimeout(() => setBillingEmailSentToast(''), 5000);
+    try {
+      await fetch(`/api/orders/${encodeURIComponent(order.id)}/record-invoice-sent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: 'LINE' })
+      });
+    } catch (e) {
+      console.warn('Failed to record line invoice sent:', e);
+    }
+    if (onUpdateOrder) {
+      onUpdateOrder(order.id, order.status, `Official Tax Invoice dispatched to customer via LINE`, order.actualWeightKg, order.tagNumber, {
+        billingSentAt: nowIso,
+        billingChannel: 'LINE'
+      });
     }
   };
 
@@ -329,10 +396,6 @@ LINE: @nonamelaundry`;
     }
     if (order.contactChannel === 'line') {
       return getLineOaAddFriendUrl(order.contactValue);
-    }
-    if (order.contactChannel === 'email') {
-      const subject = encodeURIComponent(`NoName Laundry - Order #${order.id} Details & Payment Gateway`);
-      return `mailto:${order.email || order.contactValue}?subject=${subject}&body=${encodeURIComponent(msg)}`;
     }
     return '#';
   };
@@ -509,18 +572,80 @@ LINE: @nonamelaundry`;
                   )}
                 </div>
 
+                {/* INVOICE DISPATCH STATUS REMINDER BANNER */}
+                <div className="pt-2">
+                  {order.billingSentAt ? (
+                    <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 text-xs shadow-2xs flex items-center justify-between gap-3 animate-fadeIn">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-3 w-3 relative shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-600"></span>
+                        </span>
+                        <div>
+                          <div className="font-black text-emerald-950 flex items-center gap-1.5">
+                            <Icon name="checkCircle" className="w-4 h-4 text-emerald-600" />
+                            <span>Tax Invoice & Payment Link Dispatched</span>
+                          </div>
+                          <div className="text-[11px] text-emerald-800 mt-0.5 font-medium">
+                            Sent via <strong className="uppercase font-bold text-emerald-900">{order.billingChannel || 'Email'}</strong> • {formatDispatchTime(order.billingSentAt)}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-xl bg-emerald-200/90 text-emerald-950 text-[10px] font-black uppercase tracking-wider shrink-0 border border-emerald-300 shadow-2xs">
+                        INVOICE SENT ✓
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+                        <span className="font-bold text-amber-900">
+                          Invoice Not Sent Yet
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-amber-700 font-semibold">
+                        Reminder: Send via Email or WhatsApp below
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Direct Customer Action Link */}
                 <div className="pt-2 border-t border-slate-200/80 flex items-center gap-2 flex-wrap">
-                  <a
-                    href={getCustomerChatUrl()}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition"
-                  >
-                    <Icon name={order.contactChannel === 'whatsapp' ? 'whatsapp' : (order.contactChannel === 'line' ? 'line' : 'mail')} className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Open Customer Chat ({order.contactChannel.toUpperCase()})</span>
-                    <Icon name="externalLink" className="w-3 h-3 text-slate-400" />
-                  </a>
+                  {order.contactChannel === 'whatsapp' ? (
+                    <button
+                      type="button"
+                      onClick={handleOpenWhatsApp}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition"
+                      title="Open WhatsApp Chat with customer & record invoice dispatched"
+                    >
+                      <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Open Customer Chat (WHATSAPP)</span>
+                      <Icon name="externalLink" className="w-3 h-3 text-slate-400" />
+                    </button>
+                  ) : order.contactChannel === 'line' ? (
+                    <button
+                      type="button"
+                      onClick={handleOpenLine}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition"
+                      title="Open LINE Official Chat & record invoice dispatched"
+                    >
+                      <Icon name="line" className="w-3.5 h-3.5 text-green-400" />
+                      <span>Open Customer Chat (LINE)</span>
+                      <Icon name="externalLink" className="w-3 h-3 text-slate-400" />
+                    </button>
+                  ) : order.contactChannel === 'email' ? (
+                    <button
+                      type="button"
+                      onClick={handleSendBillingEmail}
+                      disabled={sendingBillingEmail}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition"
+                      title="Send Invoice & Payment Link directly to customer's email"
+                    >
+                      <Icon name="mail" className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{sendingBillingEmail ? 'Sending Email...' : (order.billingSentAt ? '✓ Invoice Sent (Resend)' : 'Send Invoice Email')}</span>
+                    </button>
+                  ) : null}
 
                   <button
                     type="button"
@@ -536,11 +661,15 @@ LINE: @nonamelaundry`;
                     type="button"
                     onClick={handleSendBillingEmail}
                     disabled={sendingBillingEmail}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition"
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-xs font-bold shadow-sm transition ${
+                      order.billingSentAt && order.billingChannel === 'EMAIL'
+                        ? 'bg-emerald-700 hover:bg-emerald-600'
+                        : 'bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50'
+                    }`}
                     title="Send Confirmed Billing & Cashless Payment Link via Email"
                   >
-                    <Icon name="mail" className="w-3.5 h-3.5" />
-                    <span>{sendingBillingEmail ? 'Sending...' : 'Send Billing Link'}</span>
+                    <Icon name={order.billingSentAt && order.billingChannel === 'EMAIL' ? 'check' : 'mail'} className="w-3.5 h-3.5" />
+                    <span>{sendingBillingEmail ? 'Sending...' : (order.billingSentAt && order.billingChannel === 'EMAIL' ? '✓ Invoice Sent (Resend?)' : 'Send Invoice Email')}</span>
                   </button>
 
                   <button
@@ -951,10 +1080,20 @@ LINE: @nonamelaundry`;
                         <span>PAID via {order.paymentMethod || 'PromptPay QR'}</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300">
                           Awaiting Pay
                         </span>
+                        {order.billingSentAt ? (
+                          <span className="px-2 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300 flex items-center gap-1" title={`Invoice dispatched via ${order.billingChannel || 'Email'}`}>
+                            <Icon name="checkCircle" className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Invoice Sent ({order.billingChannel || 'Email'})</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+                            Invoice Not Sent
+                          </span>
+                        )}
                         {onMarkPaid && (
                           <button
                             type="button"
@@ -1148,18 +1287,35 @@ LINE: @nonamelaundry`;
                   </div>
 
                   {/* Dynamic Recalculated Total Preview */}
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] text-slate-600 font-semibold block">Recalculated Total:</span>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {isMultiItem
-                          ? `(Subtotal ฿${previewServiceSubtotal} + ฿${deliveryFee} Deliv)`
-                          : (isSinglePiece
-                              ? `(${order.quantity || 1} pcs × ฿${currentRate} + ฿${deliveryFee} Deliv)`
-                              : `(${billableKg} KG × ฿${currentRate}/KG + ฿${deliveryFee} Deliv)`)}
-                      </span>
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] text-slate-600 font-semibold block">Recalculated Total:</span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {isMultiItem
+                            ? `(Subtotal ฿${previewServiceSubtotal} + ฿${deliveryFee} Deliv)`
+                            : (isSinglePiece
+                                ? `(${order.quantity || 1} pcs × ฿${currentRate} + ฿${deliveryFee} Deliv)`
+                                : `(${billableKg} KG × ฿${currentRate}/KG + ฿${deliveryFee} Deliv)`)}
+                        </span>
+                      </div>
+                      <span className="text-base font-black text-slate-900">฿{previewPrice} THB</span>
                     </div>
-                    <span className="text-base font-black text-slate-900">฿{previewPrice} THB</span>
+
+                    <div className="pt-1.5 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 font-semibold">Invoice Status:</span>
+                      {order.billingSentAt ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-lg border border-emerald-300">
+                          <Icon name="checkCircle" className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Sent via {order.billingChannel || 'Email'} ({formatDispatchTime(order.billingSentAt)})</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-lg border border-amber-300">
+                          <Icon name="clock" className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Not Sent Yet</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
@@ -1176,11 +1332,15 @@ LINE: @nonamelaundry`;
                       type="button"
                       disabled={sendingBillingEmail}
                       onClick={handleSendBillingEmail}
-                      className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5"
+                      className={`py-2.5 px-3 rounded-xl text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 ${
+                        order.billingSentAt && order.billingChannel === 'EMAIL'
+                          ? 'bg-emerald-700 hover:bg-emerald-600'
+                          : 'bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50'
+                      }`}
                       title="Send Confirmed Billing & Cashless Payment Link to customer via Email"
                     >
-                      <Icon name="mail" className="w-4 h-4" />
-                      <span>{sendingBillingEmail ? 'Sending...' : 'Send Billing Link'}</span>
+                      <Icon name={order.billingSentAt && order.billingChannel === 'EMAIL' ? 'check' : 'mail'} className="w-4 h-4" />
+                      <span>{sendingBillingEmail ? 'Sending...' : (order.billingSentAt && order.billingChannel === 'EMAIL' ? '✓ Invoice Sent (Resend)' : 'Send Invoice Email')}</span>
                     </button>
                   </div>
                 </div>

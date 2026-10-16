@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Icon } from './Icons.jsx';
 import { useTranslation } from '../i18n.jsx';
 
 export function HowItWorks({ setView }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
 
-  const steps = [
+  const steps = useMemo(() => [
     {
       num: '01',
-      title: 'Book Online in 60 Seconds',
-      tag: 'Step 1 • Digital Schedule',
-      badge: 'Starts from 10:30 hrs',
-      headline: 'Choose your services, pick a time window, and drop your location.',
-      description: 'Select your preferred wash service (Wash & Fold, Ironing, Bedding, or Delicate Dry Clean) and estimate your weight. Select your pickup slot starting anytime from 10:30 hrs onwards. Enter your condo name, unit number, or specify if dropping off at your Juristic reception desk.',
-      details: [
+      title: t('hiwStep1Title'),
+      tag: t('hiwStep1Tag'),
+      badge: t('hiwStep1Badge'),
+      headline: t('hiwStep1Headline'),
+      description: t('hiwStep1Desc'),
+      details: Array.isArray(t('hiwStep1Details')) ? t('hiwStep1Details') : [
         'Instant confirmation via WhatsApp, LINE, or Email',
         'Specify any special fabric care or separation instructions',
         'No cash required — fully cashless & transparent'
@@ -25,12 +25,12 @@ export function HowItWorks({ setView }) {
     },
     {
       num: '02',
-      title: 'Doorstep Pickup or Condo Juristic Drop-Off',
-      tag: 'Step 2 • Handover',
-      badge: '100% Juristic Friendly',
-      headline: 'Hand over directly to our driver or leave it with your condo reception.',
-      description: 'Living in a condo with security or busy during the day? Simply leave your laundry bag with your Juristic Office / Concierge lobby. Our professional courier collects your items, attaches a uniquely serialized tamper-evident barcode tag, and sends you photo verification of pickup.',
-      details: [
+      title: t('hiwStep2Title'),
+      tag: t('hiwStep2Tag'),
+      badge: t('hiwStep2Badge'),
+      headline: t('hiwStep2Headline'),
+      description: t('hiwStep2Desc'),
+      details: Array.isArray(t('hiwStep2Details')) ? t('hiwStep2Details') : [
         'Door-to-door direct collection or condo juristic desk pickup',
         'Serialized barcode tracking attached immediately to your bag',
         'Real-time courier pickup alert sent to your phone'
@@ -41,12 +41,12 @@ export function HowItWorks({ setView }) {
     },
     {
       num: '03',
-      title: 'Digital Scale Weigh-In & Premium Wash Care',
-      tag: 'Step 3 • Eco Cleaning',
-      badge: 'Photo & Weight Audit',
-      headline: 'Precision digital scale weigh-in followed by dedicated individual wash.',
-      description: 'At our central facility, your bag is weighed on certified digital scales with an automated photo receipt generated for your review. We never mix your garments with other customers. Everything is washed using premium hypoallergenic detergents and professional low-temperature tumbling.',
-      details: [
+      title: t('hiwStep3Title'),
+      tag: t('hiwStep3Tag'),
+      badge: t('hiwStep3Badge'),
+      headline: t('hiwStep3Headline'),
+      description: t('hiwStep3Desc'),
+      details: Array.isArray(t('hiwStep3Details')) ? t('hiwStep3Details') : [
         'Certified digital scale weigh-in with photographic proof',
         'Strict individual machine batching — zero clothes mixing',
         'Hypoallergenic eco-detergents & gentle steam-ironing'
@@ -57,12 +57,12 @@ export function HowItWorks({ setView }) {
     },
     {
       num: '04',
-      title: 'Sealed Dust-Proof Return to Your Door',
-      tag: 'Step 4 • Fresh Delivery',
-      badge: 'Standard, Next Day & Same Day',
-      headline: 'Delivered crisp, folded or hung in sealed protective covers.',
-      description: 'Your fresh laundry is packed in eco-friendly dust-proof sealed bags to ensure zero exposure during transit. Choose between Standard (2 Days), Next Day, or Same Day express delivery. Receive a delivery photo and digital receipt right to your phone upon drop-off.',
-      details: [
+      title: t('hiwStep4Title'),
+      tag: t('hiwStep4Tag'),
+      badge: t('hiwStep4Badge'),
+      headline: t('hiwStep4Headline'),
+      description: t('hiwStep4Desc'),
+      details: Array.isArray(t('hiwStep4Details')) ? t('hiwStep4Details') : [
         'Protected in sealed water-resistant & dust-proof garment bags',
         'Delivered back to your door or left safely with your juristic desk',
         'Digital QR PromptPay or Credit Card invoice generated automatically'
@@ -71,7 +71,7 @@ export function HowItWorks({ setView }) {
       icon: 'truck',
       color: 'emerald'
     }
-  ];
+  ], [t, language]);
 
   return (
     <section id="how-it-works" className="py-16 sm:py-24 bg-white border-t border-slate-200/80 scroll-mt-14">
@@ -87,7 +87,7 @@ export function HowItWorks({ setView }) {
             {t('hiwTitle')}
           </h2>
           <p className="mt-3 text-base sm:text-lg text-slate-600 leading-relaxed">
-            {t('hiwSubtitle')} No queues, no hassle, and no coins needed. Here is our effortless 4-step process from your doorstep to fresh clothes.
+            {t('hiwSubtitle')} {t('hiwSubtitleSuffix')}
           </p>
         </div>
 
@@ -122,7 +122,7 @@ export function HowItWorks({ setView }) {
                 {/* Step Number Badge */}
                 <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-slate-900 font-extrabold text-xs px-2.5 py-1 rounded-xl shadow-sm flex items-center gap-1.5 border border-white/50">
                   <span className="w-2 h-2 rounded-full bg-sky-500" />
-                  <span>Step {step.num}</span>
+                  <span>{language === 'th' ? `ขั้นตอน ${step.num}` : `Step ${step.num}`}</span>
                 </div>
 
                 {/* Key feature chip */}
@@ -146,7 +146,7 @@ export function HowItWorks({ setView }) {
 
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="text-sky-600 font-semibold flex items-center gap-1">
-                    <span>Explore details</span>
+                    <span>{t('hiwExploreDetails')}</span>
                     <Icon name="chevronRight" className="w-3.5 h-3.5" />
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
@@ -167,7 +167,7 @@ export function HowItWorks({ setView }) {
             <div className="lg:col-span-7">
               <div className="flex items-center gap-2 mb-3">
                 <span className="px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 text-xs font-bold uppercase tracking-wider">
-                  Step {steps[activeStep].num} Spotlight
+                  {language === 'th' ? `ขั้นตอนที่ ${steps[activeStep].num}` : `Step ${steps[activeStep].num} ${t('hiwSpotlight')}`}
                 </span>
                 <span className="text-slate-400 text-xs">
                   • {steps[activeStep].badge}
@@ -198,18 +198,18 @@ export function HowItWorks({ setView }) {
 
               {/* Quick switcher buttons */}
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10">
-                <span className="text-xs text-slate-400 mr-2">Jump to step:</span>
+                <span className="text-xs text-slate-400 mr-2">{t('hiwJumpToStep')}</span>
                 {steps.map((st, sIdx) => (
                   <button
                     key={sIdx}
                     onClick={() => setActiveStep(sIdx)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                       activeStep === sIdx
                         ? 'bg-sky-500 text-white shadow-md'
                         : 'bg-white/10 hover:bg-white/20 text-slate-300'
                     }`}
                   >
-                    Step {st.num}
+                    {language === 'th' ? `ขั้นตอน ${st.num}` : `Step ${st.num}`}
                   </button>
                 ))}
               </div>
@@ -228,11 +228,11 @@ export function HowItWorks({ setView }) {
                 <div className="absolute bottom-5 left-5 right-5">
                   <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-white/15">
                     <div className="flex items-center justify-between text-xs text-sky-300 font-bold mb-1">
-                      <span>VERIFIED WORKFLOW</span>
-                      <span>10:30 - 21:00 DAILY</span>
+                      <span>{t('hiwVerifiedWorkflow')}</span>
+                      <span>{t('hiwVerifiedHours')}</span>
                     </div>
                     <p className="text-xs text-slate-200">
-                      Condo reception drop-off supported. Drivers carry official ID and digital luggage scale tags.
+                      {t('hiwCondoNotice')}
                     </p>
                   </div>
                 </div>
@@ -245,17 +245,17 @@ export function HowItWorks({ setView }) {
         <div className="mt-12 text-center flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
             onClick={() => setView('book')}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm sm:text-base px-8 py-3.5 rounded-xl shadow-lg shadow-sky-600/25 transition transform hover:-translate-y-0.5 active:translate-y-0"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm sm:text-base px-8 py-3.5 rounded-xl shadow-lg shadow-sky-600/25 transition transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
           >
             <Icon name="truck" className="w-4 h-4" />
-            <span>Schedule Online Pickup Now</span>
+            <span>{t('hiwScheduleBtn')}</span>
           </button>
 
           <button
             onClick={() => setView('services')}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm sm:text-base px-6 py-3.5 rounded-xl border border-slate-200 transition"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm sm:text-base px-6 py-3.5 rounded-xl border border-slate-200 transition cursor-pointer"
           >
-            <span>View Services & KG Pricing</span>
+            <span>{t('hiwPricingBtn')}</span>
             <Icon name="chevronRight" className="w-4 h-4" />
           </button>
         </div>

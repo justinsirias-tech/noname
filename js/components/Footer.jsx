@@ -4,7 +4,7 @@ import { CONTACT_CHANNELS } from '../store.js';
 import { useTranslation } from '../i18n.jsx';
 
 export function Footer({ setView }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   return (
     <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
@@ -45,27 +45,27 @@ export function Footer({ setView }) {
           {/* Col 2: Services by KG */}
           <div className="space-y-3">
             <h4 className="text-white font-extrabold text-xs uppercase tracking-wider">
-              Services by Weight
+              {language === 'th' ? 'บริการคิดตามน้ำหนัก (กก.)' : 'Services by Weight'}
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <button onClick={() => setView('services')} className="hover:text-white transition">
-                  Wash / Fold (Everyday Wear)
+                  {language === 'th' ? 'ซัก + พับ (เสื้อผ้าประจำวัน)' : 'Wash / Fold (Everyday Wear)'}
                 </button>
               </li>
               <li>
                 <button onClick={() => setView('services')} className="hover:text-white transition">
-                  Wash / Iron / Fold (Crisp Steam Iron)
+                  {language === 'th' ? 'ซัก + รีดไอน้ำ + พับ' : 'Wash / Iron / Fold (Crisp Steam Iron)'}
                 </button>
               </li>
               <li>
                 <button onClick={() => setView('services')} className="hover:text-white transition">
-                  Wash / Iron / Hang (Wardrobe Ready)
+                  {language === 'th' ? 'ซัก + รีดไอน้ำ + แขวนไม้' : 'Wash / Iron / Hang (Wardrobe Ready)'}
                 </button>
               </li>
               <li>
-                <button onClick={() => setView('book')} className="hover:text-white transition text-sky-400">
-                  Instant Price Calculator
+                <button onClick={() => setView('book')} className="hover:text-white transition text-sky-400 font-bold">
+                  {language === 'th' ? 'คำนวณราคาและจองทันที' : 'Instant Price Calculator'}
                 </button>
               </li>
             </ul>
@@ -74,21 +74,22 @@ export function Footer({ setView }) {
           {/* Col 3: Bangkok Coverage & Protocol */}
           <div className="space-y-3">
             <h4 className="text-white font-extrabold text-xs uppercase tracking-wider">
-              Bangkok Coverage
+              {language === 'th' ? 'พื้นที่ให้บริการ' : 'Coverage & Logistics'}
             </h4>
             <ul className="space-y-1.5 text-xs text-slate-400">
-              <li>• Watthana (Thonglor, Ekkamai, Phrom Phong)</li>
-              <li>• Khlong Toei (Phra Khanong, Asok)</li>
-              <li>• Bang Rak (Silom, Surawong) & Sathon</li>
-              <li>• Pathum Wan, Phaya Thai (Ari), Huai Khwang</li>
-              <li>• Condo Juristic drop-off supported</li>
+              <li>{language === 'th' ? '• วัฒนา (ทองหล่อ, เอกมัย, พร้อมพงษ์)' : '• Watthana (Thonglor, Ekkamai, Phrom Phong)'}</li>
+              <li>{language === 'th' ? '• คลองเตย (พระโขนง, อโศก)' : '• Khlong Toei (Phra Khanong, Asok)'}</li>
+              <li>{language === 'th' ? '• บางรัก (สีลม, สุริยวงศ์) & สาทร' : '• Bang Rak (Silom, Surawong) & Sathon'}</li>
+              <li>{language === 'th' ? '• ปทุมวัน, พญาไท (อารีย์), พระราม 9' : '• Pathum Wan, Phaya Thai (Ari), Rama 9'}</li>
+              <li>{language === 'th' ? '• พัทยา (ทุกหาด ทุกโซน นาเกลือ จอมเทียน)' : '• Pattaya (All Zones, Jomtien, Naklua)'}</li>
+              <li>{language === 'th' ? '• รองรับการฝากรับ-ส่งผ่านนิติบุคคลคอนโด' : '• Condo Juristic drop-off supported'}</li>
             </ul>
           </div>
 
           {/* Col 4: Customer Support Channels */}
           <div className="space-y-3">
             <h4 className="text-white font-extrabold text-xs uppercase tracking-wider">
-              Customer Support
+              {language === 'th' ? 'ฝ่ายบริการลูกค้า' : 'Customer Support'}
             </h4>
             <div className="space-y-2">
               <a
@@ -96,7 +97,7 @@ export function Footer({ setView }) {
                 className="flex items-center gap-2 text-amber-300 hover:text-amber-200 transition"
               >
                 <Icon name="phone" className="w-4 h-4" />
-                <span>Call: +66 80 888 9885</span>
+                <span>{language === 'th' ? 'โทร:' : 'Call:'} +66 80 888 9885</span>
               </a>
 
               <a
@@ -124,7 +125,7 @@ export function Footer({ setView }) {
                 className="flex items-center gap-2 text-sky-400 hover:text-sky-300 transition"
               >
                 <Icon name="mail" className="w-4 h-4" />
-                <span>Email: {CONTACT_CHANNELS.email.handle}</span>
+                <span>{language === 'th' ? 'อีเมล:' : 'Email:'} {CONTACT_CHANNELS.email.handle}</span>
               </a>
             </div>
 
@@ -133,13 +134,13 @@ export function Footer({ setView }) {
                 onClick={() => setView('faq')}
                 className="text-xs text-sky-400 hover:text-sky-300 font-bold underline underline-offset-4"
               >
-                ❓ Frequently Asked Questions (FAQ)
+                {language === 'th' ? '❓ คำถามที่พบบ่อย (FAQ)' : '❓ Frequently Asked Questions (FAQ)'}
               </button>
               <button
                 onClick={() => setView('terms')}
                 className="text-xs text-slate-300 hover:text-white underline underline-offset-4"
               >
-                Terms & Conditions of Service
+                {language === 'th' ? 'ข้อกำหนดและเงื่อนไขการให้บริการ' : 'Terms & Conditions of Service'}
               </button>
             </div>
           </div>
@@ -149,16 +150,18 @@ export function Footer({ setView }) {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-[11px]">
           <div>
-            © {new Date().getFullYear()} NoName Laundry (Bangkok, Thailand). All rights reserved. Purely digital door-to-door service.
+            {language === 'th'
+              ? `© ${new Date().getFullYear()} NoName Laundry (กรุงเทพฯ และพัทยา ประเทศไทย) สงวนลิขสิทธิ์ • บริการซักอบรีดส่งถึงที่แบบดิจิทัล 100%`
+              : `© ${new Date().getFullYear()} NoName Laundry (Bangkok, Thailand). All rights reserved. Purely digital door-to-door service.`}
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
             <button onClick={() => setView('faq')} className="hover:text-slate-300 font-bold text-slate-300">
-              FAQ
+              {language === 'th' ? 'คำถามที่พบบ่อย' : 'FAQ'}
             </button>
             <span>•</span>
             <button onClick={() => setView('terms')} className="hover:text-slate-300">
-              Terms of Service
+              {language === 'th' ? 'ข้อกำหนดบริการ' : 'Terms of Service'}
             </button>
             <span>•</span>
             <button onClick={() => setView('admin')} className="hover:text-slate-300 font-semibold text-sky-400">

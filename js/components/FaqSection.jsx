@@ -5,7 +5,7 @@ import { FAQ_CATEGORIES } from '../data/faqData.js';
 import { useTranslation } from '../i18n.jsx';
 
 export function FaqSection({ setView }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [faqs, setFaqs] = useState(() => laundryStore.getPublishedFaqs());
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +28,13 @@ export function FaqSection({ setView }) {
     return Array.from(catSet);
   }, [faqs]);
 
+  const getCategoryLabel = (cat) => {
+    if (cat === 'ALL') return language === 'th' ? 'ทั้งหมด' : 'ALL';
+    const found = faqs.find(f => f.category === cat);
+    if (language === 'th' && found?.categoryTh) return found.categoryTh;
+    return cat;
+  };
+
   // Filter FAQs based on active category and search term
   const filteredFaqs = useMemo(() => {
     return faqs.filter(faq => {
@@ -36,6 +43,8 @@ export function FaqSection({ setView }) {
       const matchSearch = !q || 
         faq.question.toLowerCase().includes(q) || 
         faq.answer.toLowerCase().includes(q) ||
+        (faq.questionTh && faq.questionTh.toLowerCase().includes(q)) ||
+        (faq.answerTh && faq.answerTh.toLowerCase().includes(q)) ||
         (faq.category && faq.category.toLowerCase().includes(q));
       return matchCat && matchSearch;
     });
@@ -70,7 +79,7 @@ export function FaqSection({ setView }) {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search question or topic (e.g. scale weight, condo drop-off, payment)..."
+          placeholder={language === 'th' ? 'ค้นหาคำถามหรือหัวข้อ (เช่น การชั่งน้ำหนัก, ฝากนิติบุคคล, การชำระเงิน)...' : 'Search question or topic (e.g. scale weight, condo drop-off, payment)...'}
           className="w-full pl-11 pr-10 py-3 rounded-2xl border border-slate-200 bg-white shadow-sm text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"
         />
         {searchQuery && (
@@ -95,7 +104,7 @@ export function FaqSection({ setView }) {
                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            {cat}
+            {getCategoryLabel(cat)}
           </button>
         ))}
       </div>
@@ -105,6 +114,10 @@ export function FaqSection({ setView }) {
         {filteredFaqs.length > 0 ? (
           filteredFaqs.map((faq) => {
             const isExpanded = expandedId === faq.id;
+            const qText = (language === 'th' && faq.questionTh) ? faq.questionTh : faq.question;
+            const aText = (language === 'th' && faq.answerTh) ? faq.answerTh : faq.answer;
+            const cText = (language === 'th' && faq.categoryTh) ? faq.categoryTh : faq.category;
+
             return (
               <div
                 key={faq.id}
@@ -120,15 +133,15 @@ export function FaqSection({ setView }) {
                   className="w-full text-left p-4 sm:p-5 flex items-start justify-between gap-4 focus:outline-none"
                 >
                   <div className="flex-1">
-                    {faq.category && (
+                    {cText && (
                       <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[10px] uppercase tracking-wider mb-1.5">
-                        {faq.category}
+                        {cText}
                       </span>
                     )}
                     <h3 className={`font-extrabold text-sm sm:text-base tracking-tight transition ${
                       isExpanded ? 'text-sky-700' : 'text-slate-900'
                     }`}>
-                      {faq.question}
+                      {qText}
                     </h3>
                   </div>
 
@@ -143,7 +156,7 @@ export function FaqSection({ setView }) {
 
                 {isExpanded && (
                   <div className="px-4 pb-5 sm:px-5 sm:pb-6 pt-1 text-slate-600 text-xs sm:text-sm leading-relaxed border-t border-slate-100 animate-fadeIn">
-                    <p className="whitespace-pre-line">{faq.answer}</p>
+                    <p className="whitespace-pre-line">{aText}</p>
                   </div>
                 )}
               </div>
@@ -154,9 +167,13 @@ export function FaqSection({ setView }) {
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-xl">
               🔍
             </div>
-            <h4 className="font-bold text-slate-800 text-sm">No matching questions found</h4>
+            <h4 className="font-bold text-slate-800 text-sm">
+              {language === 'th' ? 'ไม่พบคำถามที่ตรงกับการค้นหา' : 'No matching questions found'}
+            </h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              We couldn't find any questions matching "{searchQuery}". Try a different keyword or contact our support team.
+              {language === 'th' 
+                ? `ไม่พบคำถามที่ตรงกับ "${searchQuery}" ลองค้นหาด้วยคำอื่น หรือสอบถามทีมงานโดยตรง` 
+                : `We couldn't find any questions matching "${searchQuery}". Try a different keyword or contact our support team.`}
             </p>
             <button
               onClick={() => {
@@ -165,7 +182,7 @@ export function FaqSection({ setView }) {
               }}
               className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition"
             >
-              Reset Filters
+              {language === 'th' ? 'ล้างการค้นหา' : 'Reset Filters'}
             </button>
           </div>
         )}
@@ -174,9 +191,13 @@ export function FaqSection({ setView }) {
       {/* Support Callout Card */}
       <div className="mt-12 bg-gradient-to-r from-sky-50 via-teal-50 to-emerald-50 rounded-3xl p-6 sm:p-8 border border-sky-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="space-y-1 text-center sm:text-left">
-          <h4 className="font-black text-slate-900 text-base">Still have questions?</h4>
+          <h4 className="font-black text-slate-900 text-base">
+            {language === 'th' ? 'ยังมีข้อสงสัยเพิ่มเติม?' : 'Still have questions?'}
+          </h4>
           <p className="text-xs text-slate-600 max-w-md">
-            Our team is available exclusively online via WhatsApp and LINE Official Account to help you with special care requests, condominium juristic logistics, or same-day pickups.
+            {language === 'th'
+              ? 'ทีมงานของเราพร้อมดูแลคุณเสมอผ่านทาง WhatsApp, LINE Official หรือโทรศัพท์ เพื่อช่วยประสานงานเรื่องการดูแลผ้าพิเศษ หรือการนัดรับผ้าด่วน'
+              : 'Our team is available exclusively online via WhatsApp and LINE Official Account to help you with special care requests, condominium juristic logistics, or same-day pickups.'}
           </p>
         </div>
 
