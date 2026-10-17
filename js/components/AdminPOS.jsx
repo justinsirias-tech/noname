@@ -90,9 +90,32 @@ export function AdminPOS({
   const [pricingErrorMsg, setPricingErrorMsg] = useState('');
   const [pricingSaving, setPricingSaving] = useState(false);
 
-  // Sync service drafts whenever services prop updates
+  // Preserve user edits in serviceDrafts: only add newly created services or remove deleted ones;
+  // NEVER overwrite existing service drafts while the user is editing items and pricing.
   useEffect(() => {
-    setServiceDrafts(buildInitialDrafts(services));
+    const freshDrafts = buildInitialDrafts(services);
+    setServiceDrafts((prevDrafts) => {
+      let changed = false;
+      const nextDrafts = { ...prevDrafts };
+
+      // Add any newly created service that isn't in drafts yet
+      for (const id of Object.keys(freshDrafts)) {
+        if (!nextDrafts[id]) {
+          nextDrafts[id] = freshDrafts[id];
+          changed = true;
+        }
+      }
+
+      // Remove any service that was deleted
+      for (const id of Object.keys(nextDrafts)) {
+        if (!freshDrafts[id]) {
+          delete nextDrafts[id];
+          changed = true;
+        }
+      }
+
+      return changed ? nextDrafts : prevDrafts;
+    });
   }, [services]);
 
   // Add New Service Modal State
@@ -146,9 +169,14 @@ export function AdminPOS({
   const [mapsSuccessMsg, setMapsSuccessMsg] = useState('');
   const [mapsErrorMsg, setMapsErrorMsg] = useState('');
 
-  // Automatically synchronize settings form fields whenever remote settings change
+  const lastSettingsJsonRef = React.useRef(JSON.stringify(settings || {}));
+
+  // Only synchronize settings form fields when actual settings values change (not on unrelated store notifications)
   useEffect(() => {
     if (settings) {
+      const nextJson = JSON.stringify(settings);
+      if (nextJson === lastSettingsJsonRef.current) return;
+      lastSettingsJsonRef.current = nextJson;
       if (settings.paymentGateway) {
         if (settings.paymentGateway.provider !== undefined) setGatewayProvider(settings.paymentGateway.provider);
         if (settings.paymentGateway.merchantName !== undefined) setMerchantName(settings.paymentGateway.merchantName);

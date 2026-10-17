@@ -42,13 +42,18 @@ export function PostalCodeManager() {
   const [isSavingGlobal, setIsSavingGlobal] = useState(false);
 
   useEffect(() => {
+    let lastCfgJson = JSON.stringify(laundryStore.getDeliveryConfig());
     const unsubscribe = laundryStore.subscribe(() => {
       setRates(laundryStore.getPostalCodeRates());
       const cfg = laundryStore.getDeliveryConfig();
-      setConfig(cfg);
-      setFallbackFee(cfg.defaultFallbackFee || 70);
-      setFreeThreshold(cfg.storeWideFreeDeliveryThreshold || 500);
-      setFreeEnabled(cfg.freeDeliveryEnabled !== false);
+      const nextCfgJson = JSON.stringify(cfg);
+      if (nextCfgJson !== lastCfgJson) {
+        lastCfgJson = nextCfgJson;
+        setConfig(cfg);
+        setFallbackFee(cfg.defaultFallbackFee || 70);
+        setFreeThreshold(cfg.storeWideFreeDeliveryThreshold || 500);
+        setFreeEnabled(cfg.freeDeliveryEnabled !== false);
+      }
     });
     return () => unsubscribe();
   }, []);

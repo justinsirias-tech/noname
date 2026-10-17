@@ -244,19 +244,31 @@ export function App() {
     }
   };
 
-  // Subscribe to laundryStore changes
+  // Subscribe to laundryStore changes (preserve references for unchanged slices so active forms never reset)
   useEffect(() => {
     const unsubscribe = laundryStore.subscribe(() => {
-      setStoreState({
-        services: [...laundryStore.services],
-        categories: [...(laundryStore.categories || [])],
-        orders: [...laundryStore.orders],
-        incidents: [...laundryStore.incidents],
-        settings: { ...laundryStore.settings }
+      setStoreState((prev) => {
+        const servicesChanged = JSON.stringify(prev.services) !== JSON.stringify(laundryStore.services);
+        const categoriesChanged = JSON.stringify(prev.categories) !== JSON.stringify(laundryStore.categories || []);
+        const ordersChanged = JSON.stringify(prev.orders) !== JSON.stringify(laundryStore.orders);
+        const incidentsChanged = JSON.stringify(prev.incidents) !== JSON.stringify(laundryStore.incidents);
+        const settingsChanged = JSON.stringify(prev.settings) !== JSON.stringify(laundryStore.settings);
+        if (!servicesChanged && !categoriesChanged && !ordersChanged && !incidentsChanged && !settingsChanged) {
+          return prev;
+        }
+        return {
+          services: servicesChanged ? [...laundryStore.services] : prev.services,
+          categories: categoriesChanged ? [...(laundryStore.categories || [])] : prev.categories,
+          orders: ordersChanged ? [...laundryStore.orders] : prev.orders,
+          incidents: incidentsChanged ? [...laundryStore.incidents] : prev.incidents,
+          settings: settingsChanged ? { ...laundryStore.settings } : prev.settings
+        };
       });
       const latestCust = laundryStore.getCurrentCustomer();
       if (latestCust) {
-        setCurrentCustomer({ ...latestCust });
+        setCurrentCustomer((prevCust) =>
+          JSON.stringify(prevCust) === JSON.stringify(latestCust) ? prevCust : { ...latestCust }
+        );
       }
     });
     return unsubscribe;

@@ -179,6 +179,7 @@ export class LaundryStore {
       if (res.ok) {
         const remoteCusts = await res.json();
         if (Array.isArray(remoteCusts) && remoteCusts.length > 0) {
+          const prevJson = JSON.stringify(this.customers || []);
           const custMap = new Map();
           for (const c of (this.customers || [])) {
             if (c && c.id) custMap.set(c.id, c);
@@ -189,9 +190,13 @@ export class LaundryStore {
               custMap.set(rc.id, ex ? { ...ex, ...rc } : rc);
             }
           }
-          this.customers = Array.from(custMap.values());
-          this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
-          this.notify();
+          const nextCustomers = Array.from(custMap.values());
+          const nextJson = JSON.stringify(nextCustomers);
+          if (prevJson !== nextJson) {
+            this.customers = nextCustomers;
+            this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+            this.notify();
+          }
           return this.customers;
         }
       }
