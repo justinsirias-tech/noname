@@ -3829,6 +3829,79 @@ app.get(['/images/:file', '/public/images/:file'], (req, res, next) => {
   next();
 });
 
+const compressedAssetCache = new Map();
+
+function serveCompressedFile(req, res, filePath, contentType, cacheControl) {
+  try {
+    if (!fs.existsSync(filePath)) return false;
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) return false;
+
+    const cacheKey = `${filePath}:${stat.mtimeMs}`;
+    let entry = compressedAssetCache.get(cacheKey);
+    if (!entry) {
+      const raw = fs.readFileSync(filePath);
+      const gz = zlib.gzipSync(raw, { level: zlib.constants.Z_BEST_COMPRESSION });
+      let br = null;
+      try {
+        br = zlib.brotliCompressSync(raw, {
+          params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 }
+        });
+      } catch (e) {}
+      entry = { raw, gz, br };
+      if (compressedAssetCache.size > 150) compressedAssetCache.clear();
+      compressedAssetCache.set(cacheKey, entry);
+    }
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', cacheControl);
+    res.setHeader('Vary', 'Accept-Encoding');
+
+    const acceptEncoding = String(req.headers['accept-encoding'] || '');
+    if (entry.br && /\bbr\b/.test(acceptEncoding)) {
+      res.setHeader('Content-Encoding', 'br');
+      res.setHeader('Content-Length', entry.br.length);
+      res.end(entry.br);
+      return true;
+    }
+    if (/\bgzip\b/.test(acceptEncoding)) {
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Content-Length', entry.gz.length);
+      res.end(entry.gz);
+      return true;
+    }
+    res.setHeader('Content-Length', entry.raw.length);
+    res.end(entry.raw);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Fast compressed delivery for /dist/*.js and /css/*.css
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const cleanPath = req.path;
+  if (cleanPath === '/' || cleanPath === '/index.html') {
+    const p1 = path.join(publicFolder, 'index.html');
+    const p2 = path.join(publicDir, 'index.html');
+    if (serveCompressedFile(req, res, fs.existsSync(p1) ? p1 : p2, 'text/html; charset=UTF-8', 'public, max-age=0, must-revalidate')) {
+      return;
+    }
+  }
+  if ((cleanPath.startsWith('/dist/') && cleanPath.endsWith('.js')) || (cleanPath.startsWith('/css/') && cleanPath.endsWith('.css'))) {
+    const rel = cleanPath.replace(/^\/+/, '');
+    const p1 = path.join(publicFolder, rel);
+    const p2 = path.join(publicDir, rel);
+    const target = fs.existsSync(p1) ? p1 : p2;
+    const mime = cleanPath.endsWith('.js') ? 'application/javascript; charset=UTF-8' : 'text/css; charset=UTF-8';
+    if (serveCompressedFile(req, res, target, mime, 'public, max-age=31536000, immutable')) {
+      return;
+    }
+  }
+  next();
+});
+
 const staticHeadersConfig = (res, filePath) => {
   if (filePath.endsWith('.html')) {
     res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
@@ -3867,16 +3940,25 @@ app.get('/manifest.json', (req, res) => {
 
 // Dedicated Localized Subfolder Landing Pages
 app.get(['/bangkok', '/bangkok/'], (req, res) => {
-  res.sendFile(path.join(publicDir, 'bangkok', 'index.html'));
+  const target = path.join(publicDir, 'bangkok', 'index.html');
+  if (!serveCompressedFile(req, res, target, 'text/html; charset=UTF-8', 'public, max-age=0, must-revalidate')) {
+    res.sendFile(target);
+  }
 });
 
 app.get(['/pattaya', '/pattaya/'], (req, res) => {
-  res.sendFile(path.join(publicDir, 'pattaya', 'index.html'));
+  const target = path.join(publicDir, 'pattaya', 'index.html');
+  if (!serveCompressedFile(req, res, target, 'text/html; charset=UTF-8', 'public, max-age=0, must-revalidate')) {
+    res.sendFile(target);
+  }
 });
 
 // Fallback for SPA routing
 app.get('*', (req, res) => {
-  res.sendFile(path.join(publicDir, 'index.html'));
+  const target = path.join(publicDir, 'index.html');
+  if (!serveCompressedFile(req, res, target, 'text/html; charset=UTF-8', 'public, max-age=0, must-revalidate')) {
+    res.sendFile(target);
+  }
 });
 
 if (!process.env.VERCEL) {
