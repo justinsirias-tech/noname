@@ -3,6 +3,36 @@ import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS } from '../store.js';
 import { useTranslation } from '../i18n.jsx';
 
+function BritishFlag({ className = "w-4 h-3" }) {
+  return (
+    <svg
+      viewBox="0 0 60 40"
+      className={`${className} rounded-[2px] overflow-hidden shadow-2xs shrink-0 inline-block border border-slate-200/60`}
+      aria-hidden="true"
+    >
+      <rect width="60" height="40" fill="#012169" />
+      <path d="M0,0 L60,40 M60,0 L0,40" stroke="#FFFFFF" strokeWidth="8" />
+      <path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" strokeWidth="4.5" />
+      <path d="M30,0 V40 M0,20 H60" stroke="#FFFFFF" strokeWidth="13" />
+      <path d="M30,0 V40 M0,20 H60" stroke="#C8102E" strokeWidth="8" />
+    </svg>
+  );
+}
+
+function ThaiFlag({ className = "w-4 h-3" }) {
+  return (
+    <svg
+      viewBox="0 0 60 40"
+      className={`${className} rounded-[2px] overflow-hidden shadow-2xs shrink-0 inline-block border border-slate-200/60`}
+      aria-hidden="true"
+    >
+      <rect width="60" height="40" fill="#A51931" />
+      <rect y="6.67" width="60" height="26.67" fill="#F4F5F8" />
+      <rect y="13.33" width="60" height="13.33" fill="#2D2A4A" />
+    </svg>
+  );
+}
+
 export function Navbar({ 
   currentView, 
   setView, 
@@ -229,26 +259,28 @@ export function Navbar({
               <button
                 type="button"
                 onClick={() => onSwitchLanguage && onSwitchLanguage('en')}
-                className={`px-2 py-1 rounded-lg transition text-xs ${
+                className={`px-2.5 py-1 rounded-lg transition text-xs inline-flex items-center gap-1.5 ${
                   language === 'en'
                     ? 'bg-white text-sky-800 shadow-2xs font-extrabold'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
                 title="Switch to English"
               >
-                🇬🇧 EN
+                <BritishFlag className="w-4 h-3" />
+                <span>EN</span>
               </button>
               <button
                 type="button"
                 onClick={() => onSwitchLanguage && onSwitchLanguage('th')}
-                className={`px-2 py-1 rounded-lg transition text-xs ${
+                className={`px-2.5 py-1 rounded-lg transition text-xs inline-flex items-center gap-1.5 ${
                   language === 'th'
                     ? 'bg-white text-sky-800 shadow-2xs font-extrabold'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
                 title="เปลี่ยนเป็นภาษาไทย"
               >
-                🇹🇭 ไทย
+                <ThaiFlag className="w-4 h-3" />
+                <span>ไทย</span>
               </button>
             </div>
 
@@ -295,10 +327,20 @@ export function Navbar({
             <button
               type="button"
               onClick={() => onSwitchLanguage && onSwitchLanguage(language === 'en' ? 'th' : 'en')}
-              className="px-2.5 py-1.5 rounded-lg bg-slate-100 text-xs font-bold border border-slate-200 flex items-center gap-1 text-slate-700 md:hidden"
+              className="px-2.5 py-1.5 rounded-lg bg-slate-100 text-xs font-bold border border-slate-200 flex items-center gap-1.5 text-slate-700 md:hidden"
               title="Toggle Language"
             >
-              <span>{language === 'en' ? '🇹🇭 ไทย' : '🇬🇧 EN'}</span>
+              {language === 'en' ? (
+                <>
+                  <ThaiFlag className="w-4 h-3" />
+                  <span>ไทย</span>
+                </>
+              ) : (
+                <>
+                  <BritishFlag className="w-4 h-3" />
+                  <span>EN</span>
+                </>
+              )}
             </button>
 
             <button
@@ -336,26 +378,28 @@ export function Navbar({
               onClick={() => {
                 onSwitchLanguage && onSwitchLanguage('en');
               }}
-              className={`flex-1 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
+              className={`flex-1 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                 language === 'en'
                   ? 'bg-white text-sky-800 shadow-xs'
                   : 'text-slate-600'
               }`}
             >
-              <span>🇬🇧 English</span>
+              <BritishFlag className="w-4 h-3" />
+              <span>English</span>
             </button>
             <button
               type="button"
               onClick={() => {
                 onSwitchLanguage && onSwitchLanguage('th');
               }}
-              className={`flex-1 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
+              className={`flex-1 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                 language === 'th'
                   ? 'bg-white text-sky-800 shadow-xs'
                   : 'text-slate-600'
               }`}
             >
-              <span>🇹🇭 ภาษาไทย</span>
+              <ThaiFlag className="w-4 h-3" />
+              <span>ภาษาไทย</span>
             </button>
           </div>
 
