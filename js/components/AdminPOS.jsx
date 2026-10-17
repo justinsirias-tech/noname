@@ -49,7 +49,7 @@ export function AdminPOS({
   // Service Full Drafts State (Pricing, Min Weight, Description, Features Sublist)
   // Categories from Store
   const categories = laundryStore.getCategories ? laundryStore.getCategories() : [];
-  const [selectedCategoryTab, setSelectedCategoryTab] = useState('ALL');
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState('all');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [catFormName, setCatFormName] = useState('');
@@ -975,7 +975,7 @@ export function AdminPOS({
       
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 print:hidden">
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono text-xs font-bold">
               ADMIN CONTROL CENTER
@@ -1018,7 +1018,7 @@ export function AdminPOS({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {adminUser && (
             <div className="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -1410,28 +1410,28 @@ export function AdminPOS({
 
       {/* TAB 2: SERVICES, LINENS & MENU CATALOG */}
       {activeTab === 'services-pricing' && (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto w-full space-y-6">
           
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold mb-1">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6 overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div className="flex-1 min-w-0">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold mb-1.5">
                   <Icon name="layers" className="w-3.5 h-3.5" />
-                  <span>Service Menu, Linens & Custom Categories</span>
+                  <span>Service Menu, Linens &amp; Custom Categories</span>
                 </div>
-                <h2 className="text-xl font-black text-slate-900">
-                  Service Catalog & Pricing Controls
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                  Service Catalog &amp; Pricing Controls
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Manage weight-based laundry (฿/KG), piece-based linens & bedding (฿/piece), custom categories, and turn-around pricing tiers.
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Manage weight-based laundry (฿/KG), piece-based linens &amp; bedding (฿/piece), custom categories, and turn-around pricing tiers.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => handleOpenCategoryModal()}
-                  className="px-3.5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition shrink-0"
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition whitespace-nowrap"
                 >
                   <Icon name="folder" className="w-4 h-4 text-sky-600" />
                   <span>Categories ({categories.length})</span>
@@ -1439,7 +1439,7 @@ export function AdminPOS({
                 <button
                   type="button"
                   onClick={() => setShowAddServiceModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition shrink-0"
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition whitespace-nowrap"
                 >
                   <Icon name="plus" className="w-4 h-4" />
                   <span>Add Service</span>
@@ -1448,18 +1448,18 @@ export function AdminPOS({
             </div>
 
             {/* Category Filter Tabs Bar */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex flex-wrap items-center gap-2 pb-1">
               <button
                 type="button"
                 onClick={() => setSelectedCategoryTab('all')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
                   selectedCategoryTab === 'all'
                     ? 'bg-slate-900 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 <span>All Catalog Items</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20">
                   {services.length}
                 </span>
               </button>
@@ -1470,7 +1470,7 @@ export function AdminPOS({
                     key={cat.id}
                     type="button"
                     onClick={() => setSelectedCategoryTab(cat.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
                       selectedCategoryTab === cat.id
                         ? 'bg-sky-600 text-white shadow-sm'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -1478,7 +1478,7 @@ export function AdminPOS({
                   >
                     <Icon name={cat.icon || 'layers'} className="w-3.5 h-3.5" />
                     <span>{cat.name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                       selectedCategoryTab === cat.id ? 'bg-white/20' : 'bg-slate-200 text-slate-700'
                     }`}>
                       {count}
@@ -1530,95 +1530,114 @@ export function AdminPOS({
                       key={service.id}
                       className="p-6 rounded-3xl bg-slate-50 border border-slate-200 shadow-sm space-y-4 relative group hover:border-slate-300 transition"
                     >
-                      {/* Top Bar: Name, Category, Pricing Model, Delete */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
-                            {isPiece ? '🛏️' : '🧺'}
-                          </span>
-                          <div>
-                            <input
-                              type="text"
-                              value={draft.name}
-                              onChange={(e) => handleDraftFieldChange(service.id, 'name', e.target.value)}
-                              className="font-extrabold text-slate-900 text-base bg-transparent border-b border-transparent hover:border-slate-300 focus:border-sky-500 focus:bg-white px-1.5 py-0.5 rounded transition"
-                              title="Click to edit service English name"
-                            />
-                            <input
-                              type="text"
-                              value={draft.nameTh || ''}
-                              onChange={(e) => handleDraftFieldChange(service.id, 'nameTh', e.target.value)}
-                              placeholder="Thai Name (ชื่อภาษาไทย)"
-                              className="text-xs text-sky-600 font-semibold bg-transparent border-b border-transparent hover:border-slate-300 focus:border-sky-500 focus:bg-white px-1.5 py-0.5 rounded ml-1 transition"
-                              title="Click to edit service Thai name"
-                            />
+                      {/* Top Bar: Name, Thai Name, Category, Pricing Model, Popular, ID & Delete */}
+                      <div className="space-y-3 pb-4 border-b border-slate-200">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                            <span className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base shrink-0">
+                              {isPiece ? '🛏️' : '🧺'}
+                            </span>
+                            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                                  Service Name (English)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={draft.name}
+                                  onChange={(e) => handleDraftFieldChange(service.id, 'name', e.target.value)}
+                                  className="w-full font-extrabold text-slate-900 text-sm bg-white border border-slate-300 hover:border-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 px-3 py-1.5 rounded-xl transition"
+                                  title="Edit service English name"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                                  Thai Name (ชื่อภาษาไทย)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={draft.nameTh || ''}
+                                  onChange={(e) => handleDraftFieldChange(service.id, 'nameTh', e.target.value)}
+                                  placeholder="Thai Name (ชื่อภาษาไทย)"
+                                  className="w-full text-sm text-sky-700 font-bold bg-white border border-slate-300 hover:border-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 px-3 py-1.5 rounded-xl transition"
+                                  title="Edit service Thai name"
+                                />
+                              </div>
+                            </div>
                           </div>
 
-                          {/* Category Tag Dropdown */}
-                          <select
-                            value={draft.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight')}
-                            onChange={(e) => handleDraftFieldChange(service.id, 'categoryId', e.target.value)}
-                            className="text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-300 bg-white text-slate-700"
-                            title="Assign service category"
-                          >
-                            {categories.map((c) => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                          </select>
+                          <div className="flex flex-wrap items-center gap-2 shrink-0 self-end lg:self-center">
+                            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={draft.popular}
+                                onChange={(e) => handleDraftFieldChange(service.id, 'popular', e.target.checked)}
+                                className="w-3.5 h-3.5 text-sky-600 rounded"
+                              />
+                              <span className="text-xs font-bold">Popular</span>
+                            </label>
 
-                          {/* Pricing Model Dropdown */}
-                          <select
-                            value={draft.pricingType || (isPiece ? 'piece' : 'weight')}
-                            onChange={(e) => {
-                              const newType = e.target.value;
-                              handleDraftFieldChange(service.id, 'pricingType', newType);
-                              handleDraftFieldChange(service.id, 'unit', newType === 'piece' ? 'piece' : 'KG');
-                              if (newType === 'piece' && (parseFloat(draft.minWeightKg) || 4.0) > 1.0) {
-                                handleDraftFieldChange(service.id, 'minWeightKg', 1.0);
-                              }
-                            }}
-                            className={`text-[11px] font-bold px-2 py-1 rounded-lg border ${
-                              isPiece
-                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            }`}
-                            title="Pricing Model: Weight vs Piece"
-                          >
-                            <option value="weight">🧺 By Weight (KG)</option>
-                            <option value="piece">🛏️ By Piece (per item)</option>
-                          </select>
-
-                          {draft.popular && (
-                            <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-200">
-                              Popular
+                            <span className="text-xs font-mono font-bold bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-slate-500 whitespace-nowrap">
+                              ID: {service.id}
                             </span>
-                          )}
+
+                            {services.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteService(service.id, draft.name)}
+                                className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl border border-transparent hover:border-red-200 transition"
+                                title="Delete this service"
+                              >
+                                <Icon name="trash" className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
-                          <label className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-                            <input
-                              type="checkbox"
-                              checked={draft.popular}
-                              onChange={(e) => handleDraftFieldChange(service.id, 'popular', e.target.checked)}
-                              className="w-3.5 h-3.5 text-sky-600 rounded"
-                            />
-                            <span className="text-[11px]">Popular</span>
-                          </label>
-
-                          <span className="text-xs font-mono font-bold bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500">
-                            ID: {service.id}
-                          </span>
-
-                          {services.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteService(service.id, draft.name)}
-                              className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition"
-                              title="Delete this service"
+                        {/* Sub-row: Category & Pricing Model Selectors */}
+                        <div className="flex flex-wrap items-center gap-2.5 pl-0 sm:pl-13">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-500">Category:</span>
+                            <select
+                              value={draft.categoryId || (isPiece ? 'bedding_linens' : 'laundry_by_weight')}
+                              onChange={(e) => handleDraftFieldChange(service.id, 'categoryId', e.target.value)}
+                              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800 shadow-2xs"
+                              title="Assign service category"
                             >
-                              <Icon name="trash" className="w-4 h-4" />
-                            </button>
+                              {categories.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-500">Billing Model:</span>
+                            <select
+                              value={draft.pricingType || (isPiece ? 'piece' : 'weight')}
+                              onChange={(e) => {
+                                const newType = e.target.value;
+                                handleDraftFieldChange(service.id, 'pricingType', newType);
+                                handleDraftFieldChange(service.id, 'unit', newType === 'piece' ? 'piece' : 'KG');
+                                if (newType === 'piece' && (parseFloat(draft.minWeightKg) || 4.0) > 1.0) {
+                                  handleDraftFieldChange(service.id, 'minWeightKg', 1.0);
+                                }
+                              }}
+                              className={`text-xs font-bold px-3 py-1.5 rounded-xl border shadow-2xs ${
+                                isPiece
+                                  ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              }`}
+                              title="Pricing Model: Weight vs Piece"
+                            >
+                              <option value="weight">🧺 By Weight (KG)</option>
+                              <option value="piece">🛏️ By Piece (per item)</option>
+                            </select>
+                          </div>
+
+                          {draft.popular && (
+                            <span className="text-[11px] font-bold bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full border border-amber-200">
+                              ★ Featured Popular Item
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1632,95 +1651,103 @@ export function AdminPOS({
                           rows="2"
                           value={draft.description}
                           onChange={(e) => handleDraftFieldChange(service.id, 'description', e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs text-slate-800 bg-white leading-relaxed focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 bg-white leading-relaxed focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                           placeholder="Describe the laundry procedure, garment types, fold/iron styles..."
                         />
                       </div>
 
-                      {/* 3-Tier Pricing & Weight/Quantity Grid (Standard 2 Days, Next Day & Same Day) */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+                      {/* 4-Column Pricing & Weight/Quantity Grid (Aligned Horizontally) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 bg-white p-4 rounded-2xl border border-slate-200">
                         {/* Standard (2 Days) Price */}
-                        <div>
-                          <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
-                            <span>🕒 Standard (2 Days) (฿/{unitLabel}) *</span>
+                        <div className="flex flex-col justify-between">
+                          <label className="block text-xs font-bold text-slate-800 mb-1.5 whitespace-nowrap truncate" title={`Standard (2 Days) (฿/${unitLabel})`}>
+                            🕒 Standard (2 Days) (฿/{unitLabel}) *
                           </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">฿</span>
-                            <input
-                              type="number"
-                              min="1"
-                              max="5000"
-                              required
-                              value={draft.standardPricePerKg !== undefined ? draft.standardPricePerKg : draft.pricePerKg}
-                              onChange={(e) => {
-                                handleDraftFieldChange(service.id, 'standardPricePerKg', e.target.value);
-                                handleDraftFieldChange(service.id, 'pricePerKg', e.target.value);
-                              }}
-                              className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                            />
+                          <div>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">฿</span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="5000"
+                                required
+                                value={draft.standardPricePerKg !== undefined ? draft.standardPricePerKg : draft.pricePerKg}
+                                onChange={(e) => {
+                                  handleDraftFieldChange(service.id, 'standardPricePerKg', e.target.value);
+                                  handleDraftFieldChange(service.id, 'pricePerKg', e.target.value);
+                                }}
+                                className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-400 mt-1 block">Standard 2 days turnaround</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 mt-0.5 block">Standard 2 days turnaround</span>
                         </div>
 
                         {/* Next Day Price */}
-                        <div>
-                          <label className="block text-xs font-bold text-sky-800 mb-1 flex items-center gap-1">
-                            <span>⚡ Next Day (฿/{unitLabel}) *</span>
+                        <div className="flex flex-col justify-between">
+                          <label className="block text-xs font-bold text-sky-800 mb-1.5 whitespace-nowrap truncate" title={`Next Day (฿/${unitLabel})`}>
+                            ⚡ Next Day (฿/{unitLabel}) *
                           </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">฿</span>
-                            <input
-                              type="number"
-                              min="1"
-                              max="5000"
-                              required
-                              value={draft.nextDayPricePerKg !== undefined ? draft.nextDayPricePerKg : Math.round((draft.pricePerKg || 70) * 1.3)}
-                              onChange={(e) => handleDraftFieldChange(service.id, 'nextDayPricePerKg', e.target.value)}
-                              className="w-full pl-7 pr-3 py-2 rounded-xl border border-sky-300 text-sm font-bold text-sky-950 bg-sky-50/40 focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                            />
+                          <div>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-500 font-bold text-xs">฿</span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="5000"
+                                required
+                                value={draft.nextDayPricePerKg !== undefined ? draft.nextDayPricePerKg : Math.round((draft.pricePerKg || 70) * 1.3)}
+                                onChange={(e) => handleDraftFieldChange(service.id, 'nextDayPricePerKg', e.target.value)}
+                                className="w-full pl-7 pr-3 py-2 rounded-xl border border-sky-300 text-sm font-bold text-sky-950 bg-sky-50/40 focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                              />
+                            </div>
+                            <span className="text-[10px] text-sky-700/80 mt-1 block">Next day delivery</span>
                           </div>
-                          <span className="text-[10px] text-sky-700/80 mt-0.5 block">Next day delivery</span>
                         </div>
 
                         {/* Same Day Price */}
-                        <div>
-                          <label className="block text-xs font-bold text-amber-800 mb-1 flex items-center gap-1">
-                            <span>🚀 Same Day (฿/{unitLabel}) *</span>
+                        <div className="flex flex-col justify-between">
+                          <label className="block text-xs font-bold text-amber-800 mb-1.5 whitespace-nowrap truncate" title={`Same Day (฿/${unitLabel})`}>
+                            🚀 Same Day (฿/{unitLabel}) *
                           </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 font-bold text-xs">฿</span>
-                            <input
-                              type="number"
-                              min="1"
-                              max="5000"
-                              required
-                              value={draft.sameDayPricePerKg !== undefined ? draft.sameDayPricePerKg : Math.round((draft.pricePerKg || 70) * 1.75)}
-                              onChange={(e) => handleDraftFieldChange(service.id, 'sameDayPricePerKg', e.target.value)}
-                              className="w-full pl-7 pr-3 py-2 rounded-xl border border-amber-300 text-sm font-bold text-amber-950 bg-amber-50/40 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                            />
+                          <div>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 font-bold text-xs">฿</span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="5000"
+                                required
+                                value={draft.sameDayPricePerKg !== undefined ? draft.sameDayPricePerKg : Math.round((draft.pricePerKg || 70) * 1.75)}
+                                onChange={(e) => handleDraftFieldChange(service.id, 'sameDayPricePerKg', e.target.value)}
+                                className="w-full pl-7 pr-3 py-2 rounded-xl border border-amber-300 text-sm font-bold text-amber-950 bg-amber-50/40 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                              />
+                            </div>
+                            <span className="text-[10px] text-amber-700/80 mt-1 block">Same day delivery</span>
                           </div>
-                          <span className="text-[10px] text-amber-700/80 mt-0.5 block">Same day delivery</span>
                         </div>
 
                         {/* Minimum Weight or Quantity */}
-                        <div>
-                          <label className="block text-xs font-bold text-slate-800 mb-1">
+                        <div className="flex flex-col justify-between">
+                          <label className="block text-xs font-bold text-slate-800 mb-1.5 whitespace-nowrap truncate">
                             {isPiece ? `Min Qty (${unitLabel}) *` : 'Min Weight (KG) *'}
                           </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              min="1"
-                              max="50"
-                              step={isPiece ? '1' : '0.5'}
-                              required
-                              value={draft.minWeightKg}
-                              onChange={(e) => handleDraftFieldChange(service.id, 'minWeightKg', e.target.value)}
-                              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">{unitLabel}</span>
+                          <div>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="1"
+                                max="50"
+                                step={isPiece ? '1' : '0.5'}
+                                required
+                                value={draft.minWeightKg}
+                                onChange={(e) => handleDraftFieldChange(service.id, 'minWeightKg', e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">{unitLabel}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 mt-1 block">{isPiece ? 'Min 1 item' : 'Standard 4.0 KG min'}</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 mt-0.5 block">{isPiece ? 'Min 1 item' : 'Standard 4.0 KG min'}</span>
                         </div>
                       </div>
 
