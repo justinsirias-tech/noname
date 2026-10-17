@@ -108,8 +108,11 @@ export function HowItWorks({ setView }) {
                 <img
                   src={step.image}
                   alt={step.title}
+                  width="360"
+                  height="269"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
+                  decoding="async"
                   onError={(e) => {
                     if (!e.target.dataset.tried) {
                       e.target.dataset.tried = '1';
@@ -221,6 +224,10 @@ export function HowItWorks({ setView }) {
                 <img
                   src={steps[activeStep].image}
                   alt={steps[activeStep].title}
+                  width="540"
+                  height="403"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-72 sm:h-80 object-cover object-center group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />

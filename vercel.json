@@ -4,6 +4,35 @@
   "outputDirectory": "public",
   "cleanUrls": true,
   "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/dist/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/css/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -26,7 +55,7 @@
       "destination": "/pattaya/index.html"
     },
     {
-      "source": "/((?!api/|dist/|css/|bangkok|pattaya|.*\\..*).*)",
+      "source": "/((?!api/|dist/|css/|images/|bangkok|pattaya|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

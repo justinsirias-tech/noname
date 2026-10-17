@@ -1,14 +1,46 @@
-// State and LocalStorage / PostgreSQL Management for NoName Laundry
 import { INITIAL_CATEGORIES, INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_INCIDENTS, INITIAL_CUSTOMERS } from './data/servicesData.js';
-import { INITIAL_FAQS } from './data/faqData.js';
-import { 
-  DEFAULT_BANGKOK_POSTAL_CODES, 
-  DEFAULT_ALL_DELIVERY_ZONES,
-  DEFAULT_DELIVERY_CONFIG, 
-  calculateDeliveryFee as calcDeliveryFee,
-  DISTRICT_TO_POSTAL_CODE,
-  SERVICE_CITIES
-} from './data/postalCodesData.js';
+
+let INITIAL_FAQS = [];
+let DEFAULT_ALL_DELIVERY_ZONES = [];
+let DISTRICT_TO_POSTAL_CODE = {};
+let DEFAULT_DELIVERY_CONFIG = {
+  storeWideFreeDeliveryThreshold: 500,
+  defaultFallbackFee: 50,
+  enableFreeDeliveryPromo: true
+};
+let calcDeliveryFee = (locationInput, subtotal = 0, ratesList = [], config = DEFAULT_DELIVERY_CONFIG) => {
+  const threshold = Number(config?.storeWideFreeDeliveryThreshold) || 500;
+  const fallbackFee = Number(config?.defaultFallbackFee) || 50;
+  const isFree = config?.enableFreeDeliveryPromo !== false && subtotal >= threshold;
+  return {
+    fee: isFree ? 0 : fallbackFee,
+    baseFee: fallbackFee,
+    isFreeDelivery: isFree,
+    freeThreshold: threshold,
+    matchedZone: null
+  };
+};
+let _postalCodesModulePromise = null;
+function loadPostalCodesModule() {
+  if (!_postalCodesModulePromise) {
+    _postalCodesModulePromise = Promise.all([
+      import('./data/postalCodesData.js').catch(() => null),
+      import('./data/faqData.js').catch(() => null)
+    ]).then(([mod, faqMod]) => {
+      if (mod) {
+        DEFAULT_ALL_DELIVERY_ZONES = mod.DEFAULT_ALL_DELIVERY_ZONES || [];
+        if (mod.DISTRICT_TO_POSTAL_CODE) DISTRICT_TO_POSTAL_CODE = mod.DISTRICT_TO_POSTAL_CODE;
+        if (mod.DEFAULT_DELIVERY_CONFIG) DEFAULT_DELIVERY_CONFIG = mod.DEFAULT_DELIVERY_CONFIG;
+        if (mod.calculateDeliveryFee) calcDeliveryFee = mod.calculateDeliveryFee;
+      }
+      if (faqMod && Array.isArray(faqMod.INITIAL_FAQS)) {
+        INITIAL_FAQS = faqMod.INITIAL_FAQS;
+      }
+      return mod;
+    });
+  }
+  return _postalCodesModulePromise;
+}
 
 const STORAGE_KEYS = {
   SERVICES: 'noname_laundry_services_v3',
@@ -125,9 +157,37 @@ export class LaundryStore {
       (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('noname_admin_token')) ||
       null;
     this.loadState();
-    this.fetchRemoteState();
     this.initCrossTabSync();
-    this.startOrderPolling();
+
+    if (typeof window !== 'undefined') {
+      const h = (window.location.hash || '').toLowerCase();
+      const p = (window.location.pathname || '').toLowerCase();
+      const s = (window.location.search || '').toLowerCase();
+      const isInteractiveRoute = h.includes('admin') || h.includes('portal') || h.includes('track') || h.includes('book') || p.includes('admin') || p.includes('portal') || p.includes('track') || s.includes('track=') || s.includes('order=');
+
+      const triggerInitialSync = () => {
+        loadPostalCodesModule().then((mod) => {
+          let changed = false;
+          if (mod && Array.isArray(mod.DEFAULT_ALL_DELIVERY_ZONES) && (!this.postalCodeRates || this.postalCodeRates.length === 0)) {
+            this.postalCodeRates = mod.DEFAULT_ALL_DELIVERY_ZONES;
+            changed = true;
+          }
+          if ((!this.faqs || this.faqs.length === 0) && INITIAL_FAQS.length > 0) {
+            this.faqs = INITIAL_FAQS;
+            changed = true;
+          }
+          if (changed) this.notify();
+        });
+        this.fetchRemoteState();
+        this.startOrderPolling();
+      };
+
+      if (isInteractiveRoute) {
+        triggerInitialSync();
+      } else {
+        setTimeout(triggerInitialSync, 2500);
+      }
+    }
   }
 
   initCrossTabSync() {
@@ -148,10 +208,23 @@ export class LaundryStore {
     }
   }
 
+  shouldPollActively() {
+    if (typeof window === 'undefined') return false;
+    if (typeof document !== 'undefined' && document.hidden) return false;
+    const h = (window.location.hash || '').toLowerCase();
+    const p = (window.location.pathname || '').toLowerCase();
+    const s = (window.location.search || '').toLowerCase();
+    if (h.includes('admin') || h.includes('portal') || h.includes('track') || p.includes('admin') || p.includes('portal') || p.includes('track') || s.includes('track=') || s.includes('order=')) {
+      return true;
+    }
+    return Boolean(this.adminToken || this.getCurrentCustomer());
+  }
+
   startOrderPolling() {
     if (typeof window === 'undefined') return;
     if (this._pollingInterval) clearInterval(this._pollingInterval);
     this._pollingInterval = setInterval(async () => {
+      if (!this.shouldPollActively()) return;
       try {
         const res = await fetch('/api/orders');
         if (res.ok) {
@@ -163,14 +236,13 @@ export class LaundryStore {
       } catch (e) {
         // silent polling
       }
-    }, 4000);
+    }, 6000);
 
-    // Immediate customer directory sync and periodic polling every 8 seconds
-    this.loadCustomers();
     if (this._custPollingInterval) clearInterval(this._custPollingInterval);
     this._custPollingInterval = setInterval(() => {
+      if (!this.shouldPollActively()) return;
       this.loadCustomers();
-    }, 8000);
+    }, 10000);
   }
 
   async loadCustomers() {

@@ -181,6 +181,10 @@ export function Navbar({
               <img 
                 src="/images/logo.png" 
                 alt="NoName Laundry" 
+                width="115"
+                height="64"
+                decoding="async"
+                fetchPriority="high"
                 onError={(e) => {
                   if (!e.target.dataset.tried) {
                     e.target.dataset.tried = '1';

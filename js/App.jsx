@@ -1,25 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { laundryStore, CONTACT_CHANNELS } from './store.js';
 import { Navbar } from './components/Navbar.jsx';
 import { Hero } from './components/Hero.jsx';
-import { DigitalSupportBanner } from './components/DigitalSupportBanner.jsx';
-import { ServicesSection } from './components/ServicesSection.jsx';
-import { HowItWorks } from './components/HowItWorks.jsx';
-import { BookingWizard } from './components/BookingWizard.jsx';
-import { OrderTracker } from './components/OrderTracker.jsx';
-import { TermsAndConditions } from './components/TermsAndConditions.jsx';
-import { AdminPOS } from './components/AdminPOS.jsx';
-import { AdminLogin } from './components/AdminLogin.jsx';
-import { DigitalContactModal } from './components/DigitalContactModal.jsx';
-import { CoverageSection } from './components/CoverageSection.jsx';
-import { CustomerReviews } from './components/CustomerReviews.jsx';
-import { FaqSection } from './components/FaqSection.jsx';
-import { CustomerRegister } from './components/CustomerRegister.jsx';
-import { CustomerLogin } from './components/CustomerLogin.jsx';
-import { CustomerPortal } from './components/CustomerPortal.jsx';
-import { Footer } from './components/Footer.jsx';
 import { Icon } from './components/Icons.jsx';
 import { LanguageContext, translations } from './i18n.jsx';
+
+const DigitalSupportBanner = lazy(() => import('./components/DigitalSupportBanner.jsx').then(m => ({ default: m.DigitalSupportBanner })));
+const HowItWorks = lazy(() => import('./components/HowItWorks.jsx').then(m => ({ default: m.HowItWorks })));
+const CoverageSection = lazy(() => import('./components/CoverageSection.jsx').then(m => ({ default: m.CoverageSection })));
+const CustomerReviews = lazy(() => import('./components/CustomerReviews.jsx').then(m => ({ default: m.CustomerReviews })));
+const FaqSection = lazy(() => import('./components/FaqSection.jsx').then(m => ({ default: m.FaqSection })));
+const Footer = lazy(() => import('./components/Footer.jsx').then(m => ({ default: m.Footer })));
+const ServicesSection = lazy(() => import('./components/ServicesSection.jsx').then(m => ({ default: m.ServicesSection })));
+const BookingWizard = lazy(() => import('./components/BookingWizard.jsx').then(m => ({ default: m.BookingWizard })));
+const OrderTracker = lazy(() => import('./components/OrderTracker.jsx').then(m => ({ default: m.OrderTracker })));
+const TermsAndConditions = lazy(() => import('./components/TermsAndConditions.jsx').then(m => ({ default: m.TermsAndConditions })));
+const AdminPOS = lazy(() => import('./components/AdminPOS.jsx').then(m => ({ default: m.AdminPOS })));
+const AdminLogin = lazy(() => import('./components/AdminLogin.jsx').then(m => ({ default: m.AdminLogin })));
+const DigitalContactModal = lazy(() => import('./components/DigitalContactModal.jsx').then(m => ({ default: m.DigitalContactModal })));
+const CustomerRegister = lazy(() => import('./components/CustomerRegister.jsx').then(m => ({ default: m.CustomerRegister })));
+const CustomerLogin = lazy(() => import('./components/CustomerLogin.jsx').then(m => ({ default: m.CustomerLogin })));
+const CustomerPortal = lazy(() => import('./components/CustomerPortal.jsx').then(m => ({ default: m.CustomerPortal })));
 
 const getInitialUrlParams = () => {
   if (typeof window === 'undefined') return { view: 'home', trackingId: '', openPayment: false, city: 'Bangkok' };
@@ -440,6 +441,9 @@ export function App() {
     }
 
     setCurrentView(view);
+    if (['admin', 'portal', 'track', 'book'].includes(view)) {
+      laundryStore.fetchRemoteState();
+    }
     if (typeof window !== 'undefined') {
       const isPattayaPath = window.location.pathname.includes('/pattaya');
       const isBangkokPath = window.location.pathname.includes('/bangkok');
@@ -495,23 +499,25 @@ export function App() {
               onSwitchCity={handleSwitchCity}
               onOpenContactModal={() => setIsContactModalOpen(true)}
             />
-            <HowItWorks
-              setView={navigateTo}
-            />
-            <CoverageSection
-              setView={navigateTo}
-              city={currentCity}
-              onSwitchCity={handleSwitchCity}
-            />
-            <CustomerReviews
-              setView={navigateTo}
-            />
-            <DigitalSupportBanner
-              onOpenContactModal={() => setIsContactModalOpen(true)}
-            />
-            <FaqSection
-              setView={navigateTo}
-            />
+            <Suspense fallback={<div className="min-h-screen" />}>
+              <HowItWorks
+                setView={navigateTo}
+              />
+              <CoverageSection
+                setView={navigateTo}
+                city={currentCity}
+                onSwitchCity={handleSwitchCity}
+              />
+              <CustomerReviews
+                setView={navigateTo}
+              />
+              <DigitalSupportBanner
+                onOpenContactModal={() => setIsContactModalOpen(true)}
+              />
+              <FaqSection
+                setView={navigateTo}
+              />
+            </Suspense>
             
             {/* Informational Page Bottom Banner */}
             <section className="py-14 sm:py-16 bg-gradient-to-r from-sky-700 via-sky-600 to-teal-600 text-white text-center relative overflow-hidden">
@@ -548,6 +554,7 @@ export function App() {
           </>
         )}
 
+        <Suspense fallback={<div className="py-20 text-center text-sm font-semibold text-slate-500">Loading...</div>}>
         {currentView === 'services' && (
           <div className="py-8">
             <ServicesSection
@@ -785,6 +792,7 @@ export function App() {
             />
           )
         )}
+        </Suspense>
       </main>
 
       {/* Floating Action Button: Digital Support (Hidden in Admin Back-Office) */}
@@ -810,14 +818,20 @@ export function App() {
       )}
 
       {/* Digital Support Modal */}
-      <DigitalContactModal
-        isOpen={isContactModalOpen}
-        onClose={() => setIsContactModalOpen(false)}
-      />
+      {isContactModalOpen && (
+        <Suspense fallback={null}>
+          <DigitalContactModal
+            isOpen={isContactModalOpen}
+            onClose={() => setIsContactModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Site Footer (Hidden in Admin Back-Office) */}
       {currentView !== 'admin' && (
-        <Footer setView={navigateTo} />
+        <Suspense fallback={null}>
+          <Footer setView={navigateTo} />
+        </Suspense>
       )}
       
       </div>

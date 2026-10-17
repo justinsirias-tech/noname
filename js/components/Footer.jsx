@@ -17,6 +17,10 @@ export function Footer({ setView }) {
               <img 
                 src="/images/logo.png" 
                 alt="NoName Laundry" 
+                width="101"
+                height="56"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   if (!e.target.dataset.tried) {
                     e.target.dataset.tried = '1';

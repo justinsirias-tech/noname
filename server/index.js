@@ -1,6 +1,7 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const express = require('express');
 const cors = require('cors');
 const { query } = require('./db');
@@ -19,6 +20,29 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+app.use((req, res, next) => {
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  if (!/\bgzip\b/.test(acceptEncoding) || req.method === 'HEAD') return next();
+  const origSend = res.send.bind(res);
+  res.send = function (body) {
+    if (res.headersSent || !body || res.getHeader('Content-Encoding')) return origSend(body);
+    const contentType = String(res.getHeader('Content-Type') || '');
+    if (/text\/|javascript|json|xml|svg/i.test(contentType)) {
+      const buf = Buffer.isBuffer(body) ? body : Buffer.from(String(body));
+      if (buf.length > 1024) {
+        try {
+          const compressed = zlib.gzipSync(buf, { level: zlib.constants.Z_BEST_SPEED });
+          res.setHeader('Content-Encoding', 'gzip');
+          res.setHeader('Vary', 'Accept-Encoding');
+          res.removeHeader('Content-Length');
+          return origSend(compressed);
+        } catch (e) {}
+      }
+    }
+    return origSend(body);
+  };
+  next();
+});
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
@@ -3790,40 +3814,40 @@ const imagesDir = path.join(rootDir, 'images');
 const publicImagesDir = path.join(publicFolder, 'images');
 
 // Dedicated static images handler - check both root/images and public/images
-app.use('/images', express.static(imagesDir, { maxAge: '1d' }));
-app.use('/images', express.static(publicImagesDir, { maxAge: '1d' }));
-app.use('/public/images', express.static(publicImagesDir, { maxAge: '1d' }));
+app.use('/images', express.static(imagesDir, { maxAge: '365d', immutable: true }));
+app.use('/images', express.static(publicImagesDir, { maxAge: '365d', immutable: true }));
+app.use('/public/images', express.static(publicImagesDir, { maxAge: '365d', immutable: true }));
 
 // Direct endpoint fallback for image files to prevent falling through to SPA html
 app.get(['/images/:file', '/public/images/:file'], (req, res, next) => {
   const file = req.params.file;
   const p1 = path.join(imagesDir, file);
   const p2 = path.join(publicImagesDir, file);
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   if (fs.existsSync(p1)) return res.sendFile(p1);
   if (fs.existsSync(p2)) return res.sendFile(p2);
   next();
 });
 
-// Serve public directory
-app.use(express.static(publicFolder, {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('app.js') || filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-    }
+const staticHeadersConfig = (res, filePath) => {
+  if (filePath.endsWith('.html')) {
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  } else if (
+    filePath.includes(path.sep + 'dist' + path.sep) ||
+    filePath.includes('/dist/') ||
+    filePath.includes(path.sep + 'css' + path.sep) ||
+    filePath.includes('/css/') ||
+    filePath.includes(path.sep + 'images' + path.sep) ||
+    filePath.includes('/images/') ||
+    /\.(js|css|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(filePath)
+  ) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   }
-}));
+};
 
-app.use(express.static(publicDir, {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('app.js') || filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-    }
-  }
-}));
+// Serve public directory
+app.use(express.static(publicFolder, { setHeaders: staticHeadersConfig }));
+app.use(express.static(publicDir, { setHeaders: staticHeadersConfig }));
 
 // Explicit SEO & Crawler Endpoints
 app.get('/robots.txt', (req, res) => {

@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from './Icons.jsx';
 import { CONTACT_CHANNELS, laundryStore } from '../store.js';
-import { FAQ_CATEGORIES } from '../data/faqData.js';
+import { FAQ_CATEGORIES, INITIAL_FAQS } from '../data/faqData.js';
 import { useTranslation } from '../i18n.jsx';
 
 export function FaqSection({ setView }) {
   const { t, language } = useTranslation();
-  const [faqs, setFaqs] = useState(() => laundryStore.getPublishedFaqs());
+  const [faqs, setFaqs] = useState(() => {
+    const pub = laundryStore.getPublishedFaqs();
+    return pub && pub.length > 0 ? pub : INITIAL_FAQS;
+  });
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState('FAQ-1'); // Expand first item by default
@@ -14,7 +17,8 @@ export function FaqSection({ setView }) {
   // Subscribe to store updates (so if admin adds or edits FAQs, it updates live!)
   React.useEffect(() => {
     const unsub = laundryStore.subscribe(() => {
-      setFaqs(laundryStore.getPublishedFaqs());
+      const pub = laundryStore.getPublishedFaqs();
+      if (pub && pub.length > 0) setFaqs(pub);
     });
     return unsub;
   }, []);
