@@ -276,7 +276,9 @@ export function GooglePlaceAutocompleteInput({
       {/* Optional hint if Places API is not enabled */}
       {apiKeyError && (
         <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
-          <span>💡 สามารถพิมพ์ชื่อคอนโด หรือกดปุ่ม <strong>"📍 แชร์ตำแหน่ง GPS"</strong> / <strong>"🗺️ ปักหมุดบนแผนที่"</strong> ด้านล่างเพื่อระบุพิกัดได้ทันที</span>
+          <span>
+            💡 You can type your condo/building name directly or click <strong>"📍 Share GPS Location"</strong> / <strong>"🗺️ Pin on Google Maps"</strong> below.
+          </span>
         </div>
       )}
 

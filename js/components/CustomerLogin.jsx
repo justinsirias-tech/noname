@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { Icon } from './Icons.jsx';
 import { laundryStore, CONTACT_CHANNELS } from '../store.js';
+import { useTranslation } from '../i18n.jsx';
 
 export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigateHome }) {
+  const { language } = useTranslation();
+  const isTh = language === 'th';
+
   const [identifier, setIdentifier] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [showPin, setShowPin] = useState(false);
@@ -14,11 +18,11 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
     setErrorMessage('');
 
     if (!identifier.trim()) {
-      setErrorMessage('กรุณากรอกเบอร์โทรศัพท์ อีเมล หรือรหัสลูกค้า (Customer ID)');
+      setErrorMessage(isTh ? 'กรุณากรอกเบอร์โทรศัพท์ อีเมล หรือรหัสลูกค้า (Customer ID)' : 'Please enter your Mobile Number, Email, or Customer ID.');
       return;
     }
     if (!pinCode.trim() || pinCode.trim().length < 4) {
-      setErrorMessage('กรุณากรอกรหัส PIN 6 หลัก');
+      setErrorMessage(isTh ? 'กรุณากรอกรหัส PIN 6 หลัก' : 'Please enter your 6-digit PIN or password.');
       return;
     }
 
@@ -29,7 +33,7 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
         onLoginSuccess(data.customer || data);
       }
     } catch (err) {
-      setErrorMessage(err.message || 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูล');
+      setErrorMessage(err.message || (isTh ? 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูล' : 'Sign in failed. Please check your credentials.'));
     } finally {
       setIsLoading(false);
     }
@@ -67,13 +71,15 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
             />
           </div>
           <span className="text-xs font-extrabold uppercase tracking-widest text-sky-600 bg-sky-50 border border-sky-100 px-3 py-1 rounded-full inline-block">
-            Customer Member Portal
+            {isTh ? 'พอร์ทัลสมาชิกดิจิทัล' : 'Customer Member Portal'}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            เข้าสู่ระบบลูกค้า (Customer Login)
+            {isTh ? 'เข้าสู่ระบบลูกค้า' : 'Customer Login'}
           </h2>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            เข้าถึงข้อมูลสมาชิก ที่อยู่คอนโด ประวัติการส่งซักผ้า และจองรอบรับผ้าได้ทันที
+            {isTh
+              ? 'เข้าถึงข้อมูลสมาชิก ที่อยู่คอนโด ประวัติการส่งซักผ้า และจองรอบรับผ้าได้ทันที'
+              : 'Access your member profile, saved condominium address, order history, and instant 1-click booking.'}
           </p>
         </div>
 
@@ -93,14 +99,14 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
             {/* Identifier Input */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                เบอร์โทรศัพท์ / Customer ID / อีเมล <span className="text-rose-500">*</span>
+                {isTh ? 'เบอร์โทรศัพท์ / Customer ID / อีเมล' : 'Mobile Number / Customer ID / Email'} <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <input
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="เช่น 082-455-9182 หรือ CUST-8491"
+                  placeholder={isTh ? 'เช่น 082-455-9182 หรือ CUST-8491' : 'e.g. 082-455-9182 or CUST-8491'}
                   required
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
                 />
@@ -116,14 +122,14 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-bold text-slate-700">
-                  รหัสผ่าน หรือ PIN (Password / PIN) <span className="text-rose-500">*</span>
+                  {isTh ? 'รหัสผ่าน หรือ PIN 6 หลัก' : 'Password or 6-Digit PIN'} <span className="text-rose-500">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowPin(!showPin)}
                   className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 underline"
                 >
-                  {showPin ? 'ซ่อนรหัส' : 'แสดงรหัส'}
+                  {showPin ? (isTh ? 'ซ่อนรหัส' : 'Hide') : (isTh ? 'แสดงรหัส' : 'Show')}
                 </button>
               </div>
               <div className="relative">
@@ -131,7 +137,7 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
                   type={showPin ? 'text' : 'password'}
                   value={pinCode}
                   onChange={(e) => setPinCode(e.target.value)}
-                  placeholder="รหัสผ่าน หรือ PIN 6 หลัก"
+                  placeholder={isTh ? 'รหัสผ่าน หรือ PIN 6 หลัก' : 'Enter your password or 6-digit PIN'}
                   required
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
                 />
@@ -155,11 +161,11 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>กำลังตรวจสอบข้อมูลผ่าน TLS Backend...</span>
+                  <span>{isTh ? 'กำลังตรวจสอบข้อมูล...' : 'Verifying credentials...'}</span>
                 </>
               ) : (
                 <>
-                  <span>เข้าสู่ระบบ (Sign In)</span>
+                  <span>{isTh ? 'เข้าสู่ระบบ' : 'Sign In'}</span>
                   <Icon name="chevronRight" className="w-4 h-4" />
                 </>
               )}
@@ -169,7 +175,7 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
           {/* Quick Demo Test Accounts Box */}
           <div className="pt-2 border-t border-slate-100 space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
-              <span>🧪 บัญชีทดสอบด่วน (Click to Auto-fill Demo):</span>
+              <span>{isTh ? '🧪 บัญชีทดสอบด่วน (คลิกเพื่อกรอกอัตโนมัติ):' : '🧪 Quick Demo Accounts (Click to Auto-fill):'}</span>
               <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 TLS Cloud Active
@@ -224,24 +230,24 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
           {/* Footer Action Links */}
           <div className="pt-2 text-center space-y-2 text-xs">
             <p className="text-slate-600">
-              ยังไม่มีบัญชีสมาชิก?{' '}
+              {isTh ? 'ยังไม่มีบัญชีสมาชิก?' : "Don't have an account yet?"}{' '}
               <button
                 type="button"
                 onClick={onNavigateToRegister}
                 className="font-bold text-sky-600 hover:text-sky-700 underline"
               >
-                สมัครสมาชิกใหม่ (Register)
+                {isTh ? 'สมัครสมาชิกใหม่' : 'Register Now'}
               </button>
             </p>
             <p className="text-[11px] text-slate-500">
-              ลืมรหัส PIN?{' '}
+              {isTh ? 'ลืมรหัส PIN?' : 'Forgot your PIN?'}{' '}
               <a
                 href={CONTACT_CHANNELS.line.url}
                 target="_blank"
                 rel="noreferrer"
                 className="text-emerald-600 hover:underline font-semibold"
               >
-                แจ้งรีเซ็ตรหัสผ่าน LINE: @nonamelaundry
+                {isTh ? 'แจ้งรีเซ็ตรหัสผ่าน LINE: @nonamelaundry' : 'Request PIN Reset on LINE: @nonamelaundry'}
               </a>
             </p>
           </div>

@@ -454,28 +454,28 @@ export function BookingWizard({ services, categories: propCategories, initialSer
     setErrorMessage('');
 
     if (selectedEntries.length === 0) {
-      setErrorMessage('Please select at least one service to book (กรุณาเลือกบริการอย่างน้อย 1 รายการ).');
+      setErrorMessage(language === 'th' ? 'กรุณาเลือกบริการอย่างน้อย 1 รายการ' : 'Please select at least one service to book.');
       return;
     }
 
     if (!firstName.trim()) {
-      setErrorMessage('Please enter your First Name (กรุณากรอกชื่อจริง).');
+      setErrorMessage(language === 'th' ? 'กรุณากรอกชื่อจริง' : 'Please enter your First Name.');
       return;
     }
 
     if (!lastName.trim()) {
-      setErrorMessage('Please enter your Last Name (กรุณากรอกนามสกุล).');
+      setErrorMessage(language === 'th' ? 'กรุณากรอกนามสกุล' : 'Please enter your Last Name.');
       return;
     }
 
     const cleanMobile = (mobileNumber || '').replace(/[^0-9]/g, '');
     if (cleanMobile.length < 8) {
-      setErrorMessage('Please enter a valid primary mobile number (กรุณากรอกเบอร์โทรศัพท์).');
+      setErrorMessage(language === 'th' ? 'กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง' : 'Please enter a valid primary mobile number.');
       return;
     }
 
     if (!email.trim() || !email.includes('@')) {
-      setErrorMessage('A valid email address is required for sending invoices, booking confirmations, and delivery updates (กรุณากรอกอีเมล).');
+      setErrorMessage(language === 'th' ? 'กรุณากรอกอีเมลที่ถูกต้องสำหรับรับใบแจ้งหนี้และอัปเดตสถานะ' : 'A valid email address is required for sending invoices, booking confirmations, and delivery updates.');
       return;
     }
 
@@ -1678,7 +1678,7 @@ Please confirm our pickup schedule. Thank you!`
                     <div className="text-left">
                       <div className="leading-tight">{language === 'th' ? 'กรุงเทพฯ' : 'Bangkok'}</div>
                       <div className="text-[10px] font-medium opacity-75">
-                        {language === 'th' ? 'กรุงเทพฯ (ตามอัตราเขต/แขวง)' : 'กรุงเทพฯ (Khwaeng rates)'}
+                        {language === 'th' ? 'กรุงเทพฯ (ตามอัตราเขต/แขวง)' : 'All 50 Districts (Khwaeng rates)'}
                       </div>
                     </div>
                   </button>
@@ -1701,7 +1701,9 @@ Please confirm our pickup schedule. Thank you!`
                     <span className="text-base">🏖️</span>
                     <div className="text-left">
                       <div className="leading-tight">{language === 'th' ? 'พัทยา' : 'Pattaya'}</div>
-                      <div className="text-[10px] font-medium opacity-75">พัทยา / บางละมุง / สัตหีบ</div>
+                      <div className="text-[10px] font-medium opacity-75">
+                        {language === 'th' ? 'พัทยา / บางละมุง / สัตหีบ' : 'Pattaya / Bang Lamung / Sattahip'}
+                      </div>
                     </div>
                   </button>
                 </div>

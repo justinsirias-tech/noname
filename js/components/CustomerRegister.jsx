@@ -5,8 +5,12 @@ import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 import { GooglePlaceAutocompleteInput } from './GooglePlaceAutocompleteInput.jsx';
 import { LocationPicker } from './LocationPicker.jsx';
 import { laundryStore, getLineOaAddFriendUrl, getLineOaMessageUrl } from '../store.js';
+import { useTranslation } from '../i18n.jsx';
 
 export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNavigateHome }) {
+  const { language } = useTranslation();
+  const isTh = language === 'th';
+
   // Form States - Personal Info (First & Last Name required)
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -39,7 +43,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
   const [requireTax, setRequireTax] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [taxId, setTaxId] = useState('');
-  const [branch, setBranch] = useState('Head Office (สำนักงานใหญ่)');
+  const [branch, setBranch] = useState('Head Office');
   const [companyAddress, setCompanyAddress] = useState('');
 
   // Terms Agreement
@@ -64,7 +68,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
     // 1. Instant check in client-side laundryStore
     const localMatch = laundryStore.findCustomerByPhone ? laundryStore.findCustomerByPhone(mobileNumber) : null;
     if (localMatch) {
-      setMobileError('This mobile number is already registered in our system.');
+      setMobileError(isTh ? 'เบอร์โทรศัพท์นี้ถูกลงทะเบียนในระบบแล้ว' : 'This mobile number is already registered in our system.');
       setExistingCustFound(localMatch);
       return;
     }
@@ -77,7 +81,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
         if (res.ok) {
           const data = await res.json();
           if (data.exists && data.customer) {
-            setMobileError('This mobile number is already registered in our system.');
+            setMobileError(isTh ? 'เบอร์โทรศัพท์นี้ถูกลงทะเบียนในระบบแล้ว' : 'This mobile number is already registered in our system.');
             setExistingCustFound(data.customer);
           } else {
             setMobileError('');
@@ -92,7 +96,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [mobileNumber]);
+  }, [mobileNumber, isTh]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,36 +104,56 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
     // Validation
     if (!firstName.trim()) {
-      setErrorMessage('Please enter your First Name (กรุณากรอกชื่อจริง).');
+      setErrorMessage(isTh ? 'กรุณากรอกชื่อจริง' : 'Please enter your First Name.');
       return;
     }
     if (!lastName.trim()) {
-      setErrorMessage('Please enter your Last Name (กรุณากรอกนามสกุล).');
+      setErrorMessage(isTh ? 'กรุณากรอกนามสกุล' : 'Please enter your Last Name.');
       return;
     }
     const cleanMobile = mobileNumber.replace(/[^0-9]/g, '');
     if (cleanMobile.length < 8) {
-      setErrorMessage('Please enter a valid primary mobile number (กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง).');
+      setErrorMessage(isTh ? 'กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง' : 'Please enter a valid primary mobile number.');
       return;
     }
     if (mobileError || existingCustFound) {
-      setErrorMessage('This mobile number is already registered. The system does not allow duplicate registrations for the same number. Please log in or use a different phone number.');
+      setErrorMessage(
+        isTh
+          ? 'เบอร์โทรศัพท์นี้ถูกลงทะเบียนแล้ว กรุณาเข้าสู่ระบบหรือใช้เบอร์โทรศัพท์อื่น'
+          : 'This mobile number is already registered. Please log in or use a different phone number.'
+      );
       return;
     }
     if (!email.trim() || !email.includes('@')) {
-      setErrorMessage('Email address is required for sending invoices, booking confirmations and delivery updates (กรุณาระบุอีเมลที่ถูกต้อง).');
+      setErrorMessage(
+        isTh
+          ? 'กรุณาระบุอีเมลที่ถูกต้องสำหรับรับใบแจ้งหนี้และการแจ้งเตือนสถานะ'
+          : 'Email address is required for sending invoices, booking confirmations, and delivery updates.'
+      );
       return;
     }
     if (!condoName.trim()) {
-      setErrorMessage('Please specify your condominium or residence building name (กรุณาระบุชื่อคอนโดหรือที่พัก).');
+      setErrorMessage(
+        isTh
+          ? 'กรุณาระบุชื่อคอนโดมิเนียมหรืออาคารที่พักอาศัย'
+          : 'Please specify your condominium or residence building name.'
+      );
       return;
     }
     if (!agreedTerms) {
-      setErrorMessage('Please accept the service terms and online-only support policy (กรุณายอมรับเงื่อนไขการให้บริการ).');
+      setErrorMessage(
+        isTh
+          ? 'กรุณายอมรับเงื่อนไขการให้บริการ'
+          : 'Please accept the service terms and conditions.'
+      );
       return;
     }
     if (requireTax && (!companyName.trim() || !taxId.trim())) {
-      setErrorMessage('Please provide Company Name and Tax ID for Tax Invoice (กรุณากรอกชื่อบริษัทและเลขประจำตัวผู้เสียภาษี).');
+      setErrorMessage(
+        isTh
+          ? 'กรุณากรอกชื่อบริษัทและเลขประจำตัวผู้เสียภาษีสำหรับออกใบกำกับภาษี'
+          : 'Please provide Company Name and Tax ID for your Tax Invoice.'
+      );
       return;
     }
 
@@ -186,7 +210,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
       if (!registerRes.ok && registerRes.status === 409) {
         const errData = await registerRes.json();
-        setErrorMessage(errData.error || 'This mobile number is already registered in our system.');
+        setErrorMessage(errData.error || (isTh ? 'เบอร์โทรศัพท์นี้ถูกลงทะเบียนในระบบแล้ว' : 'This mobile number is already registered in our system.'));
         setIsSubmitting(false);
         return;
       }
@@ -197,7 +221,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
       }
     } catch (err) {
       console.error('Registration failed:', err);
-      setErrorMessage('Registration failed. Please try again.');
+      setErrorMessage(isTh ? 'การลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' : 'Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -217,13 +241,17 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
           <div className="space-y-2">
             <span className="text-xs uppercase font-extrabold text-emerald-600 tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-              Registration Successful
+              {isTh ? 'ลงทะเบียนสำเร็จ' : 'Registration Successful'}
             </span>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-              Welcome to NoName Laundry, {registeredCustomer.nickName || registeredCustomer.fullName}!
+              {isTh
+                ? `ยินดีต้อนรับสู่ NoName Laundry, คุณ ${registeredCustomer.nickName || registeredCustomer.fullName}!`
+                : `Welcome to NoName Laundry, ${registeredCustomer.nickName || registeredCustomer.fullName}!`}
             </h1>
             <p className="text-sm text-slate-500 max-w-md mx-auto">
-              Your digital laundry member profile has been registered in our Bangkok door-to-door system.
+              {isTh
+                ? 'โปรไฟล์สมาชิกซักอบรีดดิจิทัลของท่านได้รับการลงทะเบียนในระบบรับ-ส่งถึงคอนโดเรียบร้อยแล้ว'
+                : 'Your digital laundry member profile has been registered in our door-to-door system.'}
             </p>
           </div>
 
@@ -244,21 +272,21 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
             <div className="mt-6 grid grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Full Name</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-semibold">{isTh ? 'ชื่อ-นามสกุล' : 'Full Name'}</span>
                 <span className="font-bold text-slate-100">{registeredCustomer.fullName}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Mobile</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-semibold">{isTh ? 'เบอร์โทรศัพท์' : 'Mobile'}</span>
                 <span className="font-bold text-slate-100">{registeredCustomer.mobileNumber}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Condo / Residence</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-semibold">{isTh ? 'คอนโด / ที่พัก' : 'Condo / Residence'}</span>
                 <span className="font-bold text-slate-100 truncate block">
                   {registeredCustomer.addresses?.[0]?.label || condoName}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold">PIN Code</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-semibold">{isTh ? 'รหัส PIN' : 'PIN Code'}</span>
                 <span className="font-bold text-slate-100 font-mono tracking-widest">{registeredCustomer.pinCode}</span>
               </div>
             </div>
@@ -272,7 +300,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               }}
               className="w-full py-4 px-6 bg-gradient-to-r from-sky-600 via-sky-500 to-teal-500 hover:from-sky-500 hover:to-teal-400 text-white font-extrabold rounded-2xl shadow-xl shadow-sky-600/30 hover:shadow-2xl transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
             >
-              <span>Book Your First Laundry Pickup Now</span>
+              <span>{isTh ? 'จองรอบเข้ารับผ้าครั้งแรกทันที' : 'Book Your First Laundry Pickup Now'}</span>
               <Icon name="chevronRight" className="w-5 h-5" />
             </button>
 
@@ -283,7 +311,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               className="w-full py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2"
             >
               <Icon name="line" className="w-5 h-5" />
-              <span>Connect with LINE Official (@{lineOaId.replace('@', '')})</span>
+              <span>{isTh ? `เชื่อมต่อ LINE Official (@${lineOaId.replace('@', '')})` : `Connect with LINE Official (@${lineOaId.replace('@', '')})`}</span>
             </a>
 
             <button
@@ -292,7 +320,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               }}
               className="text-xs font-bold text-slate-400 hover:text-slate-600 transition"
             >
-              Back to Home
+              {isTh ? 'กลับสู่หน้าแรก' : 'Back to Home'}
             </button>
           </div>
 
@@ -306,13 +334,15 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
       {/* Header Banner */}
       <div className="text-center max-w-2xl mx-auto mb-10">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-xs font-bold text-sky-800 mb-3 shadow-sm">
-          <span>🧺 Bangkok Door-to-Door Digital Laundry</span>
+          <span>{isTh ? '🧺 บริการซักอบรีดดิจิทัล รับ-ส่งถึงคอนโด' : '🧺 Door-to-Door Digital Laundry'}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          Customer Membership Registration
+          {isTh ? 'สมัครสมาชิกใหม่' : 'Customer Membership Registration'}
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          Sign up once for 1-click condominium pickup, digital scale weight auditing, automated invoice generation, and real-time tracking updates.
+          {isTh
+            ? 'ลงทะเบียนเพียงครั้งเดียวเพื่อจองรับผ้าในคลิกเดียว ตรวจสอบน้ำหนักเครื่องชั่งดิจิทัล ออกใบแจ้งหนี้อัตโนมัติ และติดตามสถานะแบบเรียลไทม์'
+            : 'Sign up once for 1-click condominium pickup, digital scale weight auditing, automated invoice generation, and real-time tracking updates.'}
         </p>
       </div>
 
@@ -334,21 +364,25 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               1
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-slate-900">Personal Information / ข้อมูลส่วนตัว</h2>
-              <p className="text-xs text-slate-400">Basic profile and authentication details</p>
+              <h2 className="text-base font-extrabold text-slate-900">
+                {isTh ? 'ข้อมูลส่วนตัว' : 'Personal Information'}
+              </h2>
+              <p className="text-xs text-slate-400">
+                {isTh ? 'รายละเอียดโปรไฟล์พื้นฐานและรหัสเข้าใช้งาน' : 'Basic profile and authentication details'}
+              </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                First Name (ชื่อจริง) <span className="text-rose-500">*</span>
+                {isTh ? 'ชื่อจริง' : 'First Name'} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                placeholder="e.g. Alex / กิตติพัฒน์"
+                placeholder={isTh ? 'เช่น กิตติพัฒน์' : 'e.g. Alex'}
                 required
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
               />
@@ -356,13 +390,13 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Last Name (นามสกุล) <span className="text-rose-500">*</span>
+                {isTh ? 'นามสกุล' : 'Last Name'} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                placeholder="e.g. Thorne / วงศ์สุวรรณ"
+                placeholder={isTh ? 'เช่น วงศ์สุวรรณ' : 'e.g. Thorne'}
                 required
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
               />
@@ -370,35 +404,35 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Nickname / Preferred Name (ชื่อเล่น)
+                {isTh ? 'ชื่อเล่น' : 'Nickname / Preferred Name'}
               </label>
               <input
                 type="text"
                 value={nickName}
                 onChange={(e) => setNickName(e.target.value)}
-                placeholder="e.g. Alex / บอย"
+                placeholder={isTh ? 'เช่น บอย' : 'e.g. Alex'}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Gender (เพศ)
+                {isTh ? 'เพศ' : 'Gender'}
               </label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none bg-white transition"
               >
-                <option value="Rather not say">Rather not say (ไม่ระบุ)</option>
-                <option value="Male">Male (ชาย)</option>
-                <option value="Female">Female (หญิง)</option>
+                <option value="Rather not say">{isTh ? 'ไม่ระบุ' : 'Rather not say'}</option>
+                <option value="Male">{isTh ? 'ชาย' : 'Male'}</option>
+                <option value="Female">{isTh ? 'หญิง' : 'Female'}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Date of Birth (วันเกิด)
+                {isTh ? 'วันเกิด' : 'Date of Birth'}
               </label>
               <input
                 type="date"
@@ -410,7 +444,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Security PIN Code (รหัส PIN 6 หลัก)
+                {isTh ? 'รหัส PIN 6 หลัก' : 'Security PIN Code (6 Digits)'}
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -422,7 +456,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                   className="w-36 px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-mono tracking-widest text-center font-bold focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
                 />
                 <span className="text-[11px] text-slate-400">
-                  Used for account verification and quick tracking.
+                  {isTh ? 'ใช้สำหรับเข้าสู่ระบบและตรวจสอบบัญชีอย่างรวดเร็ว' : 'Used for account verification and quick login.'}
                 </span>
               </div>
             </div>
@@ -436,17 +470,25 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               2
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-slate-900">Digital Communications / ช่องทางติดต่อ</h2>
-              <p className="text-xs text-slate-400">Support via Phone & WhatsApp (+66 80 888 9885), LINE & Email</p>
+              <h2 className="text-base font-extrabold text-slate-900">
+                {isTh ? 'ช่องทางติดต่อออนไลน์' : 'Digital Communications'}
+              </h2>
+              <p className="text-xs text-slate-400">
+                {isTh
+                  ? 'ดูแลลูกค้าผ่านทางโทรศัพท์และ WhatsApp (+66 80 888 9885), LINE และอีเมล'
+                  : 'Support via Phone & WhatsApp (+66 80 888 9885), LINE & Email'}
+              </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                <span>Primary Mobile Number (เบอร์โทรหลัก) <span className="text-rose-500">*</span></span>
+                <span>{isTh ? 'เบอร์โทรศัพท์หลัก' : 'Primary Mobile Number'} <span className="text-rose-500">*</span></span>
                 {isCheckingMobile && (
-                  <span className="text-[10px] text-sky-600 font-semibold animate-pulse">Checking number...</span>
+                  <span className="text-[10px] text-sky-600 font-semibold animate-pulse">
+                    {isTh ? 'กำลังตรวจสอบเบอร์...' : 'Checking number...'}
+                  </span>
                 )}
               </label>
               <CountryPhoneInput
@@ -462,10 +504,14 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 <div className="mt-2.5 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs animate-fadeIn">
                   <div className="flex items-center gap-1.5 font-bold text-amber-800">
                     <Icon name="alertCircle" className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>Mobile Number Already Registered</span>
+                    <span>{isTh ? 'เบอร์โทรศัพท์นี้ถูกลงทะเบียนแล้ว' : 'Mobile Number Already Registered'}</span>
                   </div>
                   <p className="mt-1 text-[11px] text-amber-700 leading-relaxed">
-                    This phone number is already registered under <strong>{existingCustFound.fullName || `${existingCustFound.firstName || ''} ${existingCustFound.lastName || ''}`.trim()}</strong>. Each mobile number can only be registered once.
+                    {isTh ? (
+                      <>เบอร์โทรศัพท์นี้ถูกลงทะเบียนภายใต้ชื่อ <strong>{existingCustFound.fullName || `${existingCustFound.firstName || ''} ${existingCustFound.lastName || ''}`.trim()}</strong> แล้ว</>
+                    ) : (
+                      <>This phone number is already registered under <strong>{existingCustFound.fullName || `${existingCustFound.firstName || ''} ${existingCustFound.lastName || ''}`.trim()}</strong>. Each mobile number can only be registered once.</>
+                    )}
                   </p>
                   <div className="mt-2.5 flex items-center gap-2">
                     <button
@@ -473,7 +519,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                       onClick={() => onNavigateToBook && onNavigateToBook(existingCustFound)}
                       className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] transition shadow-xs"
                     >
-                      Book With This Profile →
+                      {isTh ? 'จองด้วยโปรไฟล์นี้ →' : 'Book With This Profile →'}
                     </button>
                   </div>
                 </div>
@@ -488,14 +534,14 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 />
                 <span className="text-xs text-slate-600 font-medium flex items-center gap-1">
                   <Icon name="whatsapp" className="w-3.5 h-3.5 text-emerald-600" />
-                  This number is registered on WhatsApp
+                  {isTh ? 'เบอร์นี้เชื่อมต่อกับ WhatsApp' : 'This number is registered on WhatsApp'}
                 </span>
               </label>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Email Address (อีเมล) <span className="text-rose-500">*</span>
+                {isTh ? 'อีเมล' : 'Email Address'} <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -511,13 +557,15 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 />
               </div>
               <p className="text-[11px] text-sky-700 font-semibold mt-1">
-                Required for sending invoices, booking confirmations, and delivery updates.
+                {isTh
+                  ? 'จำเป็นสำหรับส่งใบแจ้งหนี้ ยืนยันการจอง และอัปเดตสถานะจัดส่ง'
+                  : 'Required for sending invoices, booking confirmations, and delivery updates.'}
               </p>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                LINE ID (ไอดีไลน์สำหรับรับแจ้งเตือน)
+                {isTh ? 'LINE ID (สำหรับรับแจ้งเตือน)' : 'LINE ID (Optional)'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-600">
@@ -532,13 +580,13 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 />
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
-                We send order milestone updates directly to your LINE.
+                {isTh ? 'เราส่งการแจ้งเตือนสถานะคำสั่งซื้อไปยัง LINE ของท่าน' : 'We send order milestone updates directly to your LINE.'}
               </p>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Secondary Mobile / Intl (เบอร์โทรรอง / ต่างประเทศ)
+                {isTh ? 'เบอร์โทรศัพท์สำรอง / ต่างประเทศ' : 'Secondary / International Mobile'}
               </label>
               <input
                 type="text"
@@ -555,31 +603,35 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                   className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
                 />
                 <span className="text-xs text-slate-600 font-medium">
-                  Secondary number has WhatsApp
+                  {isTh ? 'เบอร์สำรองเชื่อมต่อกับ WhatsApp' : 'Secondary number has WhatsApp'}
                 </span>
               </label>
             </div>
           </div>
         </div>
 
-        {/* Section 3: Bangkok Condominium & Residence Address */}
+        {/* Section 3: Condominium & Residence Address */}
         <div>
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-6">
             <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">
               3
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-slate-900">Condominium & Residence / ที่อยู่จัดส่ง</h2>
-              <p className="text-xs text-slate-400">Bangkok door-to-door condominium collection & return</p>
+              <h2 className="text-base font-extrabold text-slate-900">
+                {isTh ? 'คอนโดมิเนียม & ที่อยู่รับ-ส่งผ้า' : 'Condominium & Residence Address'}
+              </h2>
+              <p className="text-xs text-slate-400">
+                {isTh ? 'บริการรับ-ส่งถึงล็อบบี้และนิติบุคคลคอนโด' : 'Door-to-door condominium collection & return'}
+              </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                <span>Condominium / Building Name (ชื่อคอนโด / อาคารที่พัก) <span className="text-rose-500">*</span></span>
+                <span>{isTh ? 'ชื่อคอนโด / อาคารที่พัก' : 'Condominium / Building Name'} <span className="text-rose-500">*</span></span>
                 <span className="text-[11px] text-sky-600 font-semibold flex items-center gap-1">
-                  <span>Auto-detects District &amp; Google Map</span>
+                  <span>{isTh ? 'ตรวจจับเขตและแผนที่อัตโนมัติ' : 'Auto-detects District & Google Map'}</span>
                 </span>
               </label>
               <GooglePlaceAutocompleteInput
@@ -594,14 +646,14 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                     setGoogleMapsUrl(place.googleMapsUrl);
                   }
                 }}
-                placeholder="Type condo name (e.g. The Estelle, Ashton Silom, Rhythm Ekkamai)"
+                placeholder={isTh ? 'พิมพ์ชื่อคอนโด (เช่น The Estelle, Ashton Silom, Rhythm Ekkamai)' : 'Type condo name (e.g. The Estelle, Ashton Silom, Rhythm Ekkamai)'}
                 required
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Bangkok District (เขตในกรุงเทพฯ) <span className="text-rose-500">*</span>
+                {isTh ? 'เขตในกรุงเทพฯ' : 'Bangkok District'} <span className="text-rose-500">*</span>
               </label>
               <select
                 value={district}
@@ -616,13 +668,13 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Tower / Floor / Room Number (ตึก / ชั้น / เลขห้อง)
+                {isTh ? 'ตึก / ชั้น / เลขห้อง' : 'Tower / Floor / Room Number'}
               </label>
               <input
                 type="text"
                 value={roomNumber}
                 onChange={(e) => setRoomNumber(e.target.value)}
-                placeholder="e.g. Tower A, Fl 18, Room 1804"
+                placeholder={isTh ? 'เช่น Tower A, ชั้น 18, ห้อง 1804' : 'e.g. Tower A, Fl 18, Room 1804'}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
               />
             </div>
@@ -641,7 +693,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                   }
                 }}
                 initialDistrict={district}
-                label="Google Maps Location & Condo Pin (ตำแหน่งคอนโด หรือแชร์พิกัด GPS)"
+                label={isTh ? 'ปักหมุดตำแหน่งคอนโดบน Google Maps หรือแชร์พิกัด GPS' : 'Google Maps Location & Condo Pin'}
               />
             </div>
 
@@ -656,10 +708,14 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 />
                 <div>
                   <span className="text-xs font-bold text-sky-900 block">
-                    Condominium Juristic Office / Front Desk Drop-off Authorized
+                    {isTh
+                      ? 'อนุญาตให้ฝากรับ-ส่งผ้าที่นิติบุคคล / ล็อบบี้คอนโด'
+                      : 'Condominium Juristic Office / Front Desk Drop-off Authorized'}
                   </span>
                   <span className="text-[11px] text-sky-700/80 leading-relaxed block mt-0.5">
-                    Recommended for Bangkok expats & busy professionals. Driver collects and delivers directly to your building's juristic/mail counter without requiring you to wait at home.
+                    {isTh
+                      ? 'แนะนำสำหรับผู้พักอาศัยคอนโด พนักงานขับรถสามารถรับและส่งคืนถุงผ้าที่เคาน์เตอร์นิติบุคคลได้โดยไม่ต้องรอรับด้วยตนเอง'
+                      : "Recommended for condo residents & busy professionals. Driver collects and delivers directly to your building's juristic/mail counter without requiring you to wait at home."}
                   </span>
                 </div>
               </label>
@@ -675,8 +731,12 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 4
               </div>
               <div>
-                <h2 className="text-base font-extrabold text-slate-900">Company Tax Invoice (Optional / ใบกำกับภาษี)</h2>
-                <p className="text-xs text-slate-400">Request tax invoice in Thai legal entity name</p>
+                <h2 className="text-base font-extrabold text-slate-900">
+                  {isTh ? 'ใบกำกับภาษีในนามบริษัท (ไม่บังคับ)' : 'Company Tax Invoice (Optional)'}
+                </h2>
+                <p className="text-xs text-slate-400">
+                  {isTh ? 'ขอใบกำกับภาษีเต็มรูปแบบในนามนิติบุคคล' : 'Request official tax invoice in your company name'}
+                </p>
               </div>
             </div>
 
@@ -687,7 +747,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 onChange={(e) => setRequireTax(e.target.checked)}
                 className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300"
               />
-              <span className="text-xs font-bold text-slate-700">Need Tax Invoice</span>
+              <span className="text-xs font-bold text-slate-700">{isTh ? 'ต้องการใบกำกับภาษี' : 'Need Tax Invoice'}</span>
             </label>
           </div>
 
@@ -695,7 +755,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-5 bg-amber-50/50 rounded-2xl border border-amber-100 animate-fadeIn">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Company Name (ชื่อบริษัท) <span className="text-rose-500">*</span>
+                  {isTh ? 'ชื่อบริษัท / นิติบุคคล' : 'Company Name'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -708,7 +768,7 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Tax ID 13 Digits (เลขประจำตัวผู้เสียภาษี 13 หลัก) <span className="text-rose-500">*</span>
+                  {isTh ? 'เลขประจำตัวผู้เสียภาษี 13 หลัก' : 'Tax ID (13 Digits)'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -722,26 +782,26 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Branch (สาขา)
+                  {isTh ? 'สาขา' : 'Branch'}
                 </label>
                 <input
                   type="text"
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
-                  placeholder="Head Office (สำนักงานใหญ่)"
+                  placeholder={isTh ? 'สำนักงานใหญ่' : 'Head Office'}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Company Registered Address (ที่อยู่จดทะเบียน)
+                  {isTh ? 'ที่อยู่จดทะเบียนบริษัท' : 'Company Registered Address'}
                 </label>
                 <input
                   type="text"
                   value={companyAddress}
                   onChange={(e) => setCompanyAddress(e.target.value)}
-                  placeholder="Building, Road, Sub-district, District, Bangkok"
+                  placeholder={isTh ? 'อาคาร ถนน แขวง เขต กรุงเทพฯ' : 'Building, Road, Sub-district, District, Bangkok'}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition"
                 />
               </div>
@@ -761,8 +821,17 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 mt-0.5"
               />
               <span className="text-xs text-slate-700 leading-relaxed font-medium">
-                I agree to the <strong>Terms & Conditions</strong> and acknowledge that NoName Laundry provides customer support and driver coordination via 
-                <strong> Phone (+66 80 888 9885), WhatsApp, LINE, and Email</strong>.
+                {isTh ? (
+                  <>
+                    ข้าพเจ้ายอมรับ <strong>ข้อกำหนดและเงื่อนไขการให้บริการ</strong> และรับทราบว่า NoName Laundry ให้บริการดูแลลูกค้าและประสานงานคนขับผ่านทาง{' '}
+                    <strong>โทรศัพท์ (+66 80 888 9885), WhatsApp, LINE และอีเมล</strong>
+                  </>
+                ) : (
+                  <>
+                    I agree to the <strong>Terms & Conditions</strong> and acknowledge that NoName Laundry provides customer support and driver coordination via{' '}
+                    <strong>Phone (+66 80 888 9885), WhatsApp, LINE, and Email</strong>.
+                  </>
+                )}
               </span>
             </label>
           </div>
@@ -779,11 +848,11 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Registering Member Profile...</span>
+                <span>{isTh ? 'กำลังลงทะเบียนโปรไฟล์สมาชิก...' : 'Registering Member Profile...'}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-2 text-base">
-                <span>Complete Customer Registration (ลงทะเบียนสมาชิก)</span>
+                <span>{isTh ? 'ยืนยันการสมัครสมาชิก' : 'Complete Customer Registration'}</span>
                 <Icon name="chevronRight" className="w-5 h-5" />
               </span>
             )}

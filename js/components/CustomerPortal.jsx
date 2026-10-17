@@ -3,6 +3,7 @@ import { Icon } from './Icons.jsx';
 import { laundryStore, getLineOaMessageUrl, CONTACT_CHANNELS } from '../store.js';
 import { getTrackingStage } from '../data/servicesData.js';
 import { LocationPicker } from './LocationPicker.jsx';
+import { useTranslation } from '../i18n.jsx';
 
 export function CustomerPortal({
   customer,
@@ -12,6 +13,9 @@ export function CustomerPortal({
   onLogout,
   onNavigateHome
 }) {
+  const { language } = useTranslation();
+  const isTh = language === 'th';
+
   const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'address', 'security'
   const [customerOrders, setCustomerOrders] = useState([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
@@ -127,10 +131,10 @@ export function CustomerPortal({
         }).catch(err => console.warn('TLS profile sync notice:', err));
       }
 
-      setSaveSuccessMsg('บันทึกข้อมูลที่อยู่และโปรไฟล์เรียบร้อยแล้ว!');
+      setSaveSuccessMsg(isTh ? 'บันทึกข้อมูลที่อยู่และโปรไฟล์เรียบร้อยแล้ว!' : 'Address and profile updated successfully!');
       setTimeout(() => setSaveSuccessMsg(''), 4000);
     } catch (err) {
-      alert('บันทึกข้อมูลไม่สำเร็จ: ' + err.message);
+      alert((isTh ? 'บันทึกข้อมูลไม่สำเร็จ: ' : 'Failed to save changes: ') + err.message);
     } finally {
       setIsSaving(false);
     }
@@ -143,40 +147,40 @@ export function CustomerPortal({
     setPinSuccessMsg('');
 
     if (currentPinInput !== customer.pinCode) {
-      setPinErrorMsg('รหัส PIN ปัจจุบันไม่ถูกต้อง');
+      setPinErrorMsg(isTh ? 'รหัส PIN ปัจจุบันไม่ถูกต้อง' : 'Current PIN is incorrect.');
       return;
     }
     if (!/^\d{6}$/.test(newPinInput)) {
-      setPinErrorMsg('รหัส PIN ใหม่ต้องเป็นตัวเลข 6 หลักเท่านั้น');
+      setPinErrorMsg(isTh ? 'รหัส PIN ใหม่ต้องเป็นตัวเลข 6 หลักเท่านั้น' : 'New PIN must be a 6-digit number.');
       return;
     }
     if (newPinInput !== confirmPinInput) {
-      setPinErrorMsg('รหัส PIN ใหม่และยืนยันรหัส PIN ไม่ตรงกัน');
+      setPinErrorMsg(isTh ? 'รหัส PIN ใหม่และยืนยันรหัส PIN ไม่ตรงกัน' : 'New PIN and confirmation do not match.');
       return;
     }
 
     try {
       laundryStore.updateCustomer(customer.id, { pinCode: newPinInput });
       customer.pinCode = newPinInput;
-      setPinSuccessMsg('เปลี่ยนรหัส PIN 6 หลักสำเร็จแล้ว! โปรดจำรหัสใหม่สำหรับการเข้าสู่ระบบครั้งถัดไป');
+      setPinSuccessMsg(isTh ? 'เปลี่ยนรหัส PIN 6 หลักสำเร็จแล้ว! โปรดจำรหัสใหม่สำหรับการเข้าสู่ระบบครั้งถัดไป' : 'Your 6-digit PIN has been updated! Please use your new PIN on your next login.');
       setCurrentPinInput('');
       setNewPinInput('');
       setConfirmPinInput('');
       setTimeout(() => setPinSuccessMsg(''), 5000);
     } catch (err) {
-      setPinErrorMsg('เกิดข้อผิดพลาดในการเปลี่ยนรหัส PIN: ' + err.message);
+      setPinErrorMsg((isTh ? 'เกิดข้อผิดพลาดในการเปลี่ยนรหัส PIN: ' : 'Failed to update PIN: ') + err.message);
     }
   };
 
   const getStatusBadge = (status) => {
     const stage = getTrackingStage(status);
     if (stage.key === 'delivered') {
-      return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">✅ Delivered (ส่งคืนแล้ว)</span>;
+      return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">{isTh ? '✅ ส่งคืนแล้ว (Delivered)' : '✅ Delivered'}</span>;
     }
     if (stage.key === 'in_process') {
-      return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">⚙️ In Process (กำลังดำเนินการ)</span>;
+      return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">{isTh ? '⚙️ กำลังดำเนินการ (In Process)' : '⚙️ In Process'}</span>;
     }
-    return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-300">📅 Scheduled (นัดหมายแล้ว)</span>;
+    return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-300">{isTh ? '📅 นัดหมายแล้ว (Scheduled)' : '📅 Scheduled'}</span>;
   };
 
   return (
@@ -200,10 +204,10 @@ export function CustomerPortal({
                 type="button"
                 onClick={handleCopyId}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-800/80 border border-slate-700 text-slate-200 hover:bg-slate-700 transition"
-                title="คัดลอก Customer ID"
+                title={isTh ? 'คัดลอก Customer ID' : 'Copy Customer ID'}
               >
                 <span>ID: {customer.id}</span>
-                <span>{copiedId ? '✓ Copied' : '📋'}</span>
+                <span>{copiedId ? (isTh ? '✓ คัดลอกแล้ว' : '✓ Copied') : '📋'}</span>
               </button>
             </div>
 
@@ -229,7 +233,7 @@ export function CustomerPortal({
               onClick={() => onNavigateToBook(customer)}
               className="flex-1 md:flex-none py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-500 to-teal-400 hover:from-sky-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-sky-500/20 active:scale-[0.99] transition flex items-center justify-center gap-2"
             >
-              <span>🧺 จองส่งซักผ้าใหม่</span>
+              <span>{isTh ? '🧺 จองส่งซักผ้าใหม่' : '🧺 Book New Order'}</span>
               <Icon name="chevronRight" className="w-4 h-4 text-slate-950" />
             </button>
 
@@ -238,7 +242,7 @@ export function CustomerPortal({
               onClick={onLogout}
               className="py-3 px-4 rounded-2xl bg-slate-800/80 hover:bg-rose-950/40 border border-slate-700 hover:border-rose-800 text-slate-300 hover:text-rose-300 text-xs font-bold transition flex items-center gap-1.5"
             >
-              <span>🚪 ออกจากระบบ</span>
+              <span>{isTh ? '🚪 ออกจากระบบ' : '🚪 Sign Out'}</span>
             </button>
           </div>
         </div>
@@ -256,7 +260,7 @@ export function CustomerPortal({
           }`}
         >
           <span>📦</span>
-          <span>รายการคำสั่งซื้อ ({customerOrders.length})</span>
+          <span>{isTh ? `รายการคำสั่งซื้อ (${customerOrders.length})` : `My Orders (${customerOrders.length})`}</span>
         </button>
 
         <button
@@ -269,7 +273,7 @@ export function CustomerPortal({
           }`}
         >
           <span>🏢</span>
-          <span>ที่อยู่คอนโด & หมุด Google Maps</span>
+          <span>{isTh ? 'ที่อยู่คอนโด & หมุด Google Maps' : 'Condo Address & Google Maps Pin'}</span>
         </button>
 
         <button
@@ -282,7 +286,7 @@ export function CustomerPortal({
           }`}
         >
           <span>🔒</span>
-          <span>ความปลอดภัย & รหัส PIN</span>
+          <span>{isTh ? 'ความปลอดภัย & รหัส PIN' : 'Security & PIN Code'}</span>
         </button>
       </div>
 
@@ -291,14 +295,14 @@ export function CustomerPortal({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-extrabold text-slate-900">
-              ประวัติการส่งซักและติดตามสถานะผ้า (Order History)
+              {isTh ? 'ประวัติการส่งซักและติดตามสถานะผ้า' : 'Order History & Live Status'}
             </h2>
             <button
               type="button"
               onClick={() => onNavigateToBook(customer)}
               className="text-xs font-bold text-sky-600 hover:text-sky-700 underline"
             >
-              + สั่งซักผ้าออเดอร์ใหม่
+              {isTh ? '+ สั่งซักผ้าออเดอร์ใหม่' : '+ Book New Order'}
             </button>
           </div>
 
@@ -308,7 +312,7 @@ export function CustomerPortal({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <span>กำลังดึงข้อมูลคำสั่งซื้อ...</span>
+              <span>{isTh ? 'กำลังดึงข้อมูลคำสั่งซื้อ...' : 'Loading your orders...'}</span>
             </div>
           ) : customerOrders.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-4 shadow-sm">
@@ -316,9 +320,13 @@ export function CustomerPortal({
                 🧺
               </div>
               <div className="space-y-1">
-                <h3 className="font-extrabold text-slate-800 text-base">ยังไม่มีประวัติการส่งซักผ้า</h3>
+                <h3 className="font-extrabold text-slate-800 text-base">
+                  {isTh ? 'ยังไม่มีประวัติการส่งซักผ้า' : 'No Laundry Orders Yet'}
+                </h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  เริ่มต้นส่งซักรอบแรกกับ NoName Laundry เรามีบริการรับ-ส่งถึงล็อบบี้คอนโดทั่วกรุงเทพฯ
+                  {isTh
+                    ? 'เริ่มต้นส่งซักรอบแรกกับ NoName Laundry เรามีบริการรับ-ส่งถึงล็อบบี้คอนโดทั่วกรุงเทพฯ และพัทยา'
+                    : 'Schedule your first laundry pickup with NoName Laundry. We offer door-to-door condo & juristic collection across Bangkok & Pattaya.'}
                 </p>
               </div>
               <button
@@ -326,7 +334,7 @@ export function CustomerPortal({
                 onClick={() => onNavigateToBook(customer)}
                 className="py-3 px-6 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition"
               >
-                จองรอบเข้ารับผ้าตอนนี้
+                {isTh ? 'จองรอบเข้ารับผ้าตอนนี้' : 'Schedule Pickup Now'}
               </button>
             </div>
           ) : (
@@ -347,7 +355,8 @@ export function CustomerPortal({
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        สร้างเมื่อ: {new Date(order.createdAt).toLocaleDateString('th-TH', { dateStyle: 'medium' })}
+                        {isTh ? 'สร้างเมื่อ: ' : 'Created: '}
+                        {new Date(order.createdAt).toLocaleDateString(isTh ? 'th-TH' : 'en-GB', { dateStyle: 'medium' })}
                       </p>
                     </div>
 
@@ -358,18 +367,20 @@ export function CustomerPortal({
 
                   <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-slate-50 text-xs">
                     <div>
-                      <span className="text-slate-400 block text-[10px]">วันรับผ้า (Pickup)</span>
+                      <span className="text-slate-400 block text-[10px]">{isTh ? 'วันรับผ้า (Pickup)' : 'Pickup Date'}</span>
                       <span className="font-bold text-slate-800">{order.pickupDate}</span>
                       <span className="text-[10px] text-slate-500 block truncate">{order.pickupTime}</span>
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block text-[10px]">ยอดชำระเงิน</span>
+                      <span className="text-slate-400 block text-[10px]">{isTh ? 'ยอดชำระเงิน' : 'Total Amount'}</span>
                       <span className="font-black text-emerald-700 text-sm">
-                        ฿{order.totalPrice || order.estimatedPrice || '456'}
+                        ฿{order.totalPrice || order.estimatedPrice || '350'}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
-                        {order.paymentStatus === 'PAID' ? '✅ ชำระแล้ว' : '⏳ รอชำระเงิน'}
+                        {order.paymentStatus === 'PAID'
+                          ? (isTh ? '✅ ชำระแล้ว' : '✅ Paid')
+                          : (isTh ? '⏳ รอชำระเงิน' : '⏳ Pending Payment')}
                       </span>
                     </div>
                   </div>
@@ -384,10 +395,10 @@ export function CustomerPortal({
                       target="_blank"
                       rel="noreferrer"
                       className="px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200 transition flex items-center gap-1.5 shadow-2xs"
-                      title="สอบถามสถานะออเดอร์กับฝ่ายบริการลูกค้าทาง LINE"
+                      title={isTh ? 'สอบถามสถานะออเดอร์กับฝ่ายบริการลูกค้าทาง LINE' : 'Contact support on LINE regarding this order'}
                     >
                       <Icon name="line" className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>สอบถามสถานะ (LINE)</span>
+                      <span>{isTh ? 'สอบถามสถานะ (LINE)' : 'Inquire via LINE'}</span>
                     </a>
                   </div>
                 </div>
@@ -402,10 +413,12 @@ export function CustomerPortal({
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
           <div>
             <h2 className="text-base font-extrabold text-slate-900">
-              ข้อมูลที่อยู่คอนโด & หมุด Google Maps
+              {isTh ? 'ข้อมูลที่อยู่คอนโด & หมุด Google Maps' : 'Condo Address & Google Maps Pin'}
             </h2>
             <p className="text-xs text-slate-500">
-              พนักงานขับรถจะไปรับ-ส่งผ้าตามพิกัดและข้อมูลที่ท่านระบุไว้
+              {isTh
+                ? 'พนักงานขับรถจะไปรับ-ส่งผ้าตามพิกัดและข้อมูลที่ท่านระบุไว้'
+                : 'Our couriers collect and deliver your laundry according to the saved building and GPS coordinates below.'}
             </p>
           </div>
 
@@ -419,13 +432,13 @@ export function CustomerPortal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  ชื่อคอนโด / อาคารที่พัก <span className="text-rose-500">*</span>
+                  {isTh ? 'ชื่อคอนโด / อาคารที่พัก' : 'Condominium / Residence Building Name'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={condoName}
                   onChange={(e) => setCondoName(e.target.value)}
-                  placeholder="เช่น The Estelle Phrom Phong, Ashton Silom"
+                  placeholder={isTh ? 'เช่น The Estelle Phrom Phong, Ashton Silom' : 'e.g. The Estelle Phrom Phong, Ashton Silom'}
                   required
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 outline-none transition"
                 />
@@ -433,26 +446,26 @@ export function CustomerPortal({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  ตึก / ชั้น / เลขห้อง (Tower / Floor / Room Number)
+                  {isTh ? 'ตึก / ชั้น / เลขห้อง' : 'Tower / Floor / Room Number'}
                 </label>
                 <input
                   type="text"
                   value={roomNumber}
                   onChange={(e) => setRoomNumber(e.target.value)}
-                  placeholder="เช่น Tower A, ชั้น 18, ห้อง 1804"
+                  placeholder={isTh ? 'เช่น Tower A, ชั้น 18, ห้อง 1804' : 'e.g. Tower A, Fl 18, Room 1804'}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 outline-none transition"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  ชื่อเล่น (Nick Name)
+                  {isTh ? 'ชื่อเล่น' : 'Nickname / Preferred Name'}
                 </label>
                 <input
                   type="text"
                   value={nickName}
                   onChange={(e) => setNickName(e.target.value)}
-                  placeholder="เช่น Som, Alex, Nok"
+                  placeholder={isTh ? 'เช่น Som, Alex, Nok' : 'e.g. Alex, Som, Nok'}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 outline-none transition"
                 />
               </div>
@@ -468,7 +481,7 @@ export function CustomerPortal({
                   if (detectedDistrict) setDistrict(detectedDistrict);
                 }}
                 initialDistrict={district}
-                label="ปักหมุดตำแหน่งคอนโดบน Google Maps หรือแชร์พิกัด GPS"
+                label={isTh ? 'ปักหมุดตำแหน่งคอนโดบน Google Maps หรือแชร์พิกัด GPS' : 'Pin Condo Location on Google Maps or Share GPS'}
               />
             </div>
 
@@ -483,10 +496,14 @@ export function CustomerPortal({
                 />
                 <div>
                   <span className="text-xs font-bold text-sky-950 block">
-                    อนุญาตให้รับ-ส่งผ้าที่นิติบุคคล / ล็อบบี้คอนโด (Juristic / Lobby Drop-off)
+                    {isTh
+                      ? 'อนุญาตให้รับ-ส่งผ้าที่นิติบุคคล / ล็อบบี้คอนโด'
+                      : 'Authorize Condominium Juristic / Front Lobby Drop-off & Pickup'}
                   </span>
                   <span className="text-[11px] text-slate-600 block mt-0.5">
-                    คนขับสามารถฝากหรือรับถุงผ้าที่เคาน์เตอร์นิติบุคคลได้โดยไม่ต้องรบกวนเวลาส่วนตัวของท่าน
+                    {isTh
+                      ? 'คนขับสามารถฝากหรือรับถุงผ้าที่เคาน์เตอร์นิติบุคคลได้โดยไม่ต้องรบกวนเวลาส่วนตัวของท่าน'
+                      : 'Our driver can collect and return your laundry bag directly at the juristic office or front desk without disturbing your schedule.'}
                   </span>
                 </div>
               </label>
@@ -498,7 +515,9 @@ export function CustomerPortal({
                 disabled={isSaving}
                 className="py-3 px-6 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/25 transition active:scale-[0.99] disabled:opacity-60"
               >
-                {isSaving ? 'กำลังบันทึก...' : '✓ บันทึกการเปลี่ยนแปลงที่อยู่'}
+                {isSaving
+                  ? (isTh ? 'กำลังบันทึก...' : 'Saving...')
+                  : (isTh ? '✓ บันทึกการเปลี่ยนแปลงที่อยู่' : '✓ Save Address Changes')}
               </button>
             </div>
           </form>
@@ -510,10 +529,12 @@ export function CustomerPortal({
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
           <div>
             <h2 className="text-base font-extrabold text-slate-900">
-              ความปลอดภัย & เปลี่ยนรหัส PIN 6 หลัก
+              {isTh ? 'ความปลอดภัย & เปลี่ยนรหัส PIN 6 หลัก' : 'Security & Change 6-Digit PIN'}
             </h2>
             <p className="text-xs text-slate-500">
-              รหัส PIN ใช้สำหรับเข้าสู่ระบบของท่านอย่างรวดเร็วและปลอดภัย
+              {isTh
+                ? 'รหัส PIN ใช้สำหรับเข้าสู่ระบบของท่านอย่างรวดเร็วและปลอดภัย'
+                : 'Your 6-digit PIN is used for fast and secure access to your member account.'}
             </p>
           </div>
 
@@ -532,7 +553,7 @@ export function CustomerPortal({
           <form onSubmit={handleChangePin} className="max-w-md space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                รหัส PIN ปัจจุบัน (Current PIN) <span className="text-rose-500">*</span>
+                {isTh ? 'รหัส PIN ปัจจุบัน' : 'Current 6-Digit PIN'} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="password"
@@ -548,7 +569,7 @@ export function CustomerPortal({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                รหัส PIN ใหม่ 6 หลัก (New 6-digit PIN) <span className="text-rose-500">*</span>
+                {isTh ? 'รหัส PIN ใหม่ 6 หลัก' : 'New 6-Digit PIN'} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="password"
@@ -564,7 +585,7 @@ export function CustomerPortal({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                ยืนยันรหัส PIN ใหม่ (Confirm New PIN) <span className="text-rose-500">*</span>
+                {isTh ? 'ยืนยันรหัส PIN ใหม่' : 'Confirm New 6-Digit PIN'} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="password"
@@ -583,7 +604,7 @@ export function CustomerPortal({
                 type="submit"
                 className="py-3 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition"
               >
-                บันทึกรหัส PIN ใหม่
+                {isTh ? 'บันทึกรหัส PIN ใหม่' : 'Update PIN Code'}
               </button>
             </div>
           </form>
@@ -592,13 +613,27 @@ export function CustomerPortal({
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-start gap-2.5">
             <span className="text-base">💡</span>
             <div>
-              <span className="font-bold text-slate-800 block">ต้องการความช่วยเหลือหรือเปลี่ยนเบอร์โทรศัพท์?</span>
+              <span className="font-bold text-slate-800 block">
+                {isTh ? 'ต้องการความช่วยเหลือหรือเปลี่ยนเบอร์โทรศัพท์?' : 'Need assistance or want to update your primary phone number?'}
+              </span>
               <span>
-                สามารถติดต่อเจ้าหน้าที่ฝ่ายบริการลูกค้าได้ตลอด 24 ชม. ผ่านทาง LINE Official:{' '}
-                <a href={CONTACT_CHANNELS.line.url} target="_blank" rel="noreferrer" className="text-emerald-600 font-bold underline">
-                  @nonamelaundry
-                </a>{' '}
-                หรือ WhatsApp
+                {isTh ? (
+                  <>
+                    สามารถติดต่อเจ้าหน้าที่ฝ่ายบริการลูกค้าได้ผ่านทาง LINE Official:{' '}
+                    <a href={CONTACT_CHANNELS.line.url} target="_blank" rel="noreferrer" className="text-emerald-600 font-bold underline">
+                      @nonamelaundry
+                    </a>{' '}
+                    หรือ WhatsApp (+66 80 888 9885)
+                  </>
+                ) : (
+                  <>
+                    Contact our customer support team anytime via LINE Official:{' '}
+                    <a href={CONTACT_CHANNELS.line.url} target="_blank" rel="noreferrer" className="text-emerald-600 font-bold underline">
+                      @nonamelaundry
+                    </a>{' '}
+                    or WhatsApp (+66 80 888 9885).
+                  </>
+                )}
               </span>
             </div>
           </div>
