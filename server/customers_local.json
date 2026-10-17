@@ -1,5 +1,45 @@
 [
   {
+    "id": "CUST-8491",
+    "firstName": "Alex",
+    "lastName": "Thorne",
+    "fullName": "Alex Thorne",
+    "nickName": "Alex",
+    "gender": "Male",
+    "dateOfBirth": "1990-05-14",
+    "mobileNumber": "+66 82 455 9182",
+    "isWhatsApp": false,
+    "secondaryMobile": "+1 (415) 890-1234",
+    "isSecondaryWhatsApp": true,
+    "email": "alex.thorne@gmail.com",
+    "lineId": "alex_bkk",
+    "pinCode": "123456",
+    "isVerified": true,
+    "verifiedVia": "whatsapp",
+    "companyTax": {
+      "required": true,
+      "companyName": "Thorne Design & Living (Thailand) Co., Ltd.",
+      "taxId": "0105562019284",
+      "branch": "Head Office (สำนักงานใหญ่)",
+      "companyAddress": "8 Sukhumvit 26, Khlong Tan, Khlong Toei, Bangkok 10110"
+    },
+    "addresses": [
+      {
+        "id": "ADDR-101",
+        "label": "Home (The Estelle)",
+        "address": "The Estelle Phrom Phong, 8 Sukhumvit 26, Khlong Tan",
+        "district": "Watthana (Thonglor, Ekkamai, Phrom Phong)",
+        "roomNumber": "Tower A, Room 1804",
+        "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=The+Estelle+Phrom+Phong+Sukhumvit+26+Bangkok",
+        "leaveWithJuristic": true,
+        "isPrimary": true
+      }
+    ],
+    "tier": "VIP",
+    "notes": "Prefers eco-friendly detergent.",
+    "createdAt": "2026-08-10T10:00:00Z"
+  },
+  {
     "id": "CUST-8424",
     "firstName": "Test",
     "lastName": "Workflow Customer",
@@ -71,46 +111,6 @@
       }
     ],
     "createdAt": "2026-10-13T11:03:31.157Z"
-  },
-  {
-    "id": "CUST-8491",
-    "firstName": "Alex",
-    "lastName": "Thorne",
-    "fullName": "Alex Thorne",
-    "nickName": "Alex",
-    "gender": "Male",
-    "dateOfBirth": "1990-05-14",
-    "mobileNumber": "+66 82 455 9182",
-    "isWhatsApp": false,
-    "secondaryMobile": "+1 (415) 890-1234",
-    "isSecondaryWhatsApp": true,
-    "email": "alex.thorne@gmail.com",
-    "lineId": "alex_bkk",
-    "pinCode": "123456",
-    "isVerified": true,
-    "verifiedVia": "whatsapp",
-    "companyTax": {
-      "required": true,
-      "companyName": "Thorne Design & Living (Thailand) Co., Ltd.",
-      "taxId": "0105562019284",
-      "branch": "Head Office (สำนักงานใหญ่)",
-      "companyAddress": "8 Sukhumvit 26, Khlong Tan, Khlong Toei, Bangkok 10110"
-    },
-    "addresses": [
-      {
-        "id": "ADDR-101",
-        "label": "Home (The Estelle)",
-        "address": "The Estelle Phrom Phong, 8 Sukhumvit 26, Khlong Tan",
-        "district": "Watthana (Thonglor, Ekkamai, Phrom Phong)",
-        "roomNumber": "Tower A, Room 1804",
-        "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=The+Estelle+Phrom+Phong+Sukhumvit+26+Bangkok",
-        "leaveWithJuristic": true,
-        "isPrimary": true
-      }
-    ],
-    "tier": "VIP",
-    "notes": "Prefers eco-friendly detergent.",
-    "createdAt": "2026-08-10T10:00:00Z"
   },
   {
     "id": "CUST-3920",

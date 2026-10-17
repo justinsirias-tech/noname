@@ -1740,9 +1740,12 @@ export class LaundryStore {
   }
 
   updateCustomer(id, data) {
+    let updatedCustomerObj = null;
+    let found = false;
     this.customers = (this.customers || []).map(cust => {
       if (cust.id === id) {
-        return {
+        found = true;
+        updatedCustomerObj = {
           ...cust,
           ...data,
           fullName: data.fullName !== undefined ? data.fullName.trim() : cust.fullName,
@@ -1760,9 +1763,27 @@ export class LaundryStore {
           companyTax: data.companyTax ? { ...cust.companyTax, ...data.companyTax } : cust.companyTax,
           addresses: Array.isArray(data.addresses) ? data.addresses : cust.addresses
         };
+        return updatedCustomerObj;
       }
       return cust;
     });
+
+    if (!found && this.currentCustomer && this.currentCustomer.id === id) {
+      updatedCustomerObj = {
+        ...this.currentCustomer,
+        ...data,
+        addresses: Array.isArray(data.addresses) ? data.addresses : (this.currentCustomer.addresses || [])
+      };
+      this.customers = [updatedCustomerObj, ...(this.customers || [])];
+    }
+
+    if (this.currentCustomer && this.currentCustomer.id === id && updatedCustomerObj) {
+      this.currentCustomer = updatedCustomerObj;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('noname_customer_session', JSON.stringify(updatedCustomerObj));
+      }
+    }
+
     this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
     this.notify();
 
@@ -1771,6 +1792,8 @@ export class LaundryStore {
       headers: this.getAdminAuthHeaders(),
       body: JSON.stringify(data)
     }).catch(err => console.warn('PostgreSQL update customer error:', err));
+
+    return updatedCustomerObj;
   }
 
   deleteCustomer(id) {
@@ -1785,84 +1808,133 @@ export class LaundryStore {
   }
 
   addCustomerAddress(customerId, addressData) {
-    const addrId = 'ADDR-' + Math.floor(100 + Math.random() * 900);
+    const addrId = addressData.id || ('ADDR-' + Math.floor(100 + Math.random() * 900));
     const newAddr = {
       id: addrId,
       label: addressData.label || 'Home',
+      addressType: addressData.addressType || 'both', // 'both' | 'pickup' | 'delivery'
+      city: addressData.city || 'Bangkok',
+      condoName: addressData.condoName || addressData.label || '',
       address: addressData.address || '',
       district: addressData.district || 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
+      subdistrict: addressData.subdistrict || '',
+      postalCode: addressData.postalCode || '',
       roomNumber: addressData.roomNumber || '',
-      googleMapsUrl: addressData.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressData.address || 'Bangkok')}`,
-      leaveWithJuristic: Boolean(addressData.leaveWithJuristic),
+      googleMapsUrl: addressData.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressData.address || addressData.condoName || 'Bangkok')}`,
+      leaveWithJuristic: addressData.leaveWithJuristic !== undefined ? Boolean(addressData.leaveWithJuristic) : true,
       isPrimary: Boolean(addressData.isPrimary)
     };
 
+    let updatedAddresses = null;
     this.customers = (this.customers || []).map(cust => {
       if (cust.id === customerId) {
         let addresses = [...(cust.addresses || [])];
-        if (newAddr.isPrimary) {
+        if (newAddr.isPrimary || addresses.length === 0) {
+          newAddr.isPrimary = true;
           addresses = addresses.map(a => ({ ...a, isPrimary: false }));
         }
         addresses.push(newAddr);
+        updatedAddresses = addresses;
         return { ...cust, addresses };
       }
       return cust;
     });
 
-    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
-    this.notify();
+    if (!updatedAddresses && this.currentCustomer && this.currentCustomer.id === customerId) {
+      let addresses = [...(this.currentCustomer.addresses || [])];
+      if (newAddr.isPrimary || addresses.length === 0) {
+        newAddr.isPrimary = true;
+        addresses = addresses.map(a => ({ ...a, isPrimary: false }));
+      }
+      addresses.push(newAddr);
+      updatedAddresses = addresses;
+    }
+
+    if (updatedAddresses) {
+      this.updateCustomer(customerId, { addresses: updatedAddresses });
+    } else {
+      this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+      this.notify();
+    }
     return newAddr;
   }
 
   updateCustomerAddress(customerId, addressId, addressData) {
+    let updatedAddresses = null;
     this.customers = (this.customers || []).map(cust => {
       if (cust.id === customerId) {
         let addresses = (cust.addresses || []).map(a => {
           if (a.id === addressId) {
-            const updated = {
+            return {
               ...a,
               ...addressData,
               googleMapsUrl: addressData.googleMapsUrl || (addressData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressData.address)}` : a.googleMapsUrl)
             };
-            return updated;
           }
           return addressData.isPrimary ? { ...a, isPrimary: false } : a;
         });
+        updatedAddresses = addresses;
         return { ...cust, addresses };
       }
       return cust;
     });
-    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
-    this.notify();
+
+    if (!updatedAddresses && this.currentCustomer && this.currentCustomer.id === customerId) {
+      updatedAddresses = (this.currentCustomer.addresses || []).map(a => {
+        if (a.id === addressId) {
+          return {
+            ...a,
+            ...addressData,
+            googleMapsUrl: addressData.googleMapsUrl || (addressData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressData.address)}` : a.googleMapsUrl)
+          };
+        }
+        return addressData.isPrimary ? { ...a, isPrimary: false } : a;
+      });
+    }
+
+    if (updatedAddresses) {
+      this.updateCustomer(customerId, { addresses: updatedAddresses });
+    } else {
+      this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+      this.notify();
+    }
   }
 
   deleteCustomerAddress(customerId, addressId) {
+    let updatedAddresses = null;
     this.customers = (this.customers || []).map(cust => {
       if (cust.id === customerId) {
         let addresses = (cust.addresses || []).filter(a => a.id !== addressId);
         if (addresses.length > 0 && !addresses.some(a => a.isPrimary)) {
-          addresses[0].isPrimary = true;
+          addresses[0] = { ...addresses[0], isPrimary: true };
         }
+        updatedAddresses = addresses;
         return { ...cust, addresses };
       }
       return cust;
     });
-    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
-    this.notify();
+
+    if (!updatedAddresses && this.currentCustomer && this.currentCustomer.id === customerId) {
+      let addresses = (this.currentCustomer.addresses || []).filter(a => a.id !== addressId);
+      if (addresses.length > 0 && !addresses.some(a => a.isPrimary)) {
+        addresses[0] = { ...addresses[0], isPrimary: true };
+      }
+      updatedAddresses = addresses;
+    }
+
+    if (updatedAddresses) {
+      this.updateCustomer(customerId, { addresses: updatedAddresses });
+    } else {
+      this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
+      this.notify();
+    }
   }
 
   setCustomerPin(customerId, pinCode) {
     if (!/^\d{6}$/.test(pinCode)) {
       throw new Error('PIN must be exactly 6 digits.');
     }
-    this.customers = (this.customers || []).map(cust => {
-      if (cust.id === customerId) {
-        return { ...cust, pinCode };
-      }
-      return cust;
-    });
-    this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
-    this.notify();
+    this.updateCustomer(customerId, { pinCode });
     return true;
   }
 

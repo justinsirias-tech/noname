@@ -4,9 +4,31 @@ import { ORDER_STATUSES, TRACKING_STAGES, getTrackingStage, INCIDENT_CATEGORIES,
 import { CONTACT_CHANNELS, getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, generatePromptPayQrUrl, laundryStore } from '../store.js';
 import { ImageUploadZone } from './IncidentImageAttachment.jsx';
 
-export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = false, onReportIncident }) {
-  const [searchQuery, setSearchQuery] = useState(initialTrackingId || '');
-  const [selectedOrderId, setSelectedOrderId] = useState(initialTrackingId || orders[0]?.id || '');
+export function OrderTracker({ orders, customer, initialTrackingId, initialOpenPayment = false, onReportIncident, onBackToPortal }) {
+  // Filter orders belonging to the registered customer
+  const customerOrders = React.useMemo(() => {
+    if (!customer) return orders;
+    const normPhone = (customer.phone || '').replace(/[^0-9]/g, '').slice(-8);
+    const matched = orders.filter((o) => {
+      if (o.customerId && o.customerId === customer.id) return true;
+      if (customer.fullName && o.customerName && o.customerName.toLowerCase() === customer.fullName.toLowerCase()) return true;
+      if (customer.email && o.contactValue && o.contactValue.toLowerCase() === customer.email.toLowerCase()) return true;
+      if (normPhone && normPhone.length >= 7 && o.contactValue && o.contactValue.replace(/[^0-9]/g, '').includes(normPhone)) return true;
+      return false;
+    });
+    const apiOrders = Array.isArray(customer.orders) ? customer.orders : [];
+    const map = new Map();
+    [...matched, ...apiOrders].forEach((o) => {
+      if (o && o.id) map.set(o.id, o);
+    });
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  }, [orders, customer]);
+
+  const defaultOrderId = initialTrackingId || customerOrders[0]?.id || '';
+  const [searchQuery, setSearchQuery] = useState(defaultOrderId);
+  const [selectedOrderId, setSelectedOrderId] = useState(defaultOrderId);
   
   // Incident Form State
   const [showIncidentForm, setShowIncidentForm] = useState(false);
@@ -35,11 +57,14 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
     if (initialTrackingId) {
       setSearchQuery(initialTrackingId);
       setSelectedOrderId(initialTrackingId);
+    } else if (!selectedOrderId && customerOrders.length > 0) {
+      setSearchQuery(customerOrders[0].id);
+      setSelectedOrderId(customerOrders[0].id);
     }
     if (initialOpenPayment) {
       setShowPaymentModal(true);
     }
-  }, [initialTrackingId, initialOpenPayment]);
+  }, [initialTrackingId, initialOpenPayment, customerOrders]);
 
   // ESC key listener to close modals
   useEffect(() => {
@@ -69,21 +94,22 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
     merchantName: 'NoName Laundry Bangkok Co., Ltd.'
   };
 
-  const activeOrder = orders.find(o => 
+  const searchablePool = customerOrders.length > 0 ? customerOrders : orders;
+
+  const activeOrder = searchablePool.find(o => 
     o.id.toLowerCase() === (selectedOrderId || searchQuery).trim().toLowerCase()
   ) || orders.find(o => 
-    o.customerName.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
-    o.contactValue.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    o.id.toLowerCase() === (selectedOrderId || searchQuery).trim().toLowerCase()
   );
 
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    const found = orders.find(o => 
+    const found = searchablePool.find(o => 
       o.id.toLowerCase() === searchQuery.trim().toLowerCase() ||
-      o.customerName.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
-      o.contactValue.toLowerCase().includes(searchQuery.trim().toLowerCase())
-    );
+      (o.customerName && o.customerName.toLowerCase().includes(searchQuery.trim().toLowerCase())) ||
+      (o.contactValue && o.contactValue.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    ) || orders.find(o => o.id.toLowerCase() === searchQuery.trim().toLowerCase());
     if (found) {
       setSelectedOrderId(found.id);
     }
@@ -632,14 +658,25 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
 
       {/* Tracker Header & Search */}
       <div className="mb-8">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold mb-2">
-          <span>Bangkok Live Order Status</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold">
+            <span>✓ Registered Member • Live Laundry Process Tracker</span>
+          </div>
+          {onBackToPortal && (
+            <button
+              type="button"
+              onClick={onBackToPortal}
+              className="px-4 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold transition shadow-xs cursor-pointer"
+            >
+              ← Back to My Member Portal
+            </button>
+          )}
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Track Your Laundry Order
+          Live Laundry Process Tracking
         </h1>
         <p className="text-sm text-slate-600 mt-2">
-          Enter your Tracking ID (e.g. <code>NNL-8491-BK</code>) or search by phone/LINE.
+          Select one of your active or past orders below, or search by Tracking ID (e.g. <code>NNL-8491-BK</code>).
         </p>
 
         {/* Search Bar */}
@@ -648,7 +685,7 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
             <Icon name="search" className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by Tracking ID (e.g. NNL-8491-BK) or Name..."
+              placeholder="Search your orders by Tracking ID (e.g. NNL-8491-BK)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm font-semibold"
@@ -662,26 +699,36 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
           </button>
         </form>
 
-        {/* Quick Sample Selector */}
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          <span>Quick Sample Orders:</span>
-          {orders.slice(0, 3).map((o) => (
-            <button
-              key={o.id}
-              onClick={() => {
-                setSearchQuery(o.id);
-                setSelectedOrderId(o.id);
-              }}
-              className={`px-2.5 py-1 rounded-lg border font-mono transition ${
-                activeOrder?.id === o.id
-                  ? 'bg-sky-50 text-sky-700 border-sky-300 font-bold'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {o.id} ({o.customerName})
-            </button>
-          ))}
-        </div>
+        {/* Registered Customer's Orders Quick Selector */}
+        {customerOrders.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span className="font-bold text-slate-700">Your Orders ({customerOrders.length}):</span>
+            {customerOrders.map((o) => {
+              const isCurrent = o.status !== 'DELIVERED' && o.status !== 'CANCELLED';
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(o.id);
+                    setSelectedOrderId(o.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl border font-mono transition inline-flex items-center gap-1.5 ${
+                    activeOrder?.id === o.id
+                      ? 'bg-sky-600 text-white border-sky-600 font-bold shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isCurrent ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                  <span>{o.id}</span>
+                  <span className="text-[10px] opacity-80 font-sans">
+                    ({isCurrent ? 'Active' : 'Completed'})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {!activeOrder ? (
@@ -1037,21 +1084,35 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
 
             {/* Delivery & Condo Details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                <div className="text-slate-400 uppercase font-bold text-[10px] tracking-wider mb-1">
-                  {activeOrder.city || 'Bangkok'} Pickup Location
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div>
+                  <div className="text-slate-400 uppercase font-bold text-[10px] tracking-wider mb-1">
+                    📦 {activeOrder.city || 'Bangkok'} Pickup Location
+                  </div>
+                  <div className="font-extrabold text-slate-900 text-sm">
+                    {activeOrder.pickupAddress || activeOrder.condoName}
+                  </div>
+                  <div className="text-slate-600">{activeOrder.roomNumber || 'Condo Lobby / Juristic'}</div>
+                  <div className="text-slate-500 mt-0.5">
+                    {activeOrder.subdistrict ? `${activeOrder.subdistrict}, ` : ''}{activeOrder.district ? `${activeOrder.district}, ` : ''}{activeOrder.city || 'Bangkok'}{activeOrder.postalCode ? ` (📮 ${activeOrder.postalCode})` : ''}
+                  </div>
                 </div>
-                <div className="font-extrabold text-slate-900 text-sm">{activeOrder.condoName}</div>
-                <div className="text-slate-600">{activeOrder.roomNumber || 'Condo Lobby / Juristic'}</div>
-                <div className="text-slate-500 mt-0.5">
-                  {activeOrder.subdistrict ? `${activeOrder.subdistrict}, ` : ''}{activeOrder.district ? `${activeOrder.district}, ` : ''}{activeOrder.city || 'Bangkok'}{activeOrder.postalCode ? ` (📮 ${activeOrder.postalCode})` : ''}
-                </div>
+                {activeOrder.deliveryAddress && activeOrder.deliveryAddress !== activeOrder.pickupAddress && (
+                  <div className="pt-2 border-t border-slate-200">
+                    <div className="text-emerald-700 uppercase font-bold text-[10px] tracking-wider mb-0.5">
+                      🚚 Return Delivery Location
+                    </div>
+                    <div className="font-extrabold text-slate-900 text-xs">
+                      {activeOrder.deliveryAddress}
+                    </div>
+                  </div>
+                )}
                 {activeOrder.leaveWithJuristic !== false ? (
-                  <span className="inline-block mt-2 px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-bold">
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-bold">
                     🏢 Juristic Reception Drop-Off Authorized
                   </span>
                 ) : (
-                  <span className="inline-block mt-2 px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-200">
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-200">
                     🤝 Meet Up in Person (Subject to Rider Availability)
                   </span>
                 )}
@@ -1064,6 +1125,9 @@ export function OrderTracker({ orders, initialTrackingId, initialOpenPayment = f
                 <div>Customer: <strong>{activeOrder.customerName}</strong></div>
                 <div>Channel: <strong className="uppercase">{activeOrder.contactChannel}</strong> ({activeOrder.contactValue})</div>
                 <div>Pickup Window: <strong>{activeOrder.pickupDate} ({activeOrder.pickupTime})</strong></div>
+                {activeOrder.deliveryDate && (
+                  <div>Est. Return Delivery: <strong>{activeOrder.deliveryDate} {activeOrder.deliveryTime ? `(${activeOrder.deliveryTime})` : ''}</strong></div>
+                )}
                 {activeOrder.specialInstructions && (
                   <div className="mt-2 text-slate-600 italic bg-white p-2 rounded border border-slate-200">
                     "{activeOrder.specialInstructions}"

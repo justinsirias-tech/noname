@@ -140,9 +140,38 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       ? (PATTAYA_SUBDISTRICTS_LIST[0]?.code || '20150')
       : (BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.code || '10110')
   );
-  const [condoName, setCondoName] = useState(primaryAddr?.label || primaryAddr?.placeName || primaryAddr?.address || '');
+  const [condoName, setCondoName] = useState(primaryAddr?.condoName || primaryAddr?.label || primaryAddr?.placeName || primaryAddr?.address || '');
   const [roomNumber, setRoomNumber] = useState(primaryAddr?.roomNumber || '');
   const [leaveWithJuristic, setLeaveWithJuristic] = useState(primaryAddr?.leaveWithJuristic !== false);
+  const [selectedPickupAddressId, setSelectedPickupAddressId] = useState(primaryAddr?.id || '');
+  const [selectedDeliveryAddressId, setSelectedDeliveryAddressId] = useState('SAME_AS_PICKUP');
+
+  const savedCustomerAddresses = React.useMemo(() => {
+    const raw = detectedCustomer?.addresses || initialCustomer?.addresses || [];
+    return Array.isArray(raw) ? raw : [];
+  }, [detectedCustomer, initialCustomer]);
+
+  const applySavedPickupAddress = (addr) => {
+    if (!addr) return;
+    setSelectedPickupAddressId(addr.id || '');
+    const isPty = addr.city === 'Pattaya' || (addr.postalCode && String(addr.postalCode).startsWith('20'));
+    setServiceCity(isPty ? 'Pattaya' : 'Bangkok');
+    setCondoName(addr.condoName || addr.label || addr.address || '');
+    setRoomNumber(addr.roomNumber || '');
+    setLeaveWithJuristic(addr.leaveWithJuristic !== false);
+    const cleanDist = (addr.district || '').split(' (')[0].trim();
+    if (isPty) {
+      setDistrict(addr.district || 'Bang Lamung');
+      setSubdistrict(addr.subdistrict || PATTAYA_SUBDISTRICTS_LIST[0]?.name || '');
+      setPostalCode(addr.postalCode || '20150');
+    } else {
+      const matchedDist = BANGKOK_DISTRICTS.find(d => d.toLowerCase() === cleanDist.toLowerCase()) || BANGKOK_DISTRICTS[0] || 'Watthana';
+      const subList = BANGKOK_DISTRICTS_TO_SUBDISTRICTS[matchedDist] || [];
+      setDistrict(matchedDist);
+      setSubdistrict(addr.subdistrict || subList[0]?.name || '');
+      setPostalCode(addr.postalCode || subList[0]?.code || DISTRICT_TO_POSTAL_CODE[matchedDist] || '10110');
+    }
+  };
 
   // Automatically update City, District, Sub-district, Postal Code, and Delivery Fee when a location/building/house is entered
   const applyLocationUpdate = (loc) => {
@@ -512,6 +541,14 @@ export function BookingWizard({ services, categories: propCategories, initialSer
     const combinedCustomerName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const effectiveContactValue = contactChannel === 'whatsapp' ? (contactValue.trim() || mobileNumber.trim()) : contactValue.trim();
 
+    const formattedPickupAddr = `${condoName.trim()}${roomNumber.trim() ? ` (${roomNumber.trim()})` : ''}, ${subdistrict ? `${subdistrict}, ` : ''}${district}, ${serviceCity} ${postalCode}`.trim();
+    const matchedDeliveryObj = selectedDeliveryAddressId !== 'SAME_AS_PICKUP'
+      ? savedCustomerAddresses.find(a => a.id === selectedDeliveryAddressId)
+      : null;
+    const formattedDeliveryAddr = matchedDeliveryObj
+      ? `${matchedDeliveryObj.condoName || matchedDeliveryObj.label || matchedDeliveryObj.address}${matchedDeliveryObj.roomNumber ? ` (${matchedDeliveryObj.roomNumber})` : ''}, ${matchedDeliveryObj.district || serviceCity}`
+      : formattedPickupAddr;
+
     const bookingPayload = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -532,6 +569,8 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       postalCode,
       condoName: condoName.trim(),
       roomNumber: roomNumber.trim(),
+      pickupAddress: formattedPickupAddr,
+      deliveryAddress: formattedDeliveryAddr,
       leaveWithJuristic,
       handoverMethod: leaveWithJuristic ? 'juristic' : 'in_person',
       estimatedWeightKg: totalWeightKg > 0 ? totalWeightKg : null,
@@ -948,16 +987,33 @@ Please confirm our pickup schedule. Thank you!`
 
             {/* Bottom Actions */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  window.location.href = `/?track=${completedOrder.id}`;
-                }}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 font-bold text-xs shadow-2xs transition flex items-center justify-center gap-1.5"
-              >
-                <Icon name="search" className="w-4 h-4 text-sky-600" />
-                <span>{language === 'th' ? 'ติดตามสถานะคำสั่งซื้อ' : 'Track Order Online'}</span>
-              </button>
+              {initialCustomer ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `/?track=${completedOrder.id}`;
+                  }}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5"
+                >
+                  <Icon name="clock" className="w-4 h-4 text-white" />
+                  <span>{language === 'th' ? 'ติดตามขั้นตอนการซักผ้าสด (สมาชิก)' : 'Track Live Laundry Process'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.hash = 'register';
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs shadow-2xs transition flex items-center justify-center gap-1.5"
+                >
+                  <Icon name="user" className="w-4 h-4 text-amber-600" />
+                  <span>
+                    {language === 'th'
+                      ? 'สมัครสมาชิกเพื่อติดตามขั้นตอนการซักผ้าสด'
+                      : 'Register to Track Live Laundry Process'}
+                  </span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -1650,6 +1706,97 @@ Please confirm our pickup schedule. Thank you!`
                   </span>
                 </div>
               </div>
+
+              {/* Saved Customer Pickup & Delivery Addresses Selector */}
+              {savedCustomerAddresses.length > 0 && (
+                <div className="p-4 rounded-2xl bg-sky-50/80 border border-sky-200 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Icon name="mapPin" className="w-4 h-4 text-sky-600" />
+                      <span className="text-xs font-extrabold text-sky-900">
+                        {language === 'th'
+                          ? 'เลือกที่อยู่รับ-ส่งผ้าที่บันทึกไว้ของคุณ'
+                          : 'Choose from Your Saved Pickup & Delivery Addresses'}
+                      </span>
+                    </div>
+                    <a
+                      href="#portal"
+                      className="text-[11px] font-bold text-sky-700 hover:text-sky-900 underline"
+                    >
+                      {language === 'th' ? '+ จัดการที่อยู่ในโปรไฟล์' : '+ Manage Saved Addresses'}
+                    </a>
+                  </div>
+
+                  {/* Pickup Address Selector */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                      {language === 'th' ? '📦 เลือกที่อยู่สำหรับรับผ้า (Pickup Address)' : '📦 Select Pickup Address'}
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {savedCustomerAddresses
+                        .filter(a => !a.addressType || a.addressType === 'both' || a.addressType === 'pickup')
+                        .map((addr) => {
+                          const isSelected = selectedPickupAddressId === addr.id;
+                          return (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => applySavedPickupAddress(addr)}
+                              className={`p-3 rounded-xl border text-left transition ${
+                                isSelected
+                                  ? 'border-sky-600 bg-white ring-2 ring-sky-500/20 shadow-xs'
+                                  : 'border-slate-200 bg-white/70 hover:bg-white'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="text-xs font-extrabold text-slate-900 truncate">
+                                  {addr.label || 'Residence'}
+                                </span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-800">
+                                  {addr.addressType === 'pickup'
+                                    ? (language === 'th' ? 'รับผ้า' : 'Pickup')
+                                    : (language === 'th' ? 'รับ & ส่ง' : 'Pickup & Delivery')}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-600 font-semibold mt-0.5 truncate">
+                                {addr.condoName || addr.streetAddress}
+                                {addr.roomNumber ? ` (${addr.roomNumber})` : ''}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate">
+                                {addr.district}{addr.postalCode ? ` ${addr.postalCode}` : ''}
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Return Delivery Address Selector (if customer has multiple or delivery-specific addresses) */}
+                  {savedCustomerAddresses.length > 1 && (
+                    <div className="pt-2 border-t border-sky-200/70">
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                        {language === 'th'
+                          ? '🚚 เลือกที่อยู่สำหรับส่งผ้าคืน (Return Delivery Address)'
+                          : '🚚 Select Return Delivery Address'}
+                      </label>
+                      <select
+                        value={selectedDeliveryAddressId}
+                        onChange={(e) => setSelectedDeliveryAddressId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-sky-200 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-sky-500"
+                      >
+                        {savedCustomerAddresses
+                          .filter(a => !a.addressType || a.addressType === 'both' || a.addressType === 'delivery')
+                          .map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.label || 'Address'} — {addr.condoName || addr.streetAddress}
+                              {addr.roomNumber ? ` (${addr.roomNumber})` : ''} [{addr.district}]
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Service City Selector: Bangkok vs Pattaya */}
               <div>

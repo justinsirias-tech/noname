@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons.jsx';
-import { BANGKOK_DISTRICTS, GENDER_OPTIONS, CUSTOMER_TIERS, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES } from '../data/servicesData.js';
+import { BANGKOK_DISTRICTS, GENDER_OPTIONS, CUSTOMER_TIERS, INCIDENT_CATEGORIES, INCIDENT_SEVERITIES, TRACKING_STAGES, getTrackingStage } from '../data/servicesData.js';
 import { laundryStore, getLineOaMessageUrl, CONTACT_CHANNELS } from '../store.js';
 import { CountryPhoneInput } from './CountryPhoneInput.jsx';
 import { ImageUploadZone, IncidentImageLightbox } from './IncidentImageAttachment.jsx';
@@ -59,12 +59,15 @@ export function CustomerCRM({
   const [newBranch, setNewBranch] = useState('Head Office (สำนักงานใหญ่)');
   const [newCompanyAddress, setNewCompanyAddress] = useState('');
 
-  // Inline Add Address State inside Customer Detail
+  // Inline Add / Edit Address State inside Customer Detail
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
   const [inlineAddrLabel, setInlineAddrLabel] = useState('Office / Studio');
+  const [inlineAddrType, setInlineAddrType] = useState('both'); // 'both' | 'pickup' | 'delivery'
   const [inlineAddrText, setInlineAddrText] = useState('');
   const [inlineAddrRoom, setInlineAddrRoom] = useState('');
   const [inlineAddrDistrict, setInlineAddrDistrict] = useState(BANGKOK_DISTRICTS[0]);
+  const [inlineAddrPostalCode, setInlineAddrPostalCode] = useState('10110');
   const [inlineAddrJuristic, setInlineAddrJuristic] = useState(false);
   const [inlineAddrPrimary, setInlineAddrPrimary] = useState(false);
 
@@ -294,26 +297,52 @@ export function CustomerCRM({
     showToast('Customer phone numbers and WhatsApp preferences updated!');
   };
 
-  // Handle Inline Add Address
+  // Handle Inline Add / Edit Address
   const handleAddInlineAddress = (e) => {
     e.preventDefault();
     if (!selectedCustomer || !inlineAddrText.trim()) return;
 
-    laundryStore.addCustomerAddress(selectedCustomer.id, {
+    const payload = {
       label: inlineAddrLabel.trim() || 'Address',
+      addressType: inlineAddrType || 'both',
       address: inlineAddrText.trim(),
+      streetAddress: inlineAddrText.trim(),
+      condoName: inlineAddrText.trim(),
       district: inlineAddrDistrict,
+      postalCode: inlineAddrPostalCode.trim() || '10110',
       roomNumber: inlineAddrRoom.trim(),
       googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(inlineAddrText.trim() + ' ' + inlineAddrDistrict)}`,
       leaveWithJuristic: inlineAddrJuristic,
       isPrimary: inlineAddrPrimary
-    });
+    };
+
+    if (editingAddressId) {
+      laundryStore.updateCustomerAddress(selectedCustomer.id, editingAddressId, payload);
+      showToast('Pickup/Delivery address updated on customer profile!');
+    } else {
+      laundryStore.addCustomerAddress(selectedCustomer.id, payload);
+      showToast('New pickup/delivery address added to customer profile!');
+    }
 
     refreshCustomers();
     setShowAddAddressForm(false);
+    setEditingAddressId(null);
     setInlineAddrText('');
     setInlineAddrRoom('');
-    showToast('New address added to customer profile!');
+    setInlineAddrType('both');
+  };
+
+  const handleStartEditInlineAddress = (addr) => {
+    setEditingAddressId(addr.id);
+    setInlineAddrLabel(addr.label || 'Residence');
+    setInlineAddrType(addr.addressType || 'both');
+    setInlineAddrText(addr.address || addr.streetAddress || addr.condoName || '');
+    setInlineAddrRoom(addr.roomNumber || '');
+    setInlineAddrDistrict(addr.district || BANGKOK_DISTRICTS[0]);
+    setInlineAddrPostalCode(addr.postalCode || '10110');
+    setInlineAddrJuristic(addr.leaveWithJuristic !== false);
+    setInlineAddrPrimary(Boolean(addr.isPrimary));
+    setShowAddAddressForm(true);
   };
 
   // Handle Delete Address
@@ -323,7 +352,7 @@ export function CustomerCRM({
       alert('A customer must have at least one saved address.');
       return;
     }
-    if (confirm('Delete this delivery address from the customer profile?')) {
+    if (confirm('Delete this pickup/delivery address from the customer profile?')) {
       laundryStore.deleteCustomerAddress(selectedCustomer.id, addressId);
       refreshCustomers();
       showToast('Address deleted.');
@@ -1264,37 +1293,54 @@ export function CustomerCRM({
                   </div>
                 </div>
 
-                {/* 3. MULTIPLE DELIVERY ADDRESSES (Powered by Google Maps) */}
+                {/* 3. MULTIPLE PICKUP & DELIVERY ADDRESSES (Powered by Google Maps) */}
                 <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-extrabold text-slate-900 uppercase tracking-wide text-xs flex items-center gap-2">
                         <Icon name="mapPin" className="w-4 h-4 text-sky-600" />
-                        <span>Saved Delivery Locations ({selectedCustomer.addresses?.length || 0})</span>
+                        <span>Saved Pickup &amp; Delivery Locations ({selectedCustomer.addresses?.length || 0})</span>
                       </h4>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Customers can save multiple Bangkok condo/office locations with Google Maps navigation links.
+                        Customers can save multiple pickup and delivery locations (Home Condo, Office, Studio) with Google Maps navigation links.
                       </p>
                     </div>
 
                     <button
-                      onClick={() => setShowAddAddressForm(!showAddAddressForm)}
+                      onClick={() => {
+                        setEditingAddressId(null);
+                        setInlineAddrLabel('Office / Studio');
+                        setInlineAddrType('both');
+                        setInlineAddrText('');
+                        setInlineAddrRoom('');
+                        setInlineAddrPostalCode('10110');
+                        setShowAddAddressForm(!showAddAddressForm);
+                      }}
                       className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition"
                     >
                       <Icon name="plus" className="w-3.5 h-3.5" />
-                      <span>+ Add New Address</span>
+                      <span>+ Add Pickup / Delivery Address</span>
                     </button>
                   </div>
 
-                  {/* Inline Add Address Form */}
+                  {/* Inline Add / Edit Address Form */}
                   {showAddAddressForm && (
                     <form onSubmit={handleAddInlineAddress} className="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-3 mt-2">
                       <div className="font-bold text-sky-900 text-xs flex items-center justify-between">
-                        <span>Add New Delivery Location</span>
-                        <button type="button" onClick={() => setShowAddAddressForm(false)} className="text-slate-400 hover:text-slate-700">✕</button>
+                        <span>{editingAddressId ? 'Edit Saved Pickup / Delivery Location' : 'Add New Pickup / Delivery Location'}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddAddressForm(false);
+                            setEditingAddressId(null);
+                          }}
+                          className="text-slate-400 hover:text-slate-700"
+                        >
+                          ✕
+                        </button>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label className="block font-bold text-slate-700 mb-1">Address Label *</label>
                           <input
@@ -1308,7 +1354,20 @@ export function CustomerCRM({
                         </div>
 
                         <div>
-                          <label className="block font-bold text-slate-700 mb-1">Bangkok District *</label>
+                          <label className="block font-bold text-slate-700 mb-1">Address Usage Type *</label>
+                          <select
+                            value={inlineAddrType}
+                            onChange={(e) => setInlineAddrType(e.target.value)}
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-semibold"
+                          >
+                            <option value="both">🔄 Pickup &amp; Delivery</option>
+                            <option value="pickup">📦 Pickup Only</option>
+                            <option value="delivery">🚚 Delivery Only</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">District *</label>
                           <select
                             value={inlineAddrDistrict}
                             onChange={(e) => setInlineAddrDistrict(e.target.value)}
@@ -1321,9 +1380,9 @@ export function CustomerCRM({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                         <div className="sm:col-span-2">
-                          <label className="block font-bold text-slate-700 mb-1">Building / Condo / Street Address (Google Maps query) *</label>
+                          <label className="block font-bold text-slate-700 mb-1">Building / Condo / Street Address *</label>
                           <input
                             type="text"
                             required
@@ -1342,6 +1401,17 @@ export function CustomerCRM({
                             value={inlineAddrRoom}
                             onChange={(e) => setInlineAddrRoom(e.target.value)}
                             className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Postal Code</label>
+                          <input
+                            type="text"
+                            placeholder="10110"
+                            value={inlineAddrPostalCode}
+                            onChange={(e) => setInlineAddrPostalCode(e.target.value)}
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-mono"
                           />
                         </div>
                       </div>
@@ -1373,7 +1443,7 @@ export function CustomerCRM({
                           type="submit"
                           className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold"
                         >
-                          Save Address to Profile
+                          {editingAddressId ? 'Update Address' : 'Save Address to Profile'}
                         </button>
                       </div>
                     </form>
@@ -1381,75 +1451,94 @@ export function CustomerCRM({
 
                   {/* List of Addresses */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    {(selectedCustomer.addresses || []).map((addr, idx) => (
-                      <div
-                        key={addr.id || idx}
-                        className={`p-3.5 rounded-2xl border transition ${
-                          addr.isPrimary
-                            ? 'bg-sky-50/60 border-sky-300 ring-1 ring-sky-300'
-                            : 'bg-slate-50 border-slate-200'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 text-xs">{addr.label}</span>
-                            {addr.isPrimary && (
-                              <span className="px-2 py-0.2 rounded-full bg-sky-600 text-white font-bold text-[9px]">
-                                Primary
+                    {(selectedCustomer.addresses || []).map((addr, idx) => {
+                      const usageType = addr.addressType || 'both';
+                      const usageBadge =
+                        usageType === 'pickup'
+                          ? { label: '📦 Pickup Only', cls: 'bg-amber-100 text-amber-800 border-amber-200' }
+                          : usageType === 'delivery'
+                          ? { label: '🚚 Delivery Only', cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' }
+                          : { label: '🔄 Pickup & Delivery', cls: 'bg-indigo-100 text-indigo-800 border-indigo-200' };
+                      return (
+                        <div
+                          key={addr.id || idx}
+                          className={`p-3.5 rounded-2xl border transition ${
+                            addr.isPrimary
+                              ? 'bg-sky-50/60 border-sky-300 ring-1 ring-sky-300'
+                              : 'bg-slate-50 border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-slate-900 text-xs">{addr.label || 'Address'}</span>
+                              {addr.isPrimary && (
+                                <span className="px-2 py-0.2 rounded-full bg-sky-600 text-white font-bold text-[9px]">
+                                  Primary
+                                </span>
+                              )}
+                              <span className={`px-2 py-0.2 rounded-full border font-bold text-[9px] ${usageBadge.cls}`}>
+                                {usageBadge.label}
                               </span>
-                            )}
-                          </div>
+                            </div>
 
-                          <div className="flex items-center gap-1">
-                            {!addr.isPrimary && (
+                            <div className="flex items-center gap-1.5">
+                              {!addr.isPrimary && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetPrimaryAddress(addr.id)}
+                                  className="text-[10px] text-sky-600 hover:underline font-bold"
+                                >
+                                  Set Primary
+                                </button>
+                              )}
                               <button
                                 type="button"
-                                onClick={() => handleSetPrimaryAddress(addr.id)}
-                                className="text-[10px] text-sky-600 hover:underline font-bold"
+                                onClick={() => handleStartEditInlineAddress(addr)}
+                                className="text-[10px] text-slate-600 hover:text-slate-900 font-bold px-1.5 py-0.5 rounded bg-white border border-slate-200"
                               >
-                                Set Primary
+                                Edit
                               </button>
-                            )}
-                            {selectedCustomer.addresses.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteAddress(addr.id)}
-                                className="text-slate-400 hover:text-red-600 p-1"
-                                title="Delete address"
-                              >
-                                <Icon name="trash" className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                              {selectedCustomer.addresses.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAddress(addr.id)}
+                                  className="text-slate-400 hover:text-red-600 p-1"
+                                  title="Delete address"
+                                >
+                                  <Icon name="trash" className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 text-slate-700 text-xs font-medium">
+                            {addr.address || addr.streetAddress || addr.condoName}
+                          </div>
+
+                          <div className="mt-1 text-slate-500 text-[11px] flex items-center gap-2 flex-wrap">
+                            <span>Room: <strong>{addr.roomNumber || 'Not specified'}</strong></span>
+                            <span>•</span>
+                            <span>{addr.district}{addr.postalCode ? ` (${addr.postalCode})` : ''}</span>
+                          </div>
+
+                          <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
+                            <span className={addr.leaveWithJuristic !== false ? 'text-emerald-700 font-semibold' : 'text-slate-500'}>
+                              {addr.leaveWithJuristic !== false ? '✓ Juristic Drop-Off Allowed' : 'Direct Handover Only'}
+                            </span>
+
+                            <a
+                              href={addr.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((addr.address || addr.streetAddress || '') + ' ' + (addr.district || ''))}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-800 font-bold"
+                            >
+                              <Icon name="navigation" className="w-3 h-3 text-sky-600" />
+                              <span>Google Maps</span>
+                            </a>
                           </div>
                         </div>
-
-                        <div className="mt-2 text-slate-700 text-xs font-medium">
-                          {addr.address}
-                        </div>
-
-                        <div className="mt-1 text-slate-500 text-[11px] flex items-center gap-2">
-                          <span>Room: <strong>{addr.roomNumber || 'Not specified'}</strong></span>
-                          <span>•</span>
-                          <span>{addr.district}</span>
-                        </div>
-
-                        <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
-                          <span className={addr.leaveWithJuristic ? 'text-emerald-700 font-semibold' : 'text-slate-500'}>
-                            {addr.leaveWithJuristic ? '✓ Juristic Drop-Off Allowed' : 'Direct Handover Only'}
-                          </span>
-
-                          <a
-                            href={addr.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr.address + ' ' + addr.district)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-800 font-bold"
-                          >
-                            <Icon name="navigation" className="w-3 h-3 text-sky-600" />
-                            <span>Google Maps</span>
-                          </a>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1553,7 +1642,7 @@ export function CustomerCRM({
                   <div className="flex items-center justify-between">
                     <h4 className="font-extrabold text-slate-900 uppercase tracking-wide text-xs flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse" />
-                      <span>Active Current Orders ({selectedCustomer.activeOrders?.length || 0})</span>
+                      <span>Active Current Orders &amp; Live Laundry Process ({selectedCustomer.activeOrders?.length || 0})</span>
                     </h4>
                   </div>
 
@@ -1562,31 +1651,53 @@ export function CustomerCRM({
                       No active orders in progress for this customer.
                     </div>
                   ) : (
-                    selectedCustomer.activeOrders.map(order => (
-                      <div key={order.id} className="p-4 rounded-2xl border-2 border-sky-300 bg-sky-50/40 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-sky-700">{order.id}</span>
-                            <span className="font-bold text-slate-900">• {order.serviceName}</span>
+                    selectedCustomer.activeOrders.map(order => {
+                      const stage = getTrackingStage(order.status);
+                      return (
+                        <div key={order.id} className="p-4 rounded-2xl border-2 border-sky-300 bg-sky-50/40 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-sky-700">{order.id}</span>
+                              <span className="font-bold text-slate-900">• {order.serviceName}</span>
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white font-bold text-[10px]">
+                              Stage {stage.step}/6: {stage.label} ({order.status.replace(/_/g, ' ')})
+                            </span>
                           </div>
-                          <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white font-bold text-[10px]">
-                            {order.status.replace(/_/g, ' ')}
-                          </span>
-                        </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1 text-slate-700">
-                          <div>Est Weight: <strong>{order.estimatedWeightKg} KG</strong></div>
-                          <div>Actual Scale: <strong>{order.actualWeightKg !== null ? `${order.actualWeightKg} KG` : 'Pending weigh-in'}</strong></div>
-                          <div>Amount: <strong>฿{order.totalPrice} THB</strong></div>
-                          <div>Speed: <span className="font-semibold text-sky-800">{order.turnaroundSpeed?.replace(/_/g, ' ') || 'standard'}</span></div>
-                        </div>
+                          {/* 6-Stage Laundry Process Mini Stepper */}
+                          <div className="grid grid-cols-6 gap-1 pt-1">
+                            {TRACKING_STAGES.map((st, idx) => {
+                              const done = stage.step >= (idx + 1);
+                              const current = stage.step === (idx + 1);
+                              return (
+                                <div key={st.key} className="text-center">
+                                  <div className={`h-1.5 rounded-full ${done ? 'bg-sky-600' : 'bg-slate-200'}`} />
+                                  <div className={`text-[9px] mt-1 font-bold truncate ${current ? 'text-sky-700 font-extrabold' : done ? 'text-slate-700' : 'text-slate-400'}`}>
+                                    {idx + 1}. {st.label}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
 
-                        <div className="text-[11px] text-slate-500 pt-1 border-t border-sky-200/60 flex items-center justify-between">
-                          <span>Pickup: {order.pickupDate} ({order.pickupTime})</span>
-                          <span>Condo: {order.condoName || order.district}</span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1 text-slate-700">
+                            <div>Est Weight: <strong>{order.estimatedWeightKg} KG</strong></div>
+                            <div>Actual Scale: <strong>{order.actualWeightKg !== null ? `${order.actualWeightKg} KG` : 'Pending weigh-in'}</strong></div>
+                            <div>Amount: <strong>฿{order.totalPrice} THB</strong></div>
+                            <div>Speed: <span className="font-semibold text-sky-800">{order.turnaroundSpeed?.replace(/_/g, ' ') || 'standard'}</span></div>
+                          </div>
+
+                          <div className="text-[11px] text-slate-500 pt-1 border-t border-sky-200/60 flex items-center justify-between flex-wrap gap-2">
+                            <span>Pickup: {order.pickupDate} ({order.pickupTime})</span>
+                            <span>📦 {order.pickupAddress || order.condoName || order.district}</span>
+                            {order.deliveryAddress && order.deliveryAddress !== order.pickupAddress && (
+                              <span>🚚 {order.deliveryAddress}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 

@@ -3189,41 +3189,89 @@ app.post('/api/customers/login', async (req, res) => {
       console.warn('[AUTH] TLS Cloud login attempt failed, trying local DB fallback:', tlsErr.message);
     }
 
-    // 2. Fallback to Local PostgreSQL database check
+    // 2. Fallback to Local PostgreSQL database or localCustomers check
     const digitsOnly = cleanInput.replace(/\D/g, '');
     const last8Digits = digitsOnly.length >= 8 ? digitsOnly.slice(-8) : digitsOnly;
 
-    const custRes = await query(`
-      SELECT * FROM customers 
-      WHERE LOWER(id) = LOWER($1)
-         OR LOWER(email) = LOWER($1)
-         OR LOWER(mobile_number) = LOWER($1)
-         OR ($2 <> '' AND regexp_replace(mobile_number, '[^0-9]', '', 'g') LIKE '%' || $2)
-      LIMIT 1
-    `, [cleanInput, last8Digits]);
+    let customer = null;
+    try {
+      const custRes = await query(`
+        SELECT * FROM customers 
+        WHERE LOWER(id) = LOWER($1)
+           OR LOWER(email) = LOWER($1)
+           OR LOWER(mobile_number) = LOWER($1)
+           OR ($2 <> '' AND regexp_replace(mobile_number, '[^0-9]', '', 'g') LIKE '%' || $2)
+           OR ($2 <> '' AND regexp_replace(secondary_mobile, '[^0-9]', '', 'g') LIKE '%' || $2)
+        LIMIT 1
+      `, [cleanInput, last8Digits]);
 
-    if (custRes.rows.length === 0) {
-      return res.status(401).json({ error: 'ไม่พบบัญชีลูกค้า กรุณาตรวจสอบเบอร์มือถือหรือลงทะเบียนใหม่' });
+      if (custRes.rows.length > 0) {
+        customer = mapCustomer(custRes.rows[0]);
+      }
+    } catch (pgErr) {
+      console.warn('[AUTH] Customer login PG lookup fallback:', pgErr.message);
     }
 
-    const row = custRes.rows[0];
-    const customerPin = (row.pin_code || '123456').trim();
+    if (!customer) {
+      const localMatch = (localCustomers || []).find(c => {
+        if (!c) return false;
+        if (c.id && c.id.toLowerCase() === cleanInput.toLowerCase()) return true;
+        if (c.email && c.email.toLowerCase() === cleanInput.toLowerCase()) return true;
+        if (c.mobileNumber && c.mobileNumber.toLowerCase() === cleanInput.toLowerCase()) return true;
+        const c1 = (c.mobileNumber || '').replace(/\D/g, '');
+        const c2 = (c.secondaryMobile || '').replace(/\D/g, '');
+        return last8Digits && ((c1.length >= 8 && c1.endsWith(last8Digits)) || (c2.length >= 8 && c2.endsWith(last8Digits)));
+      });
+      if (localMatch) {
+        customer = localMatch;
+      }
+    }
+
+    if (!customer) {
+      return res.status(401).json({ error: 'Customer account not found. Please check your mobile number or register a new account.' });
+    }
+
+    const customerPin = (customer.pinCode || '123456').trim();
     if (customerPin !== authSecret) {
-      return res.status(401).json({ error: 'รหัสผ่าน หรือ PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' });
+      return res.status(401).json({ error: 'Incorrect 6-digit PIN or password. Please try again.' });
     }
 
-    const customer = mapCustomer(row);
+    // Fetch this customer's laundry orders from local DB + localOrders fallback
+    const custPhoneDigits = (customer.mobileNumber || '').replace(/\D/g, '');
+    const custPhoneSuffix = custPhoneDigits.length >= 8 ? custPhoneDigits.slice(-8) : '';
+    let dbOrders = [];
+    try {
+      const ordersRes = await query(`
+        SELECT * FROM orders 
+        WHERE customer_id = $1 
+           OR LOWER(customer_name) = LOWER($2)
+           OR contact_value = $3
+           OR ($4 <> '' AND LOWER(email) = LOWER($4))
+           OR ($5 <> '' AND regexp_replace(contact_value, '[^0-9]', '', 'g') LIKE '%' || $5)
+        ORDER BY created_at DESC
+      `, [customer.id, customer.fullName || '', customer.mobileNumber || '', customer.email || '', custPhoneSuffix]);
+      dbOrders = ordersRes.rows.map(mapOrder);
+    } catch (ordErr) {
+      console.warn('[AUTH] Customer orders PG lookup fallback:', ordErr.message);
+    }
 
-    // Fetch this customer's laundry orders from local DB
-    const ordersRes = await query(`
-      SELECT * FROM orders 
-      WHERE customer_id = $1 
-         OR LOWER(customer_name) = LOWER($2)
-         OR contact_value = $3
-      ORDER BY created_at DESC
-    `, [customer.id, customer.fullName, customer.mobileNumber]);
+    const orderMap = new Map();
+    for (const o of dbOrders) {
+      if (o && o.id) orderMap.set(o.id, o);
+    }
+    for (const lo of (localOrders || [])) {
+      if (!lo || !lo.id || orderMap.has(lo.id)) continue;
+      const matchId = lo.customerId === customer.id;
+      const matchName = lo.customerName && customer.fullName && lo.customerName.trim().toLowerCase() === customer.fullName.trim().toLowerCase();
+      const matchEmail = lo.email && customer.email && lo.email.trim().toLowerCase() === customer.email.trim().toLowerCase();
+      const loDigits = (lo.contactValue || lo.mobileNumber || '').replace(/\D/g, '');
+      const matchPhone = custPhoneSuffix && loDigits.length >= 8 && loDigits.endsWith(custPhoneSuffix);
+      if (matchId || matchName || matchEmail || matchPhone) {
+        orderMap.set(lo.id, lo);
+      }
+    }
 
-    const orders = ordersRes.rows.map(mapOrder);
+    const orders = Array.from(orderMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     const token = 'cust_session_' + Buffer.from(`${customer.id}:${Date.now()}`).toString('base64');
 
     res.json({
@@ -3239,7 +3287,7 @@ app.post('/api/customers/login', async (req, res) => {
   }
 });
 
-// Get Customer Orders (from TLS Cloud if token exists, or Local DB)
+// Get Customer Orders (from TLS Cloud if token exists, or Local DB + localOrders)
 app.get('/api/customers/:id/orders', async (req, res) => {
   try {
     const { id } = req.params;
@@ -3256,21 +3304,57 @@ app.get('/api/customers/:id/orders', async (req, res) => {
       }
     }
 
-    const custRes = await query('SELECT * FROM customers WHERE id = $1', [id]);
-    if (custRes.rows.length === 0) {
+    let customer = null;
+    try {
+      const custRes = await query('SELECT * FROM customers WHERE id = $1', [id]);
+      if (custRes.rows.length > 0) {
+        customer = mapCustomer(custRes.rows[0]);
+      }
+    } catch (pgErr) {}
+
+    if (!customer) {
+      customer = (localCustomers || []).find(c => c && c.id === id) || null;
+    }
+
+    if (!customer) {
       return res.json([]);
     }
-    const customer = mapCustomer(custRes.rows[0]);
 
-    const ordersRes = await query(`
-      SELECT * FROM orders 
-      WHERE customer_id = $1 
-         OR LOWER(customer_name) = LOWER($2)
-         OR contact_value = $3
-      ORDER BY created_at DESC
-    `, [customer.id, customer.fullName, customer.mobileNumber]);
+    const custPhoneDigits = (customer.mobileNumber || '').replace(/\D/g, '');
+    const custPhoneSuffix = custPhoneDigits.length >= 8 ? custPhoneDigits.slice(-8) : '';
+    let dbOrders = [];
 
-    res.json(ordersRes.rows.map(mapOrder));
+    try {
+      const ordersRes = await query(`
+        SELECT * FROM orders 
+        WHERE customer_id = $1 
+           OR LOWER(customer_name) = LOWER($2)
+           OR contact_value = $3
+           OR ($4 <> '' AND LOWER(email) = LOWER($4))
+           OR ($5 <> '' AND regexp_replace(contact_value, '[^0-9]', '', 'g') LIKE '%' || $5)
+        ORDER BY created_at DESC
+      `, [customer.id, customer.fullName || '', customer.mobileNumber || '', customer.email || '', custPhoneSuffix]);
+      dbOrders = ordersRes.rows.map(mapOrder);
+    } catch (ordErr) {}
+
+    const orderMap = new Map();
+    for (const o of dbOrders) {
+      if (o && o.id) orderMap.set(o.id, o);
+    }
+    for (const lo of (localOrders || [])) {
+      if (!lo || !lo.id || orderMap.has(lo.id)) continue;
+      const matchId = lo.customerId === customer.id;
+      const matchName = lo.customerName && customer.fullName && lo.customerName.trim().toLowerCase() === customer.fullName.trim().toLowerCase();
+      const matchEmail = lo.email && customer.email && lo.email.trim().toLowerCase() === customer.email.trim().toLowerCase();
+      const loDigits = (lo.contactValue || lo.mobileNumber || '').replace(/\D/g, '');
+      const matchPhone = custPhoneSuffix && loDigits.length >= 8 && loDigits.endsWith(custPhoneSuffix);
+      if (matchId || matchName || matchEmail || matchPhone) {
+        orderMap.set(lo.id, lo);
+      }
+    }
+
+    const mergedOrders = Array.from(orderMap.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    res.json(mergedOrders);
   } catch (err) {
     console.error('Error fetching customer orders:', err);
     res.status(500).json({ error: err.message });
@@ -3613,49 +3697,69 @@ app.put('/api/customers/:id', async (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
-    const result = await query(`
-      UPDATE customers SET
-        full_name = COALESCE($1, full_name),
-        nick_name = COALESCE($2, nick_name),
-        gender = COALESCE($3, gender),
-        date_of_birth = COALESCE($4, date_of_birth),
-        mobile_number = COALESCE($5, mobile_number),
-        is_whatsapp = COALESCE($6, is_whatsapp),
-        secondary_mobile = COALESCE($7, secondary_mobile),
-        is_secondary_whatsapp = COALESCE($8, is_secondary_whatsapp),
-        email = COALESCE($9, email),
-        line_id = COALESCE($10, line_id),
-        pin_code = COALESCE($11, pin_code),
-        tier = COALESCE($12, tier),
-        notes = COALESCE($13, notes),
-        company_tax = COALESCE($14::jsonb, company_tax),
-        addresses = COALESCE($15::jsonb, addresses),
-        updated_at = NOW()
-      WHERE id = $16
-      RETURNING *
-    `, [
-      data.fullName ? data.fullName.trim() : null,
-      data.nickName ? data.nickName.trim() : null,
-      data.gender || null,
-      data.dateOfBirth || null,
-      data.mobileNumber ? data.mobileNumber.trim() : null,
-      data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : null,
-      data.secondaryMobile ? data.secondaryMobile.trim() : null,
-      data.isSecondaryWhatsApp !== undefined ? Boolean(data.isSecondaryWhatsApp) : null,
-      data.email ? data.email.trim().toLowerCase() : null,
-      data.lineId ? data.lineId.trim() : null,
-      data.pinCode || null,
-      data.tier || null,
-      data.notes || null,
-      data.companyTax ? JSON.stringify(data.companyTax) : null,
-      data.addresses ? JSON.stringify(data.addresses) : null,
-      id
-    ]);
+    let mapped = null;
+    try {
+      const result = await query(`
+        UPDATE customers SET
+          full_name = COALESCE($1, full_name),
+          nick_name = COALESCE($2, nick_name),
+          gender = COALESCE($3, gender),
+          date_of_birth = COALESCE($4, date_of_birth),
+          mobile_number = COALESCE($5, mobile_number),
+          is_whatsapp = COALESCE($6, is_whatsapp),
+          secondary_mobile = COALESCE($7, secondary_mobile),
+          is_secondary_whatsapp = COALESCE($8, is_secondary_whatsapp),
+          email = COALESCE($9, email),
+          line_id = COALESCE($10, line_id),
+          pin_code = COALESCE($11, pin_code),
+          tier = COALESCE($12, tier),
+          notes = COALESCE($13, notes),
+          company_tax = COALESCE($14::jsonb, company_tax),
+          addresses = COALESCE($15::jsonb, addresses),
+          updated_at = NOW()
+        WHERE id = $16
+        RETURNING *
+      `, [
+        data.fullName ? data.fullName.trim() : null,
+        data.nickName !== undefined ? data.nickName.trim() : null,
+        data.gender || null,
+        data.dateOfBirth || null,
+        data.mobileNumber ? data.mobileNumber.trim() : null,
+        data.isWhatsApp !== undefined ? Boolean(data.isWhatsApp) : null,
+        data.secondaryMobile !== undefined ? data.secondaryMobile.trim() : null,
+        data.isSecondaryWhatsApp !== undefined ? Boolean(data.isSecondaryWhatsApp) : null,
+        data.email ? data.email.trim().toLowerCase() : null,
+        data.lineId !== undefined ? data.lineId.trim() : null,
+        data.pinCode || null,
+        data.tier || null,
+        data.notes !== undefined ? data.notes : null,
+        data.companyTax ? JSON.stringify(data.companyTax) : null,
+        data.addresses ? JSON.stringify(data.addresses) : null,
+        id
+      ]);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Customer not found' });
+      if (result.rows.length > 0) {
+        mapped = mapCustomer(result.rows[0]);
+      }
+    } catch (pgErr) {
+      console.warn('[SERVER] PUT /api/customers/:id PG fallback:', pgErr.message);
     }
-    res.json(mapCustomer(result.rows[0]));
+
+    // Also update localCustomers
+    const existingLocal = (localCustomers || []).find(c => c && c.id === id);
+    if (existingLocal || mapped) {
+      const updatedCust = mapped || {
+        ...existingLocal,
+        ...data,
+        addresses: Array.isArray(data.addresses) ? data.addresses : (existingLocal?.addresses || []),
+        companyTax: data.companyTax ? { ...(existingLocal?.companyTax || {}), ...data.companyTax } : (existingLocal?.companyTax || {})
+      };
+      localCustomers = [updatedCust, ...(localCustomers || []).filter(c => c && c.id !== id)];
+      saveLocalCustomers(localCustomers);
+      return res.json(updatedCust);
+    }
+
+    return res.status(404).json({ error: 'Customer not found' });
   } catch (err) {
     console.error('Error updating customer:', err);
     res.status(500).json({ error: err.message });
@@ -3665,7 +3769,11 @@ app.put('/api/customers/:id', async (req, res) => {
 app.delete('/api/customers/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await query('DELETE FROM customers WHERE id = $1', [id]);
+    try {
+      await query('DELETE FROM customers WHERE id = $1', [id]);
+    } catch (pgErr) {}
+    localCustomers = (localCustomers || []).filter(c => c && c.id !== id);
+    saveLocalCustomers(localCustomers);
     res.json({ success: true, deletedId: id });
   } catch (err) {
     console.error('Error deleting customer:', err);
