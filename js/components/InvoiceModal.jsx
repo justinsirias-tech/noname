@@ -6,14 +6,18 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [sentToast, setSentToast] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState(order?.email || '');
   const [localBillingSentAt, setLocalBillingSentAt] = useState(order?.billingSentAt || null);
   const [localBillingChannel, setLocalBillingChannel] = useState(order?.billingChannel || null);
 
   useEffect(() => {
     setLocalBillingSentAt(order?.billingSentAt || null);
     setLocalBillingChannel(order?.billingChannel || null);
-  }, [order?.billingSentAt, order?.billingChannel]);
+    setRecipientEmail(order?.email || '');
+    setEmailError('');
+  }, [order?.id, order?.email, order?.billingSentAt, order?.billingChannel]);
 
   // ESC key listener
   useEffect(() => {
@@ -144,6 +148,12 @@ Need assistance? Contact our team:
   // Email Action: Dispatches official HTML Tax Invoice & Payment Link directly from server
   const handleSendEmail = async () => {
     if (!order) return;
+    const cleanEmail = (recipientEmail || order.email || '').trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setEmailError('Please enter a valid customer email address to send the tax invoice.');
+      return;
+    }
+    setEmailError('');
     setSendingEmail(true);
     setSentToast('');
     try {
@@ -151,7 +161,7 @@ Need assistance? Contact our team:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recipientEmail: order.email,
+          recipientEmail: cleanEmail,
           actualWeightKg: certifiedWeight,
           totalPrice: totalPrice,
           serviceName: order.serviceName,
@@ -159,18 +169,20 @@ Need assistance? Contact our team:
         })
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
+        order.email = cleanEmail;
         recordDispatch('EMAIL', true);
-        setSentToast(`✓ Tax invoice & payment link sent automatically to ${order.email || 'customer'}!`);
+        setSentToast(`✓ Tax invoice & payment link sent automatically to ${cleanEmail}!`);
+        setTimeout(() => setSentToast(''), 6000);
       } else {
-        setSentToast(`⚠ Notice: ${data.error || data.reason || 'Email queued / processed'}`);
+        const errMsg = data.error || data.reason || 'Email delivery failed on server';
+        setEmailError(`⚠️ Email delivery failed: ${errMsg}`);
       }
     } catch (err) {
       console.warn('Send invoice email error:', err);
-      setSentToast(`⚠ Failed to send email: ${err.message}`);
+      setEmailError(`⚠️ Network error sending email: ${err.message}`);
     } finally {
       setSendingEmail(false);
-      setTimeout(() => setSentToast(''), 5000);
     }
   };
 
@@ -359,6 +371,43 @@ Need assistance? Contact our team:
             </button>
           </div>
         </div>
+
+        {/* Email Recipient Configuration Bar */}
+        <div className="bg-slate-50 border-b border-slate-200 px-6 py-2 flex flex-wrap items-center justify-between gap-3 text-xs print:hidden">
+          <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+            <span className="font-bold text-slate-600 text-[11px] whitespace-nowrap flex items-center gap-1">
+              <Icon name="mail" className="w-3.5 h-3.5 text-slate-500" />
+              <span>Customer Email for Invoice:</span>
+            </span>
+            <input
+              type="email"
+              value={recipientEmail}
+              onChange={(e) => {
+                setRecipientEmail(e.target.value);
+                if (emailError) setEmailError('');
+              }}
+              placeholder="e.g. customer@gmail.com"
+              className="flex-1 max-w-sm px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-slate-800 text-xs font-mono focus:outline-none focus:border-sky-500 shadow-2xs"
+            />
+          </div>
+          {effectiveBillingSentAt && (
+            <div className="text-[11px] text-slate-500 flex items-center gap-1">
+              <Icon name="check" className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Dispatched via <strong className="text-slate-800">{effectiveBillingChannel}</strong> on {new Date(effectiveBillingSentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Email Error Banner */}
+        {emailError && (
+          <div className="bg-rose-50 border-b border-rose-200 text-rose-800 text-xs font-semibold px-6 py-2.5 flex items-center justify-between animate-fadeIn print:hidden">
+            <div className="flex items-center gap-2">
+              <Icon name="alertTriangle" className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{emailError}</span>
+            </div>
+            <button type="button" onClick={() => setEmailError('')} className="text-rose-600 hover:text-rose-900 font-bold ml-2">✕</button>
+          </div>
+        )}
 
         {/* Toast Feedback */}
         {sentToast && (

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 const nodemailer = require('nodemailer');
 
@@ -8,19 +9,40 @@ const SMTP_PASS = process.env.SMTP_PASS;
 let transporter = null;
 
 function getTransporter() {
-  if (!SMTP_PASS) {
+  const pass = (process.env.SMTP_PASS || SMTP_PASS || '').replace(/\s+/g, '');
+  if (!pass) {
     return null;
   }
   if (!transporter) {
     transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS.replace(/\s+/g, '') // remove spaces from app password
+        user: process.env.SMTP_USER || SMTP_USER,
+        pass: pass
       }
     });
   }
   return transporter;
+}
+
+function resetTransporter() {
+  transporter = null;
+}
+
+async function verifySmtpConnection() {
+  const mailer = getTransporter();
+  if (!mailer) {
+    return { ok: false, error: 'SMTP_PASS environment variable is not configured.' };
+  }
+  return new Promise((resolve) => {
+    mailer.verify((error) => {
+      if (error) {
+        resolve({ ok: false, error: error.message || String(error) });
+      } else {
+        resolve({ ok: true, user: process.env.SMTP_USER || SMTP_USER });
+      }
+    });
+  });
 }
 
 /**
@@ -157,19 +179,13 @@ async function sendBookingConfirmationEmail(order, overrideRecipient = null) {
     </html>
   `;
 
-  let recipientsList = [];
-  if (overrideRecipient) {
-    recipientsList = Array.isArray(overrideRecipient) ? overrideRecipient : [overrideRecipient];
-  } else {
-    recipientsList = [NOTIFICATION_EMAIL];
-    if (customerEmail && customerEmail.includes('@') && !customerEmail.includes('@customer.local')) {
-      recipientsList.push(customerEmail);
-    }
-  }
+  const targetEmail = (overrideRecipient || customerEmail || '').trim();
+  const hasValidCustomerEmail = targetEmail && targetEmail.includes('@') && !targetEmail.includes('@customer.local');
 
   const mailOptions = {
-    from: `"NoName Laundry" <${SMTP_USER}>`,
-    to: recipientsList.join(', '),
+    from: `"NoName Laundry" <${process.env.SMTP_USER || SMTP_USER}>`,
+    to: hasValidCustomerEmail ? targetEmail : NOTIFICATION_EMAIL,
+    bcc: hasValidCustomerEmail ? NOTIFICATION_EMAIL : undefined,
     subject: `🧺 Booking Confirmation - Order #${trackingId} (${customerName})`,
     html: htmlContent,
     attachments: [
@@ -183,8 +199,8 @@ async function sendBookingConfirmationEmail(order, overrideRecipient = null) {
 
   try {
     const info = await mailer.sendMail(mailOptions);
-    console.log(`[MAILER] Booking confirmation email sent for ${trackingId} to [${recipientsList.join(', ')}]. MessageId: ${info.messageId}`);
-    return { sent: true, messageId: info.messageId, recipients: recipientsList };
+    console.log(`[MAILER] Booking confirmation email sent for ${trackingId} to [${mailOptions.to}]. MessageId: ${info.messageId}`);
+    return { sent: true, messageId: info.messageId, recipients: [mailOptions.to, mailOptions.bcc].filter(Boolean) };
   } catch (error) {
     console.error(`[MAILER] Failed to send booking confirmation for ${trackingId}:`, error);
     return { sent: false, error: error.message };
@@ -519,20 +535,18 @@ async function sendConfirmedBillingEmail(order, overrideRecipient = null) {
     </html>
   `;
 
-  let recipientsList = [];
-  if (overrideRecipient) {
-    const custom = Array.isArray(overrideRecipient) ? overrideRecipient : [overrideRecipient];
-    recipientsList = [...custom];
-  } else if (customerEmail && customerEmail.includes('@') && !customerEmail.includes('@customer.local')) {
-    recipientsList.push(customerEmail);
-  }
-  if (!recipientsList.includes(NOTIFICATION_EMAIL)) {
-    recipientsList.push(NOTIFICATION_EMAIL);
+  const targetEmail = (overrideRecipient || customerEmail || '').trim();
+  if (!targetEmail || !targetEmail.includes('@') || targetEmail.includes('@customer.local')) {
+    return {
+      sent: false,
+      error: 'Recipient email is missing or invalid. Please check customer email address before sending invoice.'
+    };
   }
 
   const mailOptions = {
-    from: `"NoName Laundry Bangkok" <${SMTP_USER}>`,
-    to: recipientsList.join(', '),
+    from: `"NoName Laundry Bangkok" <${process.env.SMTP_USER || SMTP_USER}>`,
+    to: targetEmail,
+    bcc: NOTIFICATION_EMAIL,
     subject: `🧾 Tax Invoice & Payment Due - Order #${trackingId} (฿${totalPrice.toLocaleString()} THB)`,
     html: htmlContent,
     attachments: [
@@ -546,8 +560,8 @@ async function sendConfirmedBillingEmail(order, overrideRecipient = null) {
 
   try {
     const info = await mailer.sendMail(mailOptions);
-    console.log(`[MAILER] Confirmed billing email sent for ${trackingId} to [${recipientsList.join(', ')}]. MessageId: ${info.messageId}`);
-    return { sent: true, messageId: info.messageId, recipients: recipientsList };
+    console.log(`[MAILER] Confirmed billing email sent for ${trackingId} to [${targetEmail}] (BCC: ${NOTIFICATION_EMAIL}). MessageId: ${info.messageId}`);
+    return { sent: true, messageId: info.messageId, recipients: [targetEmail, NOTIFICATION_EMAIL] };
   } catch (error) {
     console.error(`[MAILER] Failed to send confirmed billing email for ${trackingId}:`, error);
     return { sent: false, error: error.message };
@@ -557,5 +571,7 @@ async function sendConfirmedBillingEmail(order, overrideRecipient = null) {
 module.exports = {
   sendBookingConfirmationEmail,
   sendConfirmedBillingEmail,
-  sendBookingNotificationEmail: sendBookingConfirmationEmail
+  sendBookingNotificationEmail: sendBookingConfirmationEmail,
+  verifySmtpConnection,
+  resetTransporter
 };

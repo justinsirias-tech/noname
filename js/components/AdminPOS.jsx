@@ -169,6 +169,13 @@ export function AdminPOS({
   const [mapsSuccessMsg, setMapsSuccessMsg] = useState('');
   const [mapsErrorMsg, setMapsErrorMsg] = useState('');
 
+  // SMTP Mail Diagnostics State
+  const [smtpChecking, setSmtpChecking] = useState(false);
+  const [smtpStatus, setSmtpStatus] = useState(null);
+  const [testEmailSending, setTestEmailSending] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState(null);
+  const [testEmailInput, setTestEmailInput] = useState('');
+
   const lastSettingsJsonRef = React.useRef(JSON.stringify(settings || {}));
 
   // Only synchronize settings form fields when actual settings values change (not on unrelated store notifications)
@@ -2293,6 +2300,138 @@ export function AdminPOS({
                 {mapsSaving ? 'Saving Google Maps Settings...' : 'Save Google Maps Settings'}
               </button>
             </form>
+          </div>
+
+          {/* Automated Invoicing & SMTP Mail Server Diagnostics */}
+          <div className="pt-6 border-t border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold shadow-sm">
+                  <Icon name="mail" className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <span>Tax Invoice Email Dispatch & SMTP Server</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      smtpStatus?.ok
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : smtpStatus
+                        ? 'bg-rose-100 text-rose-800 border-rose-300'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}>
+                      {smtpStatus?.ok ? '● SMTP Online' : smtpStatus ? '● Connection Error' : 'Status Unknown'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Verify connection to Google Gmail SMTP server and test invoice delivery.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={smtpChecking}
+                onClick={async () => {
+                  setSmtpChecking(true);
+                  setSmtpStatus(null);
+                  try {
+                    const res = await fetch('/api/admin/smtp-status');
+                    const data = await res.json();
+                    setSmtpStatus(data);
+                  } catch (e) {
+                    setSmtpStatus({ ok: false, error: e.message });
+                  } finally {
+                    setSmtpChecking(false);
+                  }
+                }}
+                className="py-1.5 px-3 rounded-xl border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs shadow-2xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Icon name="refresh" className={`w-3.5 h-3.5 ${smtpChecking ? 'animate-spin' : ''}`} />
+                <span>{smtpChecking ? 'Checking...' : 'Verify SMTP Connection'}</span>
+              </button>
+            </div>
+
+            {/* Status alerts */}
+            {smtpStatus && (
+              <div className={`p-4 rounded-2xl mb-4 border text-xs ${
+                smtpStatus.ok
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-rose-50 border-rose-200 text-rose-900'
+              }`}>
+                {smtpStatus.ok ? (
+                  <div className="flex items-center gap-2 font-bold">
+                    <Icon name="check" className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>✓ Gmail SMTP is authenticated & ready to dispatch customer tax invoices from <strong>{smtpStatus.user}</strong>.</span>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2 font-bold mb-1">
+                      <Icon name="alertTriangle" className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>SMTP Authentication Failed:</span>
+                    </div>
+                    <div className="font-mono text-[11px] bg-white/80 p-2.5 rounded-lg border border-rose-200 mt-1 break-all">
+                      {smtpStatus.error}
+                    </div>
+                    <p className="mt-2 text-[11px] text-rose-800">
+                      💡 <strong>How to fix:</strong> Generate a fresh 16-character Google App Password under Google Account &gt; Security &gt; 2-Step Verification &gt; App Passwords, and update <code>SMTP_PASS</code> in your Google Cloud Run service environment variables.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Test Email Form */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="text-xs font-bold text-slate-800">Send Test Tax Invoice Email</div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  value={testEmailInput}
+                  onChange={(e) => setTestEmailInput(e.target.value)}
+                  placeholder="Enter recipient email (e.g. your email)"
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-300 font-mono text-xs bg-white text-slate-800 focus:outline-none focus:border-sky-500"
+                />
+                <button
+                  type="button"
+                  disabled={testEmailSending}
+                  onClick={async () => {
+                    setTestEmailSending(true);
+                    setTestEmailResult(null);
+                    try {
+                      const res = await fetch('/api/admin/test-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ testRecipient: testEmailInput || undefined })
+                      });
+                      const data = await res.json();
+                      setTestEmailResult(data);
+                    } catch (e) {
+                      setTestEmailResult({ sent: false, error: e.message });
+                    } finally {
+                      setTestEmailSending(false);
+                    }
+                  }}
+                  className="py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition shrink-0 cursor-pointer"
+                >
+                  {testEmailSending ? 'Sending Test...' : 'Send Test Invoice'}
+                </button>
+              </div>
+
+              {testEmailResult && (
+                <div className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 ${
+                  testEmailResult.sent
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}>
+                  <Icon name={testEmailResult.sent ? 'check' : 'alertTriangle'} className="w-4 h-4 shrink-0" />
+                  <span>
+                    {testEmailResult.sent
+                      ? `✓ Test invoice email delivered successfully! (Message ID: ${testEmailResult.messageId})`
+                      : `Failed to deliver test email: ${testEmailResult.error}`}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Admin Account Security & Password Management */}

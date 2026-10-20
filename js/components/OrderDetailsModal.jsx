@@ -307,7 +307,7 @@ LINE: @nonamelaundry`;
         })
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         const sentAt = data.billingSentAt || new Date().toISOString();
         order.billingSentAt = sentAt;
         order.billingChannel = 'EMAIL';
@@ -319,9 +319,10 @@ LINE: @nonamelaundry`;
           });
         }
       } else {
-        setBillingEmailSentToast(`⚠ Email sending notice: ${data.error || data.reason || 'Email queued / processed'}`);
+        const errMsg = data.error || data.reason || 'Email delivery failed';
+        setBillingEmailSentToast(`⚠️ Failed to send email: ${errMsg}`);
       }
-      setTimeout(() => setBillingEmailSentToast(''), 5000);
+      setTimeout(() => setBillingEmailSentToast(''), 7000);
     } catch (err) {
       console.warn('Send billing error:', err);
       setBillingEmailSentToast(`⚠ Network error sending email: ${err.message}`);

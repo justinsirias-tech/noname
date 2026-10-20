@@ -7,7 +7,7 @@ const cors = require('cors');
 const { query } = require('./db');
 const { hashPassword, verifyPassword, createSession, getSession, deleteSession, requireAdminAuth } = require('./auth');
 const { createTlsProxyRouter, callTlsApi, TLS_API_URL, TLS_BRAND } = require('./tlsProxy');
-const { sendBookingConfirmationEmail, sendConfirmedBillingEmail, sendBookingNotificationEmail } = require('./mailer');
+const { sendBookingConfirmationEmail, sendConfirmedBillingEmail, sendBookingNotificationEmail, verifySmtpConnection, resetTransporter } = require('./mailer');
 let defaultDeliveryZones = [];
 try {
   const deliveryData = require('./deliveryZonesData.json');
@@ -2487,17 +2487,52 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
     if (items && Array.isArray(items)) order.items = items;
     if (recipientEmail) order.email = recipientEmail;
 
+    const targetEmail = (recipientEmail || order.email || '').trim();
+    if (!targetEmail || !targetEmail.includes('@') || targetEmail.includes('@customer.local')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Customer does not have a valid email address configured. Please enter or update the email address before sending the invoice.'
+      });
+    }
+
     const now = new Date();
+
+    // Dispatch the confirmed billing email
+    const emailRes = await sendConfirmedBillingEmail(order, targetEmail);
+
+    if (!emailRes.sent) {
+      console.warn(`[SERVER] Failed to dispatch invoice email for ${id} to ${targetEmail}:`, emailRes.error);
+      const failNote = `Failed to send Official Tax Invoice via Email to ${targetEmail}: ${emailRes.error || 'Mail server error'}`;
+      const failTimelineEntry = { status: order.status || 'BILLING', timestamp: now.toISOString(), note: failNote };
+      order.timeline = [...(order.timeline || []), failTimelineEntry];
+
+      if (fromDb) {
+        try {
+          await query(`
+            UPDATE orders
+            SET timeline = $1,
+                updated_at = NOW()
+            WHERE id = $2
+          `, [JSON.stringify(order.timeline), id]);
+        } catch (dbErr) {
+          console.warn('[SERVER] Could not update timeline in Postgres on failure:', dbErr.message);
+        }
+      }
+
+      return res.status(502).json({
+        success: false,
+        error: emailRes.error || 'Failed to dispatch email via mail server'
+      });
+    }
+
+    // Only update billingSentAt and billingChannel on CONFIRMED successful dispatch
     const billingSentAt = now.toISOString();
     const billingChannel = 'EMAIL';
     order.billingSentAt = billingSentAt;
     order.billingChannel = billingChannel;
 
-    // Dispatch the confirmed billing email
-    const emailRes = await sendConfirmedBillingEmail(order, recipientEmail || order.email);
-
     // Audit log
-    const auditNote = note || `Admin sent Official Tax Invoice & Cashless Payment Link to customer (${order.email || order.contactValue}) for ฿${order.totalPrice} THB via Email.`;
+    const auditNote = note || `Admin sent Official Tax Invoice & Cashless Payment Link to customer (${targetEmail}) for ฿${order.totalPrice} THB via Email.`;
     const timelineEntry = { status: order.status || 'BILLING', timestamp: now.toISOString(), note: auditNote };
     order.timeline = [...(order.timeline || []), timelineEntry];
 
@@ -2523,13 +2558,12 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
     }
 
     res.json({
-      success: emailRes.sent,
+      success: true,
       billingSentAt,
       billingChannel,
       order,
       messageId: emailRes.messageId,
-      recipients: emailRes.recipients,
-      error: emailRes.error
+      recipients: emailRes.recipients
     });
   } catch (err) {
     console.error('[SERVER] Failed to send confirmed billing email:', err);
@@ -3097,6 +3131,48 @@ app.get('/api/customers', async (req, res) => {
   } catch (err) {
     console.warn('[SERVER] PostgreSQL query fallback for /api/customers:', err.message);
     res.json(localCustomers);
+  }
+});
+
+// SMTP Mail Server Diagnostics & Status
+app.get('/api/admin/smtp-status', async (req, res) => {
+  try {
+    const status = await verifySmtpConnection();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/test-email', async (req, res) => {
+  try {
+    const { testRecipient } = req.body || {};
+    const recipient = (testRecipient || process.env.NOTIFICATION_EMAIL || 'nonamelaundrybooking@gmail.com').trim();
+    const testOrder = {
+      id: 'NNL-TEST-SMTP',
+      customerName: 'Admin Diagnostics',
+      email: recipient,
+      serviceName: 'Wash / Fold (SMTP Diagnostic Test)',
+      actualWeightKg: 4.0,
+      minWeightAppliedKg: 4.0,
+      pricePerKg: 70,
+      totalPrice: 280,
+      pickupDate: new Date().toISOString().split('T')[0],
+      pickupTime: '10:00 - 12:00',
+      deliveryDate: 'Standard',
+      deliveryTime: '18:00',
+      condoName: 'HQ Central Facility',
+      roomNumber: 'Diagnostic Suite',
+      district: 'Watthana',
+      subdistrict: 'Khlong Tan Nuea',
+      city: 'Bangkok',
+      unit: 'KG',
+      items: [{ serviceName: 'Wash / Fold (SMTP Diagnostic Test)', quantity: 4.0, unit: 'KG', pricePerKg: 70, billableAmount: 4.0 }]
+    };
+    const emailRes = await sendConfirmedBillingEmail(testOrder, recipient);
+    res.json(emailRes);
+  } catch (err) {
+    res.status(500).json({ sent: false, error: err.message });
   }
 });
 
