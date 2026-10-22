@@ -715,7 +715,7 @@ const DEFAULT_LOCAL_ADMIN_USERS = [
     username: process.env.ADMIN_USERNAME || 'admin',
     email: 'admin@nonamelaundry.com',
     fullName: 'Master Administrator',
-    phone: '+66 81 234 5678',
+    phone: '+66 80 888 9885',
     role: 'super_admin',
     status: 'active',
     permissions: [...ALL_BACKOFFICE_FEATURES],
@@ -723,51 +723,6 @@ const DEFAULT_LOCAL_ADMIN_USERS = [
     salt: defaultAdminHash.salt,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
-  },
-  {
-    id: 2,
-    username: 'sukhumvit_mgr',
-    email: 'manager.sukhumvit@nonamelaundry.com',
-    fullName: 'Somchai Prasert (Sukhumvit Branch Manager)',
-    phone: '+66 89 876 5432',
-    role: 'manager',
-    status: 'active',
-    permissions: [
-      'orders', 'sales-reconciliation', 'crm', 'faq',
-      'services-pricing', 'postal-rates', 'incidents', 'new-pos'
-    ],
-    password_hash: defaultAdminHash.hash,
-    salt: defaultAdminHash.salt,
-    createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 7).toISOString()
-  },
-  {
-    id: 3,
-    username: 'pos_operator1',
-    email: 'staff.asoke@nonamelaundry.com',
-    fullName: 'Anong Srisawat (POS Cashier & Intake)',
-    phone: '+66 82 345 6789',
-    role: 'staff',
-    status: 'active',
-    permissions: ['orders', 'crm', 'new-pos', 'incidents'],
-    password_hash: defaultAdminHash.hash,
-    salt: defaultAdminHash.salt,
-    createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 14).toISOString()
-  },
-  {
-    id: 4,
-    username: 'rider_sompong',
-    email: 'rider.bkk@nonamelaundry.com',
-    fullName: 'Sompong Jaidee (Bangkok Express Rider)',
-    phone: '+66 91 123 4567',
-    role: 'rider',
-    status: 'active',
-    permissions: ['orders'],
-    password_hash: defaultAdminHash.hash,
-    salt: defaultAdminHash.salt,
-    createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 20).toISOString()
   }
 ];
 
@@ -819,125 +774,14 @@ let localAdminUsers = loadLocalAdminUsers();
 // --- Orders Local Persistence & Fallback ---
 const ORDERS_FILE = path.join(__dirname, 'orders_local.json');
 
-const DEFAULT_LOCAL_ORDERS = [
-  {
-    id: 'NNL-7124-BK',
-    customerName: 'Krit Panich',
-    contactChannel: 'line',
-    contactValue: '@krit_panich',
-    email: 'krit.panich@gmail.com',
-    serviceId: 'wash_fold',
-    serviceName: 'Wash / Fold',
-    district: 'Watthana',
-    condoName: 'Noble Ploenchit',
-    roomNumber: 'Tower B, 1402',
-    leaveWithJuristic: true,
-    estimatedWeightKg: 4.5,
-    actualWeightKg: null,
-    minWeightAppliedKg: 4.0,
-    pricePerKg: 70,
-    totalPrice: 365,
-    turnaroundSpeed: 'standard_48h',
-    status: 'BOOKING_REQUESTED',
-    paymentStatus: 'PENDING',
-    paymentMethod: null,
-    paymentRef: null,
-    tagNumber: 'TAG-PENDING',
-    pickupDate: new Date().toISOString().split('T')[0],
-    pickupTime: '09:00 - 11:00 (Morning)',
-    deliveryDate: 'Scheduled in 48 Hours (~2 Days)',
-    deliveryTime: '16:00 - 18:00 (Early Evening)',
-    specialInstructions: 'Please collect from juristic lobby. Leave tag photo via LINE.',
-    agreedTerms: true,
-    cashlessPolicyAcknowledged: true,
-    createdAt: new Date().toISOString(),
-    timeline: [
-      {
-        status: 'BOOKING_REQUESTED',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        note: 'Customer placed booking online via LINE. Pick-up requested at Noble Ploenchit.'
-      }
-    ]
-  },
-  {
-    id: 'NNL-8491-BK',
-    customerName: 'Alex Thorne',
-    contactChannel: 'whatsapp',
-    contactValue: '+66 82 455 9182',
-    email: 'alex.thorne@gmail.com',
-    serviceId: 'wash_iron_fold',
-    serviceName: 'Wash / Iron / Fold',
-    district: 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
-    condoName: 'The Estelle Phrom Phong',
-    roomNumber: 'Tower A, 1804',
-    leaveWithJuristic: true,
-    estimatedWeightKg: 4.5,
-    actualWeightKg: 4.8,
-    minWeightAppliedKg: 3.0,
-    pricePerKg: 95,
-    totalPrice: 456,
-    turnaroundSpeed: 'standard_48h',
-    status: 'IN_WASH',
-    tagNumber: 'TAG-BKK-092',
-    pickupDate: '2026-09-16',
-    pickupTime: '09:00 - 11:00 (Morning)',
-    deliveryDate: '2026-09-17',
-    deliveryTime: '16:00 - 18:00 (Early Evening)',
-    specialInstructions: 'Please leave at Juristic Office counter with K. Somchai. Extra care for white collared shirts.',
-    createdAt: '2026-09-16T08:15:00Z',
-    timeline: [
-      { status: 'BOOKING_REQUESTED', timestamp: '2026-09-16 08:15', note: 'Customer placed booking online.' },
-      { status: 'PICKUP_SCHEDULED', timestamp: '2026-09-16 08:40', note: 'Driver Somkit assigned for pickup.' },
-      { status: 'PICKED_UP', timestamp: '2026-09-16 09:45', note: 'Collected from The Estelle Juristic Office. Bag Tag #TAG-BKK-092 attached.' },
-      { status: 'WEIGHED_INSPECTED', timestamp: '2026-09-16 10:30', note: 'Weighed on certified digital scale: 4.80 KG. All items passed intake inspection.' },
-      { status: 'IN_WASH', timestamp: '2026-09-16 11:10', note: 'Machine wash & drying cycle started with gentle hypoallergenic conditioner.' }
-    ]
-  },
-  {
-    id: 'NNL-3920-BK',
-    customerName: 'Siriporn Tanaka',
-    contactChannel: 'line',
-    contactValue: '@siriporn_bkk',
-    email: 'siriporn.t@yahoo.co.th',
-    serviceId: 'wash_fold',
-    serviceName: 'Wash / Fold',
-    district: 'Bang Rak (Silom, Surawong)',
-    condoName: 'Ashton Silom',
-    roomNumber: 'Floor 22, Room 2209',
-    leaveWithJuristic: false,
-    estimatedWeightKg: 3.0,
-    actualWeightKg: 3.2,
-    minWeightAppliedKg: 3.0,
-    pricePerKg: 70,
-    totalPrice: 224,
-    turnaroundSpeed: 'standard_48h',
-    status: 'OUT_FOR_DELIVERY',
-    tagNumber: 'TAG-BKK-084',
-    pickupDate: '2026-09-15',
-    pickupTime: '14:00 - 16:00 (Afternoon)',
-    deliveryDate: '2026-09-16',
-    deliveryTime: '18:00 - 20:30 (Evening Rush)',
-    specialInstructions: 'Call via LINE before arriving. Ring room doorbell.',
-    createdAt: '2026-09-15T11:20:00Z',
-    timeline: [
-      { status: 'BOOKING_REQUESTED', timestamp: '2026-09-15 11:20', note: 'Booking confirmed.' },
-      { status: 'PICKUP_SCHEDULED', timestamp: '2026-09-15 12:00', note: 'Driver Narong dispatched.' },
-      { status: 'PICKED_UP', timestamp: '2026-09-15 14:30', note: 'Bag collected directly from customer.' },
-      { status: 'WEIGHED_INSPECTED', timestamp: '2026-09-15 15:45', note: 'Scale weight logged: 3.20 KG.' },
-      { status: 'IN_WASH', timestamp: '2026-09-15 16:30', note: 'Wash & dry cycle completed.' },
-      { status: 'IRON_FOLD', timestamp: '2026-09-16 09:00', note: 'Folded & packed in sealed eco-bags.' },
-      { status: 'READY_FOR_DELIVERY', timestamp: '2026-09-16 14:00', note: 'Checked by QC supervisor.' },
-      { status: 'OUT_FOR_DELIVERY', timestamp: '2026-09-16 17:30', note: 'Driver Narong is out for delivery. ETA ~18:15.' }
-    ]
-  }
-];
+const DEFAULT_LOCAL_ORDERS = [];
 
 function loadLocalOrders() {
   try {
     if (fs.existsSync(ORDERS_FILE)) {
       const raw = fs.readFileSync(ORDERS_FILE, 'utf8');
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
@@ -962,85 +806,14 @@ if (!fs.existsSync(ORDERS_FILE)) {
 
 const CUSTOMERS_FILE = path.join(__dirname, 'customers_local.json');
 
-const DEFAULT_LOCAL_CUSTOMERS = [
-  {
-    id: 'CUST-8491',
-    firstName: 'Alex',
-    lastName: 'Thorne',
-    fullName: 'Alex Thorne',
-    nickName: 'Alex',
-    gender: 'Male',
-    dateOfBirth: '1990-05-14',
-    mobileNumber: '+66 82 455 9182',
-    isWhatsApp: false,
-    secondaryMobile: '+1 (415) 890-1234',
-    isSecondaryWhatsApp: true,
-    email: 'alex.thorne@gmail.com',
-    lineId: 'alex_bkk',
-    pinCode: '123456',
-    isVerified: true,
-    verifiedVia: 'whatsapp',
-    companyTax: {
-      required: true,
-      companyName: 'Thorne Design & Living (Thailand) Co., Ltd.',
-      taxId: '0105562019284',
-      branch: 'Head Office (สำนักงานใหญ่)',
-      companyAddress: '8 Sukhumvit 26, Khlong Tan, Khlong Toei, Bangkok 10110'
-    },
-    addresses: [
-      {
-        id: 'ADDR-101',
-        label: 'Home (The Estelle)',
-        address: 'The Estelle Phrom Phong, 8 Sukhumvit 26, Khlong Tan',
-        district: 'Watthana (Thonglor, Ekkamai, Phrom Phong)',
-        roomNumber: 'Tower A, Room 1804',
-        googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=The+Estelle+Phrom+Phong+Sukhumvit+26+Bangkok',
-        leaveWithJuristic: true,
-        isPrimary: true
-      }
-    ],
-    tier: 'VIP',
-    notes: 'Prefers eco-friendly detergent.',
-    createdAt: '2026-08-10T10:00:00Z'
-  },
-  {
-    id: 'CUST-3920',
-    firstName: 'Siriporn',
-    lastName: 'Tanaka',
-    fullName: 'Siriporn Tanaka',
-    nickName: 'Som',
-    gender: 'Female',
-    dateOfBirth: '1993-11-28',
-    mobileNumber: '+66 89 712 3456',
-    isWhatsApp: true,
-    secondaryMobile: '+81 90 1234 5678',
-    isSecondaryWhatsApp: false,
-    email: 'siriporn.t@yahoo.co.th',
-    lineId: '@siriporn_bkk',
-    pinCode: '654321',
-    isVerified: true,
-    addresses: [
-      {
-        id: 'ADDR-201',
-        label: 'Condo (Ashton Silom)',
-        address: 'Ashton Silom, 162 Silom Rd, Suriya Wong, Bang Rak',
-        district: 'Bang Rak (Silom, Surawong)',
-        roomNumber: 'Floor 22, Room 2209',
-        leaveWithJuristic: false,
-        isPrimary: true
-      }
-    ],
-    tier: 'Regular',
-    createdAt: '2026-08-22T14:30:00Z'
-  }
-];
+const DEFAULT_LOCAL_CUSTOMERS = [];
 
 function loadLocalCustomers() {
   try {
     if (fs.existsSync(CUSTOMERS_FILE)) {
       const raw = fs.readFileSync(CUSTOMERS_FILE, 'utf8');
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }

@@ -110,14 +110,17 @@ async function build() {
     '    <!-- END_PERF_ASSETS -->'
   ].filter(Boolean).join('\n');
 
+  const buildVersion = `launch_${Date.now().toString(36)}`;
+
   function updateAndCopyHtml(srcHtmlPath, destHtmlPath, label) {
     if (!fs.existsSync(srcHtmlPath)) return;
     let html = fs.readFileSync(srcHtmlPath, 'utf8');
     const perfRegex = /<!-- START_PERF_ASSETS -->[\s\S]*?<!-- END_PERF_ASSETS -->/;
     if (perfRegex.test(html)) {
       html = html.replace(perfRegex, perfAssetsBlock);
-      fs.writeFileSync(srcHtmlPath, html, 'utf8');
     }
+    html = html.replace(/\/dist\/app\.js(?:\?v=[^"']*)?/g, `/dist/app.js?v=${buildVersion}`);
+    fs.writeFileSync(srcHtmlPath, html, 'utf8');
     fs.writeFileSync(destHtmlPath, html, 'utf8');
     console.log(`Updated & copied ${label} (${staticChunks.length} modulepreload chunks + inline critical CSS)`);
   }

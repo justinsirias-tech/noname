@@ -63,10 +63,6 @@ export function Navbar({
     { id: 'reviews', label: t('navReviews') || 'Reviews' },
     { id: 'faq', label: t('navFaq') },
     { id: 'terms', label: t('navTerms') },
-    ...(customer 
-      ? [{ id: 'portal', label: t('navAccount') }] 
-      : [{ id: 'register', label: t('navRegister') }]
-    ),
   ];
 
   return (
@@ -287,34 +283,6 @@ export function Navbar({
                 <span>ไทย</span>
               </button>
             </div>
-
-            {customer ? (
-              <button
-                onClick={() => setView('portal')}
-                className={`inline-flex items-center gap-1.5 font-bold text-xs px-3 py-2 rounded-xl transition border shadow-xs ${
-                  currentView === 'portal'
-                    ? 'bg-sky-50 text-sky-800 border-sky-300 ring-2 ring-sky-500/20'
-                    : 'text-slate-800 bg-white hover:bg-slate-50 border-slate-200'
-                }`}
-                title="ไปยังหน้าโปรไฟล์และคำสั่งซื้อของฉัน"
-              >
-                <div className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">
-                  👤
-                </div>
-                <span className="truncate max-w-[100px]">{language === 'th' ? 'คุณ ' : ''}{customer.nickName || (customer.fullName || '').split(' ')[0]}</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setView('login')}
-                className={`inline-flex items-center gap-1 font-bold text-xs px-3 py-2 rounded-xl transition border shadow-xs whitespace-nowrap ${
-                  currentView === 'login'
-                    ? 'bg-sky-50 text-sky-700 border-sky-300'
-                    : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-200'
-                }`}
-              >
-                <span>{t('navLogin')}</span>
-              </button>
-            )}
 
             <button
               onClick={() => setView('book')}

@@ -45,9 +45,9 @@ function loadPostalCodesModule() {
 const STORAGE_KEYS = {
   SERVICES: 'noname_laundry_services_v3',
   CATEGORIES: 'noname_categories_v1',
-  ORDERS: 'noname_laundry_orders_v2',
-  INCIDENTS: 'noname_laundry_incidents_v2',
-  CUSTOMERS: 'noname_laundry_customers_v2',
+  ORDERS: 'noname_laundry_orders_v3',
+  INCIDENTS: 'noname_laundry_incidents_v3',
+  CUSTOMERS: 'noname_laundry_customers_v3',
   SETTINGS: 'noname_laundry_settings_v2',
   FAQS: 'noname_laundry_faqs_v2',
   POSTAL_CODES: 'noname_delivery_zones_v2',
@@ -229,8 +229,16 @@ export class LaundryStore {
         const res = await fetch('/api/orders');
         if (res.ok) {
           const remoteOrders = await res.json();
-          if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
-            this.mergeOrders(remoteOrders);
+          if (Array.isArray(remoteOrders)) {
+            if (remoteOrders.length === 0) {
+              if ((this.orders || []).length > 0) {
+                this.orders = [];
+                this.persist(STORAGE_KEYS.ORDERS, this.orders);
+                this.notify();
+              }
+            } else {
+              this.mergeOrders(remoteOrders);
+            }
           }
         }
       } catch (e) {
@@ -250,19 +258,9 @@ export class LaundryStore {
       const res = await fetch('/api/customers');
       if (res.ok) {
         const remoteCusts = await res.json();
-        if (Array.isArray(remoteCusts) && remoteCusts.length > 0) {
+        if (Array.isArray(remoteCusts)) {
           const prevJson = JSON.stringify(this.customers || []);
-          const custMap = new Map();
-          for (const c of (this.customers || [])) {
-            if (c && c.id) custMap.set(c.id, c);
-          }
-          for (const rc of remoteCusts) {
-            if (rc && rc.id) {
-              const ex = custMap.get(rc.id);
-              custMap.set(rc.id, ex ? { ...ex, ...rc } : rc);
-            }
-          }
-          const nextCustomers = Array.from(custMap.values());
+          const nextCustomers = remoteCusts.filter(rc => rc && rc.id);
           const nextJson = JSON.stringify(nextCustomers);
           if (prevJson !== nextJson) {
             this.customers = nextCustomers;
@@ -503,6 +501,24 @@ export class LaundryStore {
         });
       });
 
+      // Purge legacy v1/v2 demo cache keys so old demo data never resurrects
+      try {
+        localStorage.removeItem('noname_laundry_orders_v1');
+        localStorage.removeItem('noname_laundry_orders_v2');
+        localStorage.removeItem('noname_laundry_incidents_v1');
+        localStorage.removeItem('noname_laundry_incidents_v2');
+        localStorage.removeItem('noname_laundry_customers_v1');
+        localStorage.removeItem('noname_laundry_customers_v2');
+        const curCustRaw = localStorage.getItem('noname_current_customer');
+        if (curCustRaw) {
+          const curCust = JSON.parse(curCustRaw);
+          if (curCust && ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'].includes(curCust.id)) {
+            localStorage.removeItem('noname_current_customer');
+            localStorage.removeItem('noname_customer_token');
+          }
+        }
+      } catch (cleanupErr) {}
+
       const savedOrders = localStorage.getItem(STORAGE_KEYS.ORDERS);
       this.orders = savedOrders ? JSON.parse(savedOrders) : INITIAL_ORDERS;
 
@@ -510,43 +526,21 @@ export class LaundryStore {
       const parsedIncidents = savedIncidents ? JSON.parse(savedIncidents) : INITIAL_INCIDENTS;
       this.incidents = parsedIncidents.map(inc => ({
         ...inc,
-        category: inc.category || (inc.id === 'INC-101' ? 'Special Laundry Request' : 'General Inquiry'),
+        category: inc.category || 'General Inquiry',
         severity: inc.severity || 'normal',
-        affectedItem: inc.affectedItem !== undefined ? inc.affectedItem : (inc.id === 'INC-101' ? 'Blue button-down shirt' : ''),
+        affectedItem: inc.affectedItem !== undefined ? inc.affectedItem : '',
         imageUrl: inc.imageUrl || null
       }));
 
       const savedCustomers = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
       const parsedCusts = savedCustomers ? JSON.parse(savedCustomers) : INITIAL_CUSTOMERS;
-      this.customers = parsedCusts.map(c => {
-        const item = {
-          ...c,
-          mobileNumber: c.mobileNumber || '',
-          isWhatsApp: c.isWhatsApp !== undefined ? Boolean(c.isWhatsApp) : true,
-          secondaryMobile: c.secondaryMobile !== undefined ? c.secondaryMobile : '',
-          isSecondaryWhatsApp: c.isSecondaryWhatsApp !== undefined ? Boolean(c.isSecondaryWhatsApp) : false
-        };
-        if (item.id === 'CUST-8491') {
-          if (!item.secondaryMobile) {
-            item.secondaryMobile = '+1 (415) 890-1234';
-            item.isSecondaryWhatsApp = true;
-          }
-        }
-        if (item.id === 'CUST-7741') {
-          if (!item.secondaryMobile) {
-            item.secondaryMobile = '+33 6 12 34 56 78';
-            item.isSecondaryWhatsApp = true;
-          }
-        }
-        if (item.id === 'CUST-3920') {
-          item.isWhatsApp = true;
-          if (!item.secondaryMobile) {
-            item.secondaryMobile = '+81 90 1234 5678';
-            item.isSecondaryWhatsApp = false;
-          }
-        }
-        return item;
-      });
+      this.customers = parsedCusts.map(c => ({
+        ...c,
+        mobileNumber: c.mobileNumber || '',
+        isWhatsApp: c.isWhatsApp !== undefined ? Boolean(c.isWhatsApp) : true,
+        secondaryMobile: c.secondaryMobile !== undefined ? c.secondaryMobile : '',
+        isSecondaryWhatsApp: c.isSecondaryWhatsApp !== undefined ? Boolean(c.isSecondaryWhatsApp) : false
+      }));
 
       const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       this.settings = savedSettings ? JSON.parse(savedSettings) : {
@@ -622,25 +616,20 @@ export class LaundryStore {
         this.services = data.services.map(s => this.enrichServiceBilingual(s));
         this.persist(STORAGE_KEYS.SERVICES, this.services);
       }
-      if (Array.isArray(data.orders) && data.orders.length > 0) {
-        this.mergeOrders(data.orders);
+      if (Array.isArray(data.orders)) {
+        if (data.orders.length === 0) {
+          this.orders = [];
+          this.persist(STORAGE_KEYS.ORDERS, this.orders);
+        } else {
+          this.mergeOrders(data.orders);
+        }
       }
       if (Array.isArray(data.incidents)) {
         this.incidents = data.incidents;
         this.persist(STORAGE_KEYS.INCIDENTS, this.incidents);
       }
-      if (Array.isArray(data.customers) && data.customers.length > 0) {
-        const custMap = new Map();
-        for (const c of (this.customers || [])) {
-          if (c && c.id) custMap.set(c.id, c);
-        }
-        for (const rc of data.customers) {
-          if (rc && rc.id) {
-            const ex = custMap.get(rc.id);
-            custMap.set(rc.id, ex ? { ...ex, ...rc } : rc);
-          }
-        }
-        this.customers = Array.from(custMap.values());
+      if (Array.isArray(data.customers)) {
+        this.customers = data.customers.filter(rc => rc && rc.id);
         this.persist(STORAGE_KEYS.CUSTOMERS, this.customers);
       }
       if (data.settings && Object.keys(data.settings).length > 0) {

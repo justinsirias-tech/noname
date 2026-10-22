@@ -986,35 +986,7 @@ Please confirm our pickup schedule. Thank you!`
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              {initialCustomer ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.location.href = `/?track=${completedOrder.id}`;
-                  }}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5"
-                >
-                  <Icon name="clock" className="w-4 h-4 text-white" />
-                  <span>{language === 'th' ? 'ติดตามขั้นตอนการซักผ้าสด (สมาชิก)' : 'Track Live Laundry Process'}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.location.hash = 'register';
-                  }}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs shadow-2xs transition flex items-center justify-center gap-1.5"
-                >
-                  <Icon name="user" className="w-4 h-4 text-amber-600" />
-                  <span>
-                    {language === 'th'
-                      ? 'สมัครสมาชิกเพื่อติดตามขั้นตอนการซักผ้าสด'
-                      : 'Register to Track Live Laundry Process'}
-                  </span>
-                </button>
-              )}
-
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => onBookingSuccess(completedOrder)}
@@ -1719,12 +1691,6 @@ Please confirm our pickup schedule. Thank you!`
                           : 'Choose from Your Saved Pickup & Delivery Addresses'}
                       </span>
                     </div>
-                    <a
-                      href="#portal"
-                      className="text-[11px] font-bold text-sky-700 hover:text-sky-900 underline"
-                    >
-                      {language === 'th' ? '+ จัดการที่อยู่ในโปรไฟล์' : '+ Manage Saved Addresses'}
-                    </a>
                   </div>
 
                   {/* Pickup Address Selector */}

@@ -7,7 +7,7 @@ import { ImageUploadZone } from './IncidentImageAttachment.jsx';
 export function OrderTracker({ orders, customer, initialTrackingId, initialOpenPayment = false, onReportIncident, onBackToPortal }) {
   // Filter orders belonging to the registered customer
   const customerOrders = React.useMemo(() => {
-    if (!customer) return orders;
+    if (!customer) return [];
     const normPhone = (customer.phone || '').replace(/[^0-9]/g, '').slice(-8);
     const matched = orders.filter((o) => {
       if (o.customerId && o.customerId === customer.id) return true;
@@ -660,23 +660,14 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
       <div className="mb-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold">
-            <span>✓ Registered Member • Live Laundry Process Tracker</span>
+            <span>✓ Live Laundry Order Status</span>
           </div>
-          {onBackToPortal && (
-            <button
-              type="button"
-              onClick={onBackToPortal}
-              className="px-4 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold transition shadow-xs cursor-pointer"
-            >
-              ← Back to My Member Portal
-            </button>
-          )}
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
           Live Laundry Process Tracking
         </h1>
         <p className="text-sm text-slate-600 mt-2">
-          Select one of your active or past orders below, or search by Tracking ID (e.g. <code>NNL-8491-BK</code>).
+          Enter your Tracking ID (e.g. <code>NNL-8491-BK</code>) to view live order progress and complete cashless payment.
         </p>
 
         {/* Search Bar */}
@@ -685,7 +676,7 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
             <Icon name="search" className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search your orders by Tracking ID (e.g. NNL-8491-BK)..."
+              placeholder="Search your order by Tracking ID (e.g. NNL-8491-BK)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm font-semibold"
@@ -698,37 +689,6 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
             Track Order
           </button>
         </form>
-
-        {/* Registered Customer's Orders Quick Selector */}
-        {customerOrders.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <span className="font-bold text-slate-700">Your Orders ({customerOrders.length}):</span>
-            {customerOrders.map((o) => {
-              const isCurrent = o.status !== 'DELIVERED' && o.status !== 'CANCELLED';
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery(o.id);
-                    setSelectedOrderId(o.id);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl border font-mono transition inline-flex items-center gap-1.5 ${
-                    activeOrder?.id === o.id
-                      ? 'bg-sky-600 text-white border-sky-600 font-bold shadow-xs'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${isCurrent ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                  <span>{o.id}</span>
-                  <span className="text-[10px] opacity-80 font-sans">
-                    ({isCurrent ? 'Active' : 'Completed'})
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {!activeOrder ? (
