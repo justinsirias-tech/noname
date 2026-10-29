@@ -5,7 +5,9 @@ import {
   DISTRICT_TO_POSTAL_CODE, 
   BANGKOK_DISTRICTS_TO_SUBDISTRICTS, 
   PATTAYA_SUBDISTRICTS_LIST,
-  SERVICE_CITIES 
+  SERVICE_CITIES,
+  calculateDeliveryFee as calcDeliveryFeeDirect,
+  DEFAULT_ALL_DELIVERY_ZONES
 } from '../data/postalCodesData.js';
 import { TermsModal } from './TermsModal.jsx';
 import { getLineOaMessageUrl, getLineOaAddFriendUrl, getLineQrCodeUrl, laundryStore } from '../store.js';
@@ -467,12 +469,15 @@ export function BookingWizard({ services, categories: propCategories, initialSer
   const estimatedTotal = selectedEntries.reduce((sum, item) => sum + item.subtotal, 0);
   const totalWeightKg = selectedEntries.filter(i => !i.isPiece).reduce((sum, i) => sum + i.billable, 0);
   const totalPieces = selectedEntries.filter(i => i.isPiece).reduce((sum, i) => sum + i.qty, 0);
-  const rawDeliveryInfo = laundryStore.calculateDeliveryFee({
+  const activeZonesList = (laundryStore.postalCodeRates && laundryStore.postalCodeRates.length > 0)
+    ? laundryStore.postalCodeRates
+    : DEFAULT_ALL_DELIVERY_ZONES;
+  const rawDeliveryInfo = calcDeliveryFeeDirect({
     city: serviceCity,
     district,
     subdistrict,
     postalCode
-  }, estimatedTotal);
+  }, estimatedTotal, activeZonesList, laundryStore.deliveryConfig);
   const deliveryInfo = selectedEntries.length === 0
     ? { ...rawDeliveryInfo, fee: 0, isFree: false }
     : rawDeliveryInfo;

@@ -57,34 +57,34 @@ let initialServices = [
     categoryId: 'laundry_by_weight',
     name: 'Wash / Fold',
     nameTh: 'ซัก อบ พับ',
-    description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
+    description: 'Everyday casual wear washed with premium detergent and neatly folded.',
     unit: 'KG',
     pricingType: 'weight',
     stdPrice: 70,
-    nextPrice: 129,
-    samePrice: 259,
+    nextPrice: 100,
+    samePrice: 200,
     sameAvail: true,
     minWeight: 4.0,
-    turnaround: 48,
+    turnaround: 24,
     popular: true,
-    features: ['Eco-friendly detergent & fabric softener', 'Gentle tumble drying', 'Neat, compact folding by apparel type', 'Sealed in moisture-proof dust bags', 'Pickup & delivery across Bangkok']
+    features: ['Eco-friendly detergent', 'Gentle tumble drying', 'Neat compact folding', 'Moisture-proof dust bags']
   },
   {
     id: 'wash_iron_fold',
     categoryId: 'laundry_by_weight',
     name: 'Wash / Iron / Fold',
     nameTh: 'ซัก อบ รีด พับ',
-    description: 'Ideal for workwear, cotton shirts, chinos, and dresses that require crisp steam ironing and tidy folded packaging.',
+    description: 'Crisp steam ironing and folded packaging.',
     unit: 'KG',
     pricingType: 'weight',
-    stdPrice: 95,
-    nextPrice: 130,
-    samePrice: 175,
+    stdPrice: 130,
+    nextPrice: 150,
+    samePrice: 300,
     sameAvail: true,
     minWeight: 4.0,
-    turnaround: 48,
+    turnaround: 36,
     popular: false,
-    features: ['Stain inspection pre-treatment', 'Premium fabric wash & conditioning', 'Hand steam ironing for crisp look', 'Expert folding with tissue inserts if needed', 'Clear protective garment packaging']
+    features: ['Stain pre-treatment', 'Fabric conditioning', 'Steam ironing', 'Clear protective packaging']
   },
   {
     id: 'wash_iron_hang',
@@ -94,99 +94,14 @@ let initialServices = [
     description: 'Perfect for business suits, formal button-downs, evening dresses, and delicate linen blouses returned wrinkle-free on high-grade hangers.',
     unit: 'KG',
     pricingType: 'weight',
-    stdPrice: 120,
-    nextPrice: 160,
-    samePrice: 210,
+    stdPrice: 150,
+    nextPrice: 170,
+    samePrice: 340,
     sameAvail: true,
     minWeight: 4.0,
     turnaround: 48,
     popular: false,
-    features: ['Delicate temperature-controlled wash', 'Detailed wrinkle-free steam pressing', 'Heavy-duty hangers included at no extra cost', 'Full-length breathable garment cover', 'Direct-to-wardrobe ready on delivery']
-  },
-  {
-    id: 'comforter_duvet',
-    categoryId: 'bedding_linens',
-    name: 'Duvet / Comforter / Blanket',
-    nameTh: 'ผ้านวม / ไส้ผ้านวม / ผ้าห่มหนา',
-    description: 'Bulky King/Queen comforters and thick winter blankets washed in high-capacity drums with anti-dust mite heat sanitization and fluffy loft restoration.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 220,
-    nextPrice: 280,
-    samePrice: 350,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: true,
-    features: ['High-capacity commercial drum washer', 'Anti-dust mite thermal sanitization', 'Gentle tumble dry for loft restoration', 'Breathable zipper storage bag included']
-  },
-  {
-    id: 'bedsheet_set',
-    categoryId: 'bedding_linens',
-    name: 'Bed Sheet / Fitted Sheet',
-    nameTh: 'ผ้าปูที่นอน (King / Queen / Single)',
-    description: 'Deep-cleaned bed sheets with fabric softening conditioner and hotel-grade flatwork steam ironing for an ultra-smooth bedtime feel.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 80,
-    nextPrice: 110,
-    samePrice: 150,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: true,
-    features: ['Deep dirt and sweat extraction', 'Gentle fabric conditioning for silky touch', 'Steam ironed for smooth hotel-finish crispness', 'Individual moisture-proof protective packaging']
-  },
-  {
-    id: 'duvet_cover',
-    categoryId: 'bedding_linens',
-    name: 'Duvet Cover',
-    nameTh: 'ปลอกผ้านวม',
-    description: 'Premium washing and professional steam ironing for duvet covers of all fabric blends and thread counts.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 90,
-    nextPrice: 120,
-    samePrice: 160,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: false,
-    features: ['Color-safe detergent formula', 'Steam press finish for smooth texture', 'Wrinkle-resistant folding']
-  },
-  {
-    id: 'pillowcase',
-    categoryId: 'bedding_linens',
-    name: 'Pillowcase / Bolster Case',
-    nameTh: 'ปลอกหมอนหนุน / หมอนข้าง',
-    description: 'High-temperature hygienic wash and flatwork pressing for pillowcases and bolster cases.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 30,
-    nextPrice: 45,
-    samePrice: 60,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: false,
-    features: ['Antibacterial hot wash', 'Crisp ironed & sanitized', 'Hypoallergenic fabric conditioner']
-  },
-  {
-    id: 'mattress_topper',
-    categoryId: 'bedding_linens',
-    name: 'Mattress Protector / Topper',
-    nameTh: 'ผ้ารองกันเปื้อน / ท็อปเปอร์',
-    description: 'Deep-cycle washing for fitted mattress protectors, quilted pads, and thin toppers.',
-    unit: 'piece',
-    pricingType: 'piece',
-    stdPrice: 180,
-    nextPrice: 240,
-    samePrice: 300,
-    sameAvail: true,
-    minWeight: 1.0,
-    turnaround: 48,
-    popular: false,
-    features: ['Deep extraction cleaning', 'Low-temp tumble drying to protect elastic corners', 'Sanitized packaging']
+    features: ['Delicate temperature-controlled wash', 'Hand steam pressing', 'Heavy-duty hangers included', 'Breathable garment cover']
   }
 ];
 
@@ -1838,16 +1753,27 @@ app.get('/api/orders', async (req, res) => {
   try {
     const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
     const dbOrders = result.rows.map(mapOrder);
-    if (dbOrders.length > 0) {
-      return res.json(dbOrders);
-    }
-    res.json(localOrders);
+    return res.json(dbOrders);
   } catch (err) {
     if (Date.now() - lastOrdersDbWarn > 60000) {
       console.warn('[SERVER] PostgreSQL query fallback for /api/orders (throttled):', err.message);
       lastOrdersDbWarn = Date.now();
     }
     res.json(localOrders);
+  }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    try {
+      await query('DELETE FROM orders WHERE id = $1', [id]);
+    } catch (pgErr) {}
+    localOrders = (localOrders || []).filter(o => o && o.id !== id);
+    saveLocalOrders(localOrders);
+    res.json({ success: true, deletedId: id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -3371,7 +3297,7 @@ app.post('/api/customers/register', async (req, res) => {
       const tlsPayload = {
         name: fullNameCombined,
         phone: cleanPhone,
-        password: data.pinCode || '123456',
+        password: (data.pinCode || data.password || '123456').trim(),
         email: data.email ? data.email.trim().toLowerCase() : undefined,
         nickName: (data.nickName || fName).trim() || undefined,
         gender: data.gender || 'Rather not say',
@@ -3441,7 +3367,7 @@ app.post('/api/customers/register', async (req, res) => {
       Boolean(data.isSecondaryWhatsApp),
       (data.email || '').trim().toLowerCase(),
       (data.lineId || '').trim(),
-      data.pinCode || '123456',
+      (data.pinCode || data.password || '123456').trim(),
       Boolean(data.isVerified),
       data.verifiedVia || null,
       data.tier || 'New',
@@ -3544,7 +3470,7 @@ app.post('/api/customers', async (req, res) => {
       Boolean(data.isSecondaryWhatsApp),
       (data.email || '').trim().toLowerCase(),
       (data.lineId || '').trim(),
-      data.pinCode || '123456',
+      (data.pinCode || data.password || '123456').trim(),
       Boolean(data.isVerified),
       data.verifiedVia || null,
       data.tier || 'Regular',

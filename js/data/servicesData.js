@@ -92,31 +92,29 @@ export const INITIAL_SERVICES = [
     categoryId: 'laundry_by_weight',
     name: 'Wash / Fold',
     nameTh: 'ซัก อบ พับ',
-    description: 'Everyday casual wear, t-shirts, gym shorts, socks, towels, and clothing washed with premium detergent, tumble dried, and neatly folded.',
-    descriptionTh: 'เสื้อผ้าทั่วไป เสื้อยืด ชุดออกกำลังกาย กางเกงขาสั้น ถุงเท้า ผ้าเช็ดตัว ซักด้วยน้ำยาคุณภาพ อบแห้ง และพับจัดระเบียบอย่างประณีต',
+    description: 'Everyday casual wear washed with premium detergent and neatly folded.',
+    descriptionTh: 'ซัก อบ พับ เสื้อผ้าทั่วไป ชุดลำลอง เสื้อยืด กางเกงออกกำลังกาย ถุงเท้า และผ้าขนหนู ซักด้วยน้ำยาเกรดพรีเมียม อบแห้ง และพับแยกประเภทอย่างเป็นระเบียบ',
     unit: 'KG',
     pricingType: 'weight',
     pricePerKg: 70,
     standardPricePerKg: 70,
-    nextDayPricePerKg: 129,
-    sameDayPricePerKg: 259,
+    nextDayPricePerKg: 100,
+    sameDayPricePerKg: 200,
     sameDayAvailable: true,
     minWeightKg: 4.0,
-    turnaroundHours: 48,
+    turnaroundHours: 24,
     popular: true,
     features: [
-      'Eco-friendly detergent & fabric softener',
+      'Eco-friendly detergent',
       'Gentle tumble drying',
-      'Neat, compact folding by apparel type',
-      'Sealed in moisture-proof dust bags',
-      'Pickup & delivery across Bangkok'
+      'Neat compact folding',
+      'Moisture-proof dust bags'
     ],
     featuresTh: [
-      'น้ำยาซักผ้าและปรับผ้านุ่มสูตรอ่อนโยน',
-      'อบผ้าด้วยอุณหภูมิที่ถนอมเนื้อผ้า',
-      'พับแยกตามประเภทชุดอย่างเรียบร้อย',
-      'บรรจุในถุงกันฝุ่นและกันความชื้น',
-      'บริการรับ-ส่งตรงถึงคอนโดและที่พัก'
+      'น้ำยาซักผ้าและปรับผ้านุ่มสูตรรักษ์โลก',
+      'อบแห้งด้วยอุณหภูมิที่เหมาะสมถนอมใยผ้า',
+      'พับแยกประเภทเสื้อผ้าอย่างเป็นระเบียบ',
+      'บรรจุในถุงกันฝุ่นและกันความชื้นอย่างดี'
     ]
   },
   {
@@ -124,31 +122,29 @@ export const INITIAL_SERVICES = [
     categoryId: 'laundry_by_weight',
     name: 'Wash / Iron / Fold',
     nameTh: 'ซัก อบ รีด พับ',
-    description: 'Ideal for workwear, cotton shirts, chinos, and dresses that require crisp steam ironing and tidy folded packaging.',
-    descriptionTh: 'เหมาะสำหรับชุดทำงาน เสื้อเชิ้ต กางเกงสแล็ค และเดรส ที่ต้องการการรีดไอน้ำเรียบกริบ พร้อมพับจัดเก็บอย่างเรียบร้อย',
+    description: 'Crisp steam ironing and folded packaging.',
+    descriptionTh: 'เหมาะสำหรับชุดทำงาน เสื้อเชิ้ตผ้าฝ้าย กางเกงชิโน่ และชุดเดรส ที่ต้องการการรีดไอน้ำให้เรียบคมและพับบรรจุอย่างประณีต',
     unit: 'KG',
     pricingType: 'weight',
-    pricePerKg: 95,
-    standardPricePerKg: 95,
-    nextDayPricePerKg: 130,
-    sameDayPricePerKg: 175,
+    pricePerKg: 130,
+    standardPricePerKg: 130,
+    nextDayPricePerKg: 150,
+    sameDayPricePerKg: 300,
     sameDayAvailable: true,
     minWeightKg: 4.0,
-    turnaroundHours: 48,
+    turnaroundHours: 36,
     popular: false,
     features: [
-      'Stain inspection pre-treatment',
-      'Premium fabric wash & conditioning',
-      'Hand steam ironing for crisp look',
-      'Expert folding with tissue inserts if needed',
-      'Clear protective garment packaging'
+      'Stain pre-treatment',
+      'Fabric conditioning',
+      'Steam ironing',
+      'Clear protective packaging'
     ],
     featuresTh: [
-      'ตรวจสอบและป้ายขจัดคราบก่อนซัก',
-      'ซักและปรับสภาพเส้นใยผ้าเกรดพรีเมียม',
-      'รีดไอน้ำด้วยมือเพื่อความเรียบเนียน',
-      'พับอย่างประณีตพร้อมกระดาษรองทรง',
-      'บรรจุในซองป้องกันฝุ่นอย่างดี'
+      'ตรวจเช็คและขจัดคราบเฉพาะจุดก่อนซัก',
+      'ซักและบำรุงเนื้อผ้าด้วยผลิตภัณฑ์เกรดพรีเมียม',
+      'รีดไอน้ำด้วยมือให้เรียบคมทุกตัว',
+      'บรรจุในถุงใสกันฝุ่นพร้อมจัดส่ง'
     ]
   },
   {
@@ -157,176 +153,28 @@ export const INITIAL_SERVICES = [
     name: 'Wash / Iron / Hang',
     nameTh: 'ซัก อบ รีด แขวน',
     description: 'Perfect for business suits, formal button-downs, evening dresses, and delicate linen blouses returned wrinkle-free on high-grade hangers.',
-    descriptionTh: 'เหมาะสำหรับเสื้อเชิ้ตทางการ ชุดสูท เดรสออกงาน และเสื้อผ้าลินิน คืนผ้าเรียบไร้รอยยับพร้อมไม้แขวนคุณภาพสูง',
+    descriptionTh: 'เหมาะสำหรับชุดสูท เสื้อเชิ้ตทางการ ชุดราตรี และเสื้อผ้าลินินเนื้อบาง ส่งคืนไร้รอยยับพร้อมไม้แขวนคุณภาพสูงและถุงคลุมกันฝุ่น',
     unit: 'KG',
     pricingType: 'weight',
-    pricePerKg: 120,
-    standardPricePerKg: 120,
-    nextDayPricePerKg: 160,
-    sameDayPricePerKg: 210,
+    pricePerKg: 150,
+    standardPricePerKg: 150,
+    nextDayPricePerKg: 170,
+    sameDayPricePerKg: 340,
     sameDayAvailable: true,
     minWeightKg: 4.0,
     turnaroundHours: 48,
     popular: false,
     features: [
       'Delicate temperature-controlled wash',
-      'Detailed wrinkle-free steam pressing',
-      'Heavy-duty hangers included at no extra cost',
-      'Full-length breathable garment cover',
-      'Direct-to-wardrobe ready on delivery'
+      'Hand steam pressing',
+      'Heavy-duty hangers included',
+      'Breathable garment cover'
     ],
     featuresTh: [
-      'ซักด้วยระบบควบคุมอุณหภูมิถนอมเนื้อผ้า',
-      'รีดไอน้ำละเอียดระดับมืออาชีพ ไร้รอยยับ',
-      'พร้อมไม้แขวนเสื้อคุณภาพดีฟรี',
-      'คลุมด้วยถุงคลุมเสื้อผ้าแบบระบายอากาศ',
-      'ส่งถึงที่พร้อมแขวนเข้าตู้เสื้อผ้าทันที'
-    ]
-  },
-  {
-    id: 'comforter_duvet',
-    categoryId: 'bedding_linens',
-    name: 'Duvet / Comforter / Blanket',
-    nameTh: 'ผ้านวม / ไส้ผ้านวม / ผ้าห่มหนา',
-    description: 'Bulky King/Queen comforters and thick winter blankets washed in high-capacity drums with anti-dust mite heat sanitization and fluffy loft restoration.',
-    descriptionTh: 'ผ้านวมขนาด King/Queen และผ้าห่มหนา ซักด้วยเครื่องซักผ้าขนาดใหญ่ ฆ่าเชื้อไรฝุ่นด้วยความร้อน พร้อมอบฟูนุ่ม',
-    unit: 'piece',
-    pricingType: 'piece',
-    pricePerKg: 220,
-    standardPricePerKg: 220,
-    nextDayPricePerKg: 280,
-    sameDayPricePerKg: 350,
-    sameDayAvailable: true,
-    minWeightKg: 1.0,
-    turnaroundHours: 48,
-    popular: true,
-    features: [
-      'High-capacity commercial drum washer',
-      'Anti-dust mite thermal sanitization',
-      'Gentle tumble dry for loft restoration',
-      'Breathable zipper storage bag included'
-    ],
-    featuresTh: [
-      'ซักด้วยเครื่องซักความจุสูงมาตรฐานสากล',
-      'ฆ่าเชื้อและกำจัดไรฝุ่นด้วยความร้อน',
-      'อบแห้งถนอมเนื้อผ้า คืนความฟู นุ่มนวล',
-      'บรรจุในถุงซิปอย่างดี สะอาดหมดจด'
-    ]
-  },
-  {
-    id: 'bedsheet_set',
-    categoryId: 'bedding_linens',
-    name: 'Bed Sheet / Fitted Sheet',
-    nameTh: 'ผ้าปูที่นอน (King / Queen / Single)',
-    description: 'Deep-cleaned bed sheets with fabric softening conditioner and hotel-grade flatwork steam ironing for an ultra-smooth bedtime feel.',
-    descriptionTh: 'ทำความสะอาดล้ำลึกสำหรับผ้าปูที่นอน พร้อมน้ำยาปรับผ้านุ่ม และรีดไอน้ำแบบเรียบเนียนมาตรฐานโรงแรม',
-    unit: 'piece',
-    pricingType: 'piece',
-    pricePerKg: 80,
-    standardPricePerKg: 80,
-    nextDayPricePerKg: 110,
-    sameDayPricePerKg: 150,
-    sameDayAvailable: true,
-    minWeightKg: 1.0,
-    turnaroundHours: 48,
-    popular: true,
-    features: [
-      'Deep dirt and sweat extraction',
-      'Gentle fabric conditioning for silky touch',
-      'Steam ironed for smooth hotel-finish crispness',
-      'Individual moisture-proof protective packaging'
-    ],
-    featuresTh: [
-      'ขจัดคราบเหงื่อไคลและสิ่งสกปรกฝังลึก',
-      'ปรับผ้านุ่มเพื่อสัมผัสที่นุ่มสบายผิว',
-      'รีดเรียบมาตรฐานโรงแรมระดับห้าดาว',
-      'บรรจุในถุงป้องกันความชื้นเฉพาะชิ้น'
-    ]
-  },
-  {
-    id: 'duvet_cover',
-    categoryId: 'bedding_linens',
-    name: 'Duvet Cover',
-    nameTh: 'ปลอกผ้านวม',
-    description: 'Premium washing and professional steam ironing for duvet covers of all fabric blends and thread counts.',
-    descriptionTh: 'ซักทำความสะอาดและรีดไอน้ำระดับมืออาชีพสำหรับปลอกผ้านวมทุกเนื้อผ้า',
-    unit: 'piece',
-    pricingType: 'piece',
-    pricePerKg: 90,
-    standardPricePerKg: 90,
-    nextDayPricePerKg: 120,
-    sameDayPricePerKg: 160,
-    sameDayAvailable: true,
-    minWeightKg: 1.0,
-    turnaroundHours: 48,
-    popular: false,
-    features: [
-      'Color-safe fabric brightening detergent',
-      'Anti-static soft finish',
-      'Crisp steam pressing',
-      'Tidy compact folding'
-    ],
-    featuresTh: [
-      'น้ำยาถนอมสีผ้าให้สดใส',
-      'ป้องกันไฟฟ้าสถิต ผิวสัมผัสนุ่ม',
-      'รีดไอน้ำเรียบเนียน',
-      'พับเก็บกะทัดรัด สะดวกต่อการใช้งาน'
-    ]
-  },
-  {
-    id: 'pillowcase',
-    categoryId: 'bedding_linens',
-    name: 'Pillowcase / Bolstercase',
-    nameTh: 'ปลอกหมอน / ปลอกหมอนข้าง',
-    description: 'Sanitized hot wash treatment to remove facial oils and allergens, finished with steam pressing.',
-    descriptionTh: 'ซักฆ่าเชื้อด้วยความร้อนเพื่อขจัดความมันบนใบหน้าและสารก่อภูมิแพ้ พร้อมรีดเรียบ',
-    unit: 'piece',
-    pricingType: 'piece',
-    pricePerKg: 30,
-    standardPricePerKg: 30,
-    nextDayPricePerKg: 45,
-    sameDayPricePerKg: 60,
-    sameDayAvailable: true,
-    minWeightKg: 1.0,
-    turnaroundHours: 48,
-    popular: false,
-    features: [
-      'Hypoallergenic sanitizing cycle',
-      'Gentle skin-friendly conditioner',
-      'Hand-finished steam ironed'
-    ],
-    featuresTh: [
-      'โปรแกรมซักฆ่าเชื้อลดสารก่อภูมิแพ้',
-      'ปรับผ้านุ่มสูตรอ่อนโยน ไม่ระคายเคืองผิว',
-      'รีดไอน้ำด้วยมือเรียบร้อย'
-    ]
-  },
-  {
-    id: 'mattress_topper',
-    categoryId: 'bedding_linens',
-    name: 'Mattress Protector / Topper',
-    nameTh: 'ผ้ารองกันเปื้อนที่นอน / ท็อปเปอร์',
-    description: 'Deep stain extraction and sanitized drying for quilted mattress protectors, toppers, and waterproof pads.',
-    descriptionTh: 'ขจัดคราบฝังลึกและอบฆ่าเชื้อสำหรับผ้ารองกันเปื้อน ท็อปเปอร์ และแผ่นรองกันน้ำ',
-    unit: 'piece',
-    pricingType: 'piece',
-    pricePerKg: 180,
-    standardPricePerKg: 180,
-    nextDayPricePerKg: 240,
-    sameDayPricePerKg: 320,
-    sameDayAvailable: true,
-    minWeightKg: 1.0,
-    turnaroundHours: 48,
-    popular: false,
-    features: [
-      'Deep stain lifting pre-treatment',
-      'Multi-layer moisture extraction',
-      'Low-heat protective drying'
-    ],
-    featuresTh: [
-      'ขจัดคราบเฉพาะจุดก่อนเข้าเครื่องซัก',
-      'ปั่นดึงความชื้นหลายชั้นอย่างหมดจด',
-      'อบแห้งด้วยความร้อนพอเหมาะถนอมแผ่นใย'
+      'ซักด้วยระบบควบคุมอุณหภูมิถนอมผ้าพิเศษ',
+      'รีดไอน้ำอย่างละเอียดไร้รอยยับทุกจุด',
+      'ฟรีไม้แขวนเสื้อคุณภาพสูงแข็งแรงพิเศษ',
+      'ถุงคลุมเสื้อผ้าแบบยาวระบายอากาศได้ดี'
     ]
   }
 ];

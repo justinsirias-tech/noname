@@ -9,14 +9,17 @@ let DEFAULT_DELIVERY_CONFIG = {
   enableFreeDeliveryPromo: true
 };
 let calcDeliveryFee = (locationInput, subtotal = 0, ratesList = [], config = DEFAULT_DELIVERY_CONFIG) => {
-  const threshold = Number(config?.storeWideFreeDeliveryThreshold) || 500;
-  const fallbackFee = Number(config?.defaultFallbackFee) || 50;
-  const isFree = config?.enableFreeDeliveryPromo !== false && subtotal >= threshold;
+  loadPostalCodesModule();
+  const fallbackFee = Number(config?.baseDeliveryFee || config?.defaultFallbackFee) || 50;
   return {
-    fee: isFree ? 0 : fallbackFee,
+    fee: fallbackFee,
     baseFee: fallbackFee,
-    isFreeDelivery: isFree,
-    freeThreshold: threshold,
+    isFree: false,
+    isFreeDelivery: false,
+    isAvailable: true,
+    zoneName: 'Standard Area',
+    reason: `Standard delivery fee of ฿${fallbackFee} applied`,
+    freeThreshold: null,
     matchedZone: null
   };
 };
@@ -43,7 +46,7 @@ function loadPostalCodesModule() {
 }
 
 const STORAGE_KEYS = {
-  SERVICES: 'noname_laundry_services_v3',
+  SERVICES: 'noname_laundry_services_v4',
   CATEGORIES: 'noname_categories_v1',
   ORDERS: 'noname_laundry_orders_v3',
   INCIDENTS: 'noname_laundry_incidents_v3',
@@ -185,7 +188,7 @@ export class LaundryStore {
       if (isInteractiveRoute) {
         triggerInitialSync();
       } else {
-        setTimeout(triggerInitialSync, 2500);
+        setTimeout(triggerInitialSync, 350);
       }
     }
   }
@@ -475,15 +478,15 @@ export class LaundryStore {
         let nextPrice = s.nextDayPricePerKg !== undefined ? Number(s.nextDayPricePerKg) : 0;
         let samePrice = s.sameDayPricePerKg !== undefined ? Number(s.sameDayPricePerKg) : 0;
         if (!nextPrice || ((nextPrice === stdPrice || nextPrice === 85) && s.id === 'wash_fold')) {
-          if (s.id === 'wash_fold') nextPrice = 129;
-          else if (s.id === 'wash_iron_fold') nextPrice = 130;
-          else if (s.id === 'wash_iron_hang') nextPrice = 160;
+          if (s.id === 'wash_fold') nextPrice = 100;
+          else if (s.id === 'wash_iron_fold') nextPrice = 150;
+          else if (s.id === 'wash_iron_hang') nextPrice = 170;
           else nextPrice = Math.round(stdPrice * 1.3);
         }
         if (!samePrice || ((samePrice === 95 || samePrice === 115) && s.id === 'wash_fold')) {
-          if (s.id === 'wash_fold') samePrice = 259;
-          else if (s.id === 'wash_iron_fold') samePrice = 175;
-          else if (s.id === 'wash_iron_hang') samePrice = 210;
+          if (s.id === 'wash_fold') samePrice = 200;
+          else if (s.id === 'wash_iron_fold') samePrice = 300;
+          else if (s.id === 'wash_iron_hang') samePrice = 340;
           else samePrice = Math.round(stdPrice * 1.75);
         }
         return this.enrichServiceBilingual({
@@ -501,8 +504,11 @@ export class LaundryStore {
         });
       });
 
-      // Purge legacy v1/v2 demo cache keys so old demo data never resurrects
+      // Purge legacy v1/v2/v3 demo cache keys so old demo data never resurrects
       try {
+        localStorage.removeItem('noname_laundry_services_v1');
+        localStorage.removeItem('noname_laundry_services_v2');
+        localStorage.removeItem('noname_laundry_services_v3');
         localStorage.removeItem('noname_laundry_orders_v1');
         localStorage.removeItem('noname_laundry_orders_v2');
         localStorage.removeItem('noname_laundry_incidents_v1');

@@ -74,7 +74,7 @@ export const INITIAL_FAQS = [
     categoryTh: 'ราคาและการชั่งน้ำหนักยืนยัน',
     question: 'What happens if my laundry weighs less than the 4 KG minimum?',
     questionTh: 'ถ้าผ้าของฉันมีน้ำหนักน้อยกว่าขั้นต่ำ 4 กิโลกรัม จะคิดราคาอย่างไร?',
-    answer: 'You are welcome to send any amount of laundry! If your verified scale weight is under 4.0 KG (e.g. 2.5 KG), the minimum billing baseline of 4.0 KG is applied. For example, Wash & Fold at ฿75/KG with a 4 KG minimum is ฿300 THB.',
+    answer: 'You are welcome to send any amount of laundry! If your verified scale weight is under 4.0 KG (e.g. 2.5 KG), the minimum billing baseline of 4.0 KG is applied. For example, Wash & Fold at ฿70/KG with a 4 KG minimum is ฿280 THB.',
     answerTh: 'คุณสามารถส่งผ้ากี่ชิ้นหรือกี่กิโลกรัมก็ได้! หากน้ำหนักชั่งจริงน้อยกว่า 4.0 กก. (เช่น 2.5 กก.) ระบบจะคิดราคาตามเกณฑ์ขั้นต่ำ 4.0 กก. ตัวอย่างเช่น ซักพับ กก. ละ 70 บาท ขั้นต่ำ 4 กก. คิดเป็น 280 บาท',
     order: 7,
     isPublished: true
