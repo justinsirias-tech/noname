@@ -3160,8 +3160,8 @@ app.get('/api/customers/:id/orders', async (req, res) => {
   }
 });
 
-// Check mobile number availability in real-time
-app.get('/api/customers/check-mobile', async (req, res) => {
+// Check mobile number availability in real-time (aliases: /check-mobile and /lookup)
+app.get(['/api/customers/check-mobile', '/api/customers/lookup'], async (req, res) => {
   try {
     const rawPhone = req.query.phone || req.query.mobile || '';
     const cleanDigits = rawPhone.replace(/\D/g, '');

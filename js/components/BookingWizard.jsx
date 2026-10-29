@@ -51,34 +51,48 @@ export function BookingWizard({ services, categories: propCategories, initialSer
   });
   const [turnaroundSpeed, setTurnaroundSpeed] = useState(initialTurnaroundSpeed || 'standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
+  // Validate initial customer (filter out any legacy/mock users like Alex CUST-8491)
+  const MOCK_CUSTOMER_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'];
+  const isValidCustomerObj = (c) => Boolean(
+    c && c.id &&
+    !MOCK_CUSTOMER_IDS.includes(c.id) &&
+    !(c.fullName && c.fullName.toLowerCase().includes('alex')) &&
+    !(c.firstName && c.firstName.toLowerCase() === 'alex')
+  );
+  const validInitialCustomer = isValidCustomerObj(initialCustomer) ? initialCustomer : null;
+
   // Customer Info (First Name & Last Name required)
-  const primaryAddr = initialCustomer?.addresses?.[0];
-  const initFirst = initialCustomer?.firstName || (initialCustomer?.fullName ? initialCustomer.fullName.trim().split(' ')[0] : '');
-  const initLast = initialCustomer?.lastName || (initialCustomer?.fullName ? initialCustomer.fullName.trim().split(' ').slice(1).join(' ') : '');
+  const primaryAddr = validInitialCustomer?.addresses?.[0];
+  const initFirst = validInitialCustomer?.firstName || (validInitialCustomer?.fullName ? validInitialCustomer.fullName.trim().split(' ')[0] : '');
+  const initLast = validInitialCustomer?.lastName || (validInitialCustomer?.fullName ? validInitialCustomer.fullName.trim().split(' ').slice(1).join(' ') : '');
   const [firstName, setFirstName] = useState(initFirst);
   const [lastName, setLastName] = useState(initLast);
-  const [customerName, setCustomerName] = useState(initialCustomer?.fullName || `${initFirst} ${initLast}`.trim());
-  const [nickName, setNickName] = useState(initialCustomer?.nickName || '');
-  const [mobileNumber, setMobileNumber] = useState(initialCustomer?.mobileNumber || '+66 ');
-  const [contactChannel, setContactChannel] = useState(initialCustomer?.lineId ? 'line' : 'whatsapp');
-  const [contactValue, setContactValue] = useState(initialCustomer?.lineId || initialCustomer?.mobileNumber || '+66 ');
-  const [email, setEmail] = useState(initialCustomer?.email || '');
+  const [customerName, setCustomerName] = useState(validInitialCustomer?.fullName || `${initFirst} ${initLast}`.trim());
+  const [nickName, setNickName] = useState(validInitialCustomer?.nickName || '');
+  const [mobileNumber, setMobileNumber] = useState(validInitialCustomer?.mobileNumber || '+66 ');
+  const [contactChannel, setContactChannel] = useState(validInitialCustomer?.lineId ? 'line' : 'whatsapp');
+  const [contactValue, setContactValue] = useState(validInitialCustomer?.lineId || validInitialCustomer?.mobileNumber || '+66 ');
+  const [email, setEmail] = useState(validInitialCustomer?.email || '');
 
   // Real-time Mobile Number Check & Profile Autocomplete
-  const [detectedCustomer, setDetectedCustomer] = useState(initialCustomer || null);
+  const [detectedCustomer, setDetectedCustomer] = useState(validInitialCustomer || null);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
 
   // Automatically check mobile number against CRM while customer is filling details
   React.useEffect(() => {
     const cleanDigits = (mobileNumber || '').replace(/\D/g, '');
     if (cleanDigits.length < 8) {
-      if (!initialCustomer) setDetectedCustomer(null);
+      setDetectedCustomer(null);
       return;
     }
 
+    const suffix = cleanDigits.slice(-9);
+    const initClean = (validInitialCustomer?.mobileNumber || '').replace(/\D/g, '');
+    const isMatchingInitial = initClean.length >= 8 && initClean.endsWith(suffix);
+
     // 1. Instant check in client-side laundryStore
     const localMatch = laundryStore.findCustomerByPhone ? laundryStore.findCustomerByPhone(mobileNumber) : null;
-    if (localMatch) {
+    if (localMatch && isValidCustomerObj(localMatch)) {
       setDetectedCustomer(localMatch);
       if (!firstName && localMatch.firstName) setFirstName(localMatch.firstName);
       if (!lastName && localMatch.lastName) setLastName(localMatch.lastName);
@@ -97,7 +111,7 @@ export function BookingWizard({ services, categories: propCategories, initialSer
         const res = await fetch(`/api/customers/check-mobile?phone=${encodeURIComponent(mobileNumber)}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.exists && data.customer) {
+          if (data.exists && data.customer && isValidCustomerObj(data.customer)) {
             setDetectedCustomer(data.customer);
             if (!firstName && data.customer.firstName) setFirstName(data.customer.firstName);
             if (!lastName && data.customer.lastName) setLastName(data.customer.lastName);
@@ -106,25 +120,29 @@ export function BookingWizard({ services, categories: propCategories, initialSer
               setCondoName(data.customer.condoName);
               if (data.customer.roomNumber) setRoomNumber(data.customer.roomNumber);
             }
+            if (data.customer.district) setDistrict(data.customer.district);
           } else {
-            if (!initialCustomer) setDetectedCustomer(null);
+            setDetectedCustomer(isMatchingInitial ? validInitialCustomer : null);
           }
+        } else {
+          setDetectedCustomer(isMatchingInitial ? validInitialCustomer : null);
         }
       } catch (err) {
         console.warn('BookingWizard phone check error:', err);
+        setDetectedCustomer(isMatchingInitial ? validInitialCustomer : null);
       } finally {
         setIsCheckingPhone(false);
       }
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [mobileNumber]);
+  }, [mobileNumber, validInitialCustomer]);
 
   // Thai Company Tax Info
-  const [isCompanyTax, setIsCompanyTax] = useState(Boolean(initialCustomer?.companyTax?.required));
-  const [companyName, setCompanyName] = useState(initialCustomer?.companyTax?.companyName || '');
-  const [companyTaxId, setCompanyTaxId] = useState(initialCustomer?.companyTax?.taxId || '');
-  const [companyBranch, setCompanyBranch] = useState(initialCustomer?.companyTax?.branch || 'Head Office (สำนักงานใหญ่)');
+  const [isCompanyTax, setIsCompanyTax] = useState(Boolean(validInitialCustomer?.companyTax?.required));
+  const [companyName, setCompanyName] = useState(validInitialCustomer?.companyTax?.companyName || '');
+  const [companyTaxId, setCompanyTaxId] = useState(validInitialCustomer?.companyTax?.taxId || '');
+  const [companyBranch, setCompanyBranch] = useState(validInitialCustomer?.companyTax?.branch || 'Head Office (สำนักงานใหญ่)');
 
   // Service City & Address Info (Bangkok & Pattaya)
   const isPattayaInit = (initialCity === 'Pattaya') || (primaryAddr?.city === 'Pattaya');
@@ -149,9 +167,9 @@ export function BookingWizard({ services, categories: propCategories, initialSer
   const [selectedDeliveryAddressId, setSelectedDeliveryAddressId] = useState('SAME_AS_PICKUP');
 
   const savedCustomerAddresses = React.useMemo(() => {
-    const raw = detectedCustomer?.addresses || initialCustomer?.addresses || [];
+    const raw = detectedCustomer?.addresses || validInitialCustomer?.addresses || [];
     return Array.isArray(raw) ? raw : [];
-  }, [detectedCustomer, initialCustomer]);
+  }, [detectedCustomer, validInitialCustomer]);
 
   const applySavedPickupAddress = (addr) => {
     if (!addr) return;
@@ -558,7 +576,7 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       customerName: combinedCustomerName,
-      customerId: detectedCustomer?.id || initialCustomer?.id || null,
+      customerId: detectedCustomer?.id || validInitialCustomer?.id || null,
       nickName: (nickName || firstName).trim(),
       mobileNumber: mobileNumber.trim(),
       contactChannel,

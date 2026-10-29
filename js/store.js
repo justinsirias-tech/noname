@@ -50,7 +50,7 @@ const STORAGE_KEYS = {
   CATEGORIES: 'noname_categories_v1',
   ORDERS: 'noname_laundry_orders_v3',
   INCIDENTS: 'noname_laundry_incidents_v3',
-  CUSTOMERS: 'noname_laundry_customers_v3',
+  CUSTOMERS: 'noname_laundry_customers_v4',
   SETTINGS: 'noname_laundry_settings_v2',
   FAQS: 'noname_laundry_faqs_v2',
   POSTAL_CODES: 'noname_delivery_zones_v2',
@@ -515,12 +515,35 @@ export class LaundryStore {
         localStorage.removeItem('noname_laundry_incidents_v2');
         localStorage.removeItem('noname_laundry_customers_v1');
         localStorage.removeItem('noname_laundry_customers_v2');
+        localStorage.removeItem('noname_laundry_customers_v3');
+        const MOCK_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'];
+        const isMockCust = (c) => c && (MOCK_IDS.includes(c.id) || (c.fullName && c.fullName.toLowerCase().includes('alex')) || (c.firstName && c.firstName.toLowerCase() === 'alex'));
+
         const curCustRaw = localStorage.getItem('noname_current_customer');
         if (curCustRaw) {
-          const curCust = JSON.parse(curCustRaw);
-          if (curCust && ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'].includes(curCust.id)) {
+          try {
+            const curCust = JSON.parse(curCustRaw);
+            if (isMockCust(curCust)) {
+              localStorage.removeItem('noname_current_customer');
+              localStorage.removeItem('noname_customer_token');
+            }
+          } catch (e) {
             localStorage.removeItem('noname_current_customer');
-            localStorage.removeItem('noname_customer_token');
+          }
+        }
+
+        const sessionRaw = localStorage.getItem('noname_customer_session');
+        if (sessionRaw) {
+          try {
+            const sCust = JSON.parse(sessionRaw);
+            if (isMockCust(sCust)) {
+              localStorage.removeItem('noname_customer_session');
+              localStorage.removeItem('noname_customer_token');
+              localStorage.removeItem('tls_customer_token');
+              this.currentCustomer = null;
+            }
+          } catch (e) {
+            localStorage.removeItem('noname_customer_session');
           }
         }
       } catch (cleanupErr) {}
@@ -540,13 +563,15 @@ export class LaundryStore {
 
       const savedCustomers = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
       const parsedCusts = savedCustomers ? JSON.parse(savedCustomers) : INITIAL_CUSTOMERS;
-      this.customers = parsedCusts.map(c => ({
-        ...c,
-        mobileNumber: c.mobileNumber || '',
-        isWhatsApp: c.isWhatsApp !== undefined ? Boolean(c.isWhatsApp) : true,
-        secondaryMobile: c.secondaryMobile !== undefined ? c.secondaryMobile : '',
-        isSecondaryWhatsApp: c.isSecondaryWhatsApp !== undefined ? Boolean(c.isSecondaryWhatsApp) : false
-      }));
+      this.customers = (parsedCusts || [])
+        .filter(c => !isMockCust(c))
+        .map(c => ({
+          ...c,
+          mobileNumber: c.mobileNumber || '',
+          isWhatsApp: c.isWhatsApp !== undefined ? Boolean(c.isWhatsApp) : true,
+          secondaryMobile: c.secondaryMobile !== undefined ? c.secondaryMobile : '',
+          isSecondaryWhatsApp: c.isSecondaryWhatsApp !== undefined ? Boolean(c.isSecondaryWhatsApp) : false
+        }));
 
       const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       this.settings = savedSettings ? JSON.parse(savedSettings) : {
@@ -1744,7 +1769,9 @@ export class LaundryStore {
     const clean = phone.replace(/\D/g, '');
     if (clean.length < 8) return null;
     const suffix = clean.slice(-9);
+    const MOCK_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'];
     return (this.customers || []).find(c => {
+      if (!c || MOCK_IDS.includes(c.id) || (c.fullName && c.fullName.toLowerCase().includes('alex'))) return false;
       const c1 = (c.mobileNumber || '').replace(/\D/g, '');
       const c2 = (c.secondaryMobile || '').replace(/\D/g, '');
       return (c1.length >= 8 && c1.slice(-9) === suffix) || (c2.length >= 8 && c2.slice(-9) === suffix);
@@ -2012,11 +2039,32 @@ export class LaundryStore {
 
   
   getCurrentCustomer() {
-    if (this.currentCustomer) return this.currentCustomer;
+    const MOCK_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'];
+    const isMock = (c) => c && (MOCK_IDS.includes(c.id) || (c.fullName && c.fullName.toLowerCase().includes('alex')) || (c.firstName && c.firstName.toLowerCase() === 'alex'));
+
+    if (this.currentCustomer) {
+      if (isMock(this.currentCustomer)) {
+        this.currentCustomer = null;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('noname_customer_session');
+          localStorage.removeItem('noname_current_customer');
+          localStorage.removeItem('tls_customer_token');
+        }
+        return null;
+      }
+      return this.currentCustomer;
+    }
     try {
       const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('noname_customer_session') : null;
       if (saved) {
-        this.currentCustomer = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (isMock(parsed)) {
+          localStorage.removeItem('noname_customer_session');
+          localStorage.removeItem('noname_current_customer');
+          localStorage.removeItem('tls_customer_token');
+          return null;
+        }
+        this.currentCustomer = parsed;
         return this.currentCustomer;
       }
     } catch (e) {

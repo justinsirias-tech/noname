@@ -172,61 +172,6 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
             </button>
           </form>
 
-          {/* Quick Demo Test Accounts Box */}
-          <div className="pt-2 border-t border-slate-100 space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
-              <span>{isTh ? '🧪 บัญชีทดสอบด่วน (คลิกเพื่อกรอกอัตโนมัติ):' : '🧪 Quick Demo Accounts (Click to Auto-fill):'}</span>
-              <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                TLS Cloud Active
-              </span>
-            </div>
-            
-            {/* TLS Cloud Test Server Account */}
-            <button
-              type="button"
-              onClick={() => handleFillDemo('0899990001', 'Password123!')}
-              className="w-full p-2.5 rounded-xl bg-gradient-to-r from-sky-50 to-indigo-50 hover:from-sky-100 hover:to-indigo-100 border border-sky-200/80 text-left transition group shadow-sm"
-            >
-              <div className="text-[11px] font-bold text-sky-900 group-hover:text-sky-700 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <span>☁️</span>
-                  <span>Test Noname (TLS Server Test)</span>
-                </span>
-                <span className="text-[9px] bg-sky-200 text-sky-900 px-1.5 py-0.5 rounded-full font-bold">Cloud Test</span>
-              </div>
-              <div className="text-[10px] text-sky-700 font-mono mt-0.5">
-                Phone: 0899990001 | Pass: Password123!
-              </div>
-            </button>
-
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                type="button"
-                onClick={() => handleFillDemo('+66 82 455 9182', '123456')}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-200 text-left transition group"
-              >
-                <div className="text-[11px] font-bold text-slate-800 group-hover:text-sky-700 flex items-center justify-between">
-                  <span>Alex (VIP)</span>
-                  <span className="text-[9px] bg-amber-100 text-amber-800 px-1 rounded font-bold">VIP</span>
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono">PIN: 123456</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('+66 89 712 3456', '654321')}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-200 text-left transition group"
-              >
-                <div className="text-[11px] font-bold text-slate-800 group-hover:text-sky-700 flex items-center justify-between">
-                  <span>Khun Som</span>
-                  <span className="text-[9px] bg-yellow-100 text-yellow-800 px-1 rounded font-bold">Gold</span>
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono">PIN: 654321</div>
-              </button>
-            </div>
-          </div>
-
           {/* Footer Action Links */}
           <div className="pt-2 text-center space-y-2 text-xs">
             <p className="text-slate-600">
