@@ -1012,6 +1012,16 @@ Please confirm our pickup schedule. Thank you!`
         <p className="text-sm text-slate-600 mt-2">
           {t('bwSubtitle')}
         </p>
+        <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex items-center gap-3 shadow-xs">
+          <span className="w-8 h-8 rounded-xl bg-amber-500 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
+            4KG
+          </span>
+          <p className="text-xs sm:text-sm font-extrabold tracking-tight">
+            {language === 'th'
+              ? 'กรุณาอ่านก่อนทำการจอง: บริการซักผ้าทุกรายการคิดค่าบริการขั้นต่ำที่ 4 กิโลกรัม (4KG)'
+              : 'Please note before booking: All laundry services have a minimum charge of 4KG.'}
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -1026,7 +1036,7 @@ Please confirm our pickup schedule. Thank you!`
                   {language === 'th' ? 'เลือกบริการและความเร็วการจัดส่ง' : 'Choose Services & Turnaround'}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {language === 'th' ? 'เลือกระดับความเร็ว จากนั้นแตะเลือกบริการที่ต้องการ' : 'Pick turnaround speed, then tap the services you need.'}
+                  {language === 'th' ? 'เลือกระดับความเร็ว จากนั้นแตะเลือกบริการที่ต้องการ (บริการซักผ้าทุกรายการมีขั้นต่ำ 4KG)' : 'Pick turnaround speed, then tap the services you need. All laundry services have a minimum charge of 4KG.'}
                 </p>
               </div>
             </div>
