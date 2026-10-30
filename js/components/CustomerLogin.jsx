@@ -39,12 +39,6 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
     }
   };
 
-  const handleFillDemo = (demoPhone, demoPin) => {
-    setIdentifier(demoPhone);
-    setPinCode(demoPin);
-    setErrorMessage('');
-  };
-
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50/50">
       <div className="max-w-md w-full space-y-6">

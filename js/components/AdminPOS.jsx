@@ -35,8 +35,7 @@ export function AdminPOS({
   onUpdateService,
   onUpdateOrderStatus,
   onCreateManualOrder,
-  onResolveIncident,
-  onResetData
+  onResolveIncident
 }) {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'services-pricing', 'gateway', 'line-oa', 'incidents', 'new-pos'
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -1055,14 +1054,7 @@ export function AdminPOS({
             </button>
           )}
 
-          <button
-            onClick={onResetData}
-            className="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-semibold text-slate-600 flex items-center gap-1.5 transition"
-            title="Reset store to default sample data"
-          >
-            <Icon name="refresh" className="w-3.5 h-3.5" />
-            <span>Reset Demo Data</span>
-          </button>
+
 
           {onLogout && (
             <button

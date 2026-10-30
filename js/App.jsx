@@ -331,13 +331,6 @@ export function App() {
     triggerToast(`Ticket ${incidentId} marked as resolved.`);
   };
 
-  // Reset demo data
-  const handleResetData = () => {
-    if (confirm('Reset store back to initial demonstration orders and pricing?')) {
-      laundryStore.resetAllData();
-      triggerToast('Store reset to initial demonstration state.');
-    }
-  };
 
   // Handle URL hash changes & keyboard shortcut (Ctrl+Shift+A or Cmd+Shift+A) for staff
   useEffect(() => {
@@ -672,7 +665,6 @@ export function App() {
               onUpdateOrderStatus={handleUpdateOrderStatus}
               onCreateManualOrder={handleCreateManualOrder}
               onResolveIncident={handleResolveIncident}
-              onResetData={handleResetData}
             />
           )
         )}
