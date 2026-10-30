@@ -6,8 +6,8 @@ export const TERMS_SUMMARY_POINTS = [
     title: 'Direct Phone & Digital Support Channels',
     titleTh: 'ช่องทางการติดต่อทางโทรศัพท์และดิจิทัล',
     icon: 'MessageSquare',
-    desc: 'Customer service, pickup coordination, queries, and incident assistance are accessible via Phone & WhatsApp (+66 80 888 9885), LINE Official (@nonamelaundry), and Email (support@nonamelaundry.com).',
-    descTh: 'ฝ่ายบริการลูกค้า ประสานงานรับ-ส่ง สอบถามข้อมูล และดูแลปัญหา สามารถติดต่อได้ผ่านโทรศัพท์และ WhatsApp (+66 80 888 9885), LINE Official (@nonamelaundry) และอีเมล (support@nonamelaundry.com)'
+    desc: 'Customer service, pickup coordination, queries, and incident assistance are accessible via Phone & WhatsApp (+66 80 888 9885), LINE Official (@nonamelaundry), and Email (nonamelaundrybooking@gmail.com).',
+    descTh: 'ฝ่ายบริการลูกค้า ประสานงานรับ-ส่ง สอบถามข้อมูล และดูแลปัญหา สามารถติดต่อได้ผ่านโทรศัพท์และ WhatsApp (+66 80 888 9885), LINE Official (@nonamelaundry) และอีเมล (nonamelaundrybooking@gmail.com)'
   },
   {
     id: 'weight_billing',
@@ -55,8 +55,8 @@ export const FULL_TERMS_SECTIONS = [
   {
     title: '1. Authorized Communication & Support Channels',
     titleTh: '1. ช่องทางการติดต่อและการสื่อสารทางการ',
-    content: "NoName Laundry operates as a pickup-and-delivery laundry service across the Bangkok Metropolitan Region and Pattaya. We provide customer assistance and driver coordination through our authorized channels:\n• Direct Mobile Phone Calls: +66 80 888 9885\n• WhatsApp Official Chat: +66 80 888 9885\n• LINE Official Account: @nonamelaundry\n• Official Support Email: support@nonamelaundry.com\n\nCustomers can contact us via voice call or written chat for order updates, driver arrival information, or laundry inquiries.",
-    contentTh: "NoName Laundry ให้บริการซักอบรีดแบบรับ-ส่งถึงที่ทั่วกรุงเทพมหานครและพัทยา การประสานงานและการดูแลลูกค้าดำเนินการผ่านช่องทางทางการดังนี้:\n• โทรศัพท์สายตรง: +66 80 888 9885\n• WhatsApp Official: +66 80 888 9885\n• LINE Official Account: @nonamelaundry\n• อีเมลฝ่ายบริการลูกค้า: support@nonamelaundry.com\n\nลูกค้าสามารถติดต่อเราเพื่อสอบถามข้อมูล ติดตามสถานะคนขับ หรือแจ้งรายละเอียดคำสั่งซื้อได้ตลอดเวลา"
+    content: "NoName Laundry operates as a pickup-and-delivery laundry service across the Bangkok Metropolitan Region and Pattaya. We provide customer assistance and driver coordination through our authorized channels:\n• Direct Mobile Phone Calls: +66 80 888 9885\n• WhatsApp Official Chat: +66 80 888 9885\n• LINE Official Account: @nonamelaundry\n• Official Support Email: nonamelaundrybooking@gmail.com\n\nCustomers can contact us via voice call or written chat for order updates, driver arrival information, or laundry inquiries.",
+    contentTh: "NoName Laundry ให้บริการซักอบรีดแบบรับ-ส่งถึงที่ทั่วกรุงเทพมหานครและพัทยา การประสานงานและการดูแลลูกค้าดำเนินการผ่านช่องทางทางการดังนี้:\n• โทรศัพท์สายตรง: +66 80 888 9885\n• WhatsApp Official: +66 80 888 9885\n• LINE Official Account: @nonamelaundry\n• อีเมลฝ่ายบริการลูกค้า: nonamelaundrybooking@gmail.com\n\nลูกค้าสามารถติดต่อเราเพื่อสอบถามข้อมูล ติดตามสถานะคนขับ หรือแจ้งรายละเอียดคำสั่งซื้อได้ตลอดเวลา"
   },
   {
     title: '2. Services Offered & Weight-Based Billing',

@@ -309,7 +309,7 @@ async function sendConfirmedBillingEmail(order, overrideRecipient = null) {
                 LINE OA: <strong style="color: #334155;">@nonamelaundry</strong> • WhatsApp: <strong style="color: #334155;">@nonamelaundry</strong> • Phone: <strong style="color: #334155;">+66 80 888 9885</strong>
               </div>
               <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
-                Email: support@nonamelaundry.com • 100% Cashless Facility
+                Email: nonamelaundrybooking@gmail.com • 100% Cashless Facility
               </div>
             </td>
             <td width="40%" style="vertical-align: top; text-align: right;">

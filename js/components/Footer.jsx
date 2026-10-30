@@ -125,7 +125,7 @@ export function Footer({ setView }) {
               </a>
 
               <a
-                href="mailto:support@nonamelaundry.com"
+                href="mailto:nonamelaundrybooking@gmail.com"
                 className="flex items-center gap-2 text-sky-400 hover:text-sky-300 transition"
               >
                 <Icon name="mail" className="w-4 h-4" />

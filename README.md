@@ -16,7 +16,7 @@
 - **Official Channels**:
   - **WhatsApp**: Direct click-to-chat integration (`+66 94 882 1920`)
   - **LINE Official**: `@nonamelaundry`
-  - **Email**: `support@nonamelaundry.com`
+  - **Email**: `nonamelaundrybooking@gmail.com`
 - **Zero Phone Calls Policy**: Prominently emphasized across the top banner, hero section, booking terms modal, incident tracker, and footer. All inquiries, driver coordination, and incident claims are handled strictly online with written photographic records.
 
 ### 3. Services by Weight (KG)

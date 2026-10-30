@@ -85,8 +85,8 @@ export const CONTACT_CHANNELS = {
   },
   email: {
     name: 'Email Support',
-    handle: 'support@nonamelaundry.com',
-    url: 'mailto:support@nonamelaundry.com?subject=',
+    handle: 'nonamelaundrybooking@gmail.com',
+    url: 'mailto:nonamelaundrybooking@gmail.com?subject=',
     color: 'sky',
     badge: 'Formal & Invoicing',
     icon: 'Mail'
@@ -581,7 +581,7 @@ export class LaundryStore {
         currency: 'THB',
         lineOaId: '@nonamelaundry',
         whatsappNumber: '@nonamelaundry',
-        supportEmail: 'support@nonamelaundry.com',
+        supportEmail: 'nonamelaundrybooking@gmail.com',
         paymentGateway: {
           provider: 'Omise / Opn Payments (Thailand)',
           merchantName: 'NoName Laundry Bangkok Co., Ltd.',

@@ -118,7 +118,7 @@ export function DigitalSupportBanner({ onOpenContactModal }) {
 
               {/* Email Support */}
               <a
-                href="mailto:support@nonamelaundry.com?subject=NoName%20Laundry%20Support%20Request"
+                href="mailto:nonamelaundrybooking@gmail.com?subject=NoName%20Laundry%20Support%20Request"
                 className="flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/40 text-white transition group"
               >
                 <div className="flex items-center gap-3">

@@ -165,7 +165,7 @@ export function DigitalContactModal({ isOpen, onClose }) {
 
             {/* Email */}
             <a
-              href="mailto:support@nonamelaundry.com?subject=NoName%20Laundry%20Inquiry"
+              href="mailto:nonamelaundrybooking@gmail.com?subject=NoName%20Laundry%20Inquiry"
               className="p-4 rounded-2xl border border-sky-200 bg-sky-50/50 hover:bg-sky-50 flex items-center justify-between transition group"
             >
               <div className="flex items-center gap-3">

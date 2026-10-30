@@ -157,7 +157,7 @@ export function AdminPOS({
   // LINE OA & Contact Channels State
   const [adminLineOa, setAdminLineOa] = useState(laundryStore.settings?.lineOaId || '@nonamelaundry');
   const [adminWhatsapp, setAdminWhatsapp] = useState(laundryStore.settings?.whatsappNumber || '@nonamelaundry');
-  const [adminEmail, setAdminEmail] = useState(laundryStore.settings?.supportEmail || 'support@nonamelaundry.com');
+  const [adminEmail, setAdminEmail] = useState(laundryStore.settings?.supportEmail || 'nonamelaundrybooking@gmail.com');
   const [channelSuccessMsg, setChannelSuccessMsg] = useState('');
   const [channelErrorMsg, setChannelErrorMsg] = useState('');
   const [channelSaving, setChannelSaving] = useState(false);
@@ -2150,7 +2150,7 @@ export function AdminPOS({
                 <input
                   type="email"
                   required
-                  placeholder="support@nonamelaundry.com"
+                  placeholder="nonamelaundrybooking@gmail.com"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-bold bg-white text-slate-800 text-sm"

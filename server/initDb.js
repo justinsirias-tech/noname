@@ -196,7 +196,7 @@ const DEFAULT_SETTINGS = {
   currency: 'THB',
   lineOaId: '@nonamelaundry',
   whatsappNumber: '@nonamelaundry',
-  supportEmail: 'support@nonamelaundry.com',
+  supportEmail: 'nonamelaundrybooking@gmail.com',
   paymentGateway: {
     provider: 'Omise / Opn Payments (Thailand)',
     merchantName: 'NoName Laundry Bangkok Co., Ltd.',

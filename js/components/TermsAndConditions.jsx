@@ -51,7 +51,7 @@ export function TermsAndConditions({ setView }) {
               <a href={CONTACT_CHANNELS.line.url} target="_blank" rel="noreferrer" className="bg-white px-3 py-1.5 rounded-xl border border-sky-300 text-green-800 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition">
                 <Icon name="line" className="w-3.5 h-3.5 text-green-600" /> LINE: {CONTACT_CHANNELS.line.handle}
               </a>
-              <a href="mailto:support@nonamelaundry.com" className="bg-white px-3 py-1.5 rounded-xl border border-sky-300 text-sky-800 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition">
+              <a href="mailto:nonamelaundrybooking@gmail.com" className="bg-white px-3 py-1.5 rounded-xl border border-sky-300 text-sky-800 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition">
                 <Icon name="mail" className="w-3.5 h-3.5 text-sky-600" /> {language === 'th' ? 'อีเมล:' : 'Email:'} {CONTACT_CHANNELS.email.handle}
               </a>
             </div>

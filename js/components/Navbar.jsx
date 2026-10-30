@@ -119,7 +119,7 @@ export function Navbar({
             </a>
             <span className="text-slate-600">/</span>
             <a
-              href="mailto:support@nonamelaundry.com?subject=Inquiry:%20NoName%20Laundry%20Bangkok"
+              href="mailto:nonamelaundrybooking@gmail.com?subject=Inquiry:%20NoName%20Laundry%20Bangkok"
               className="inline-flex items-center gap-1 text-slate-300 hover:text-slate-200 font-medium transition"
               title="Email Support"
             >

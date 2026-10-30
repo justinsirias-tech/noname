@@ -448,7 +448,7 @@ Need assistance? Contact our team:
                   <div>Watthana / Khlong Toei, Sukhumvit, Bangkok 10110</div>
                   <div>Tax ID: 0105567089123 • Commercial Garment Care</div>
                   <div>LINE OA: <strong>@nonamelaundry</strong> • WhatsApp: <strong>@nonamelaundry</strong> • Phone: <strong>+66 80 888 9885</strong></div>
-                  <div>Email: support@nonamelaundry.com • 100% Cashless Facility</div>
+                  <div>Email: nonamelaundrybooking@gmail.com • 100% Cashless Facility</div>
                 </div>
               </div>
 

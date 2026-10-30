@@ -1538,7 +1538,7 @@ app.get('/api/state', async (req, res) => {
         ],
         lineOaId: '@nonamelaundry',
         whatsappNumber: '@nonamelaundry',
-        supportEmail: 'support@nonamelaundry.com'
+        supportEmail: 'nonamelaundrybooking@gmail.com'
       }
     });
   }
