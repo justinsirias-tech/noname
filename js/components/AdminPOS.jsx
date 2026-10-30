@@ -75,7 +75,7 @@ export function AdminPOS({
         nextDayPricePerKg: nextPrice,
         sameDayPricePerKg: samePrice,
         sameDayAvailable: s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true,
-        minWeightKg: s.minWeightKg !== undefined ? s.minWeightKg : (isPiece ? 1.0 : 4.0),
+        minWeightKg: s.minWeightKg !== undefined ? s.minWeightKg : (isPiece ? 1.0 : 5.0),
         turnaroundHours: s.turnaroundHours !== undefined ? s.turnaroundHours : 48,
         description: s.description || '',
         popular: Boolean(s.popular),
@@ -289,7 +289,7 @@ export function AdminPOS({
     BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.code || '10110'
   );
   const [manualCondo, setManualCondo] = useState('');
-  const [manualWeight, setManualWeight] = useState('4.0');
+  const [manualWeight, setManualWeight] = useState('5.0');
   const [manualSpeed, setManualSpeed] = useState('standard_48h');
   const [manualSuccessMsg, setManualSuccessMsg] = useState('');
 
@@ -420,7 +420,7 @@ export function AdminPOS({
   // Manual Order Live Calculation
   const selManualSrv = services.find(s => s.id === manualServiceId) || services[0];
   const isManualPiece = selManualSrv?.pricingType === 'piece' || selManualSrv?.unit === 'piece';
-  const manualEstQty = parseFloat(manualWeight) || (isManualPiece ? 1 : 4.0);
+  const manualEstQty = parseFloat(manualWeight) || (isManualPiece ? 1 : 5.0);
   const manualRate = manualSpeed === 'same_day'
     ? (selManualSrv?.sameDayPricePerKg || Math.round((selManualSrv?.standardPricePerKg || selManualSrv?.pricePerKg || 70) * 1.75))
     : (manualSpeed === 'next_day_24h'
@@ -428,7 +428,7 @@ export function AdminPOS({
       : (selManualSrv?.standardPricePerKg || selManualSrv?.pricePerKg || 70));
   const manualSubtotal = isManualPiece
     ? Math.round(manualEstQty * manualRate)
-    : Math.round(Math.max(manualEstQty, selManualSrv?.minWeightKg || 4.0) * manualRate);
+    : Math.round(Math.max(manualEstQty, selManualSrv?.minWeightKg || 5.0) * manualRate);
   const manualDeliveryFeeResult = laundryStore.calculateDeliveryFee ? laundryStore.calculateDeliveryFee({
     city: manualCity,
     district: manualDistrict,
@@ -609,7 +609,7 @@ export function AdminPOS({
         nextDayPricePerKg: nextPrice,
         sameDayPricePerKg: samePrice,
         sameDayAvailable: Boolean(draft.sameDayAvailable !== false),
-        minWeightKg: isPiece ? (parseFloat(draft.minWeightKg) || 1.0) : Math.max(1, parseFloat(draft.minWeightKg) || 4.0),
+        minWeightKg: isPiece ? (parseFloat(draft.minWeightKg) || 1.0) : Math.max(1, parseFloat(draft.minWeightKg) || 5.0),
         turnaroundHours: parseInt(draft.turnaroundHours) || 48,
         description: draft.description,
         popular: Boolean(draft.popular),
@@ -652,7 +652,7 @@ export function AdminPOS({
           nextDayPricePerKg: nextPrice,
           sameDayPricePerKg: samePrice,
           sameDayAvailable: Boolean(draft.sameDayAvailable !== false),
-          minWeightKg: isPiece ? (parseFloat(draft.minWeightKg) || 1.0) : Math.max(1, parseFloat(draft.minWeightKg) || 4.0),
+          minWeightKg: isPiece ? (parseFloat(draft.minWeightKg) || 1.0) : Math.max(1, parseFloat(draft.minWeightKg) || 5.0),
           turnaroundHours: parseInt(draft.turnaroundHours) || 48,
           description: draft.description,
           popular: Boolean(draft.popular),
@@ -709,7 +709,7 @@ export function AdminPOS({
       nextDayPricePerKg: nextPrice,
       sameDayPricePerKg: samePrice,
       sameDayAvailable: Boolean(newServiceSameDayAvailable),
-      minWeightKg: isPiece ? (parseFloat(newServiceMinWeight) || 1.0) : (parseFloat(newServiceMinWeight) || 4.0),
+      minWeightKg: isPiece ? (parseFloat(newServiceMinWeight) || 1.0) : (parseFloat(newServiceMinWeight) || 5.0),
       turnaroundHours: parseInt(newServiceTurnaround) || 48,
       description: newServiceDesc.trim() || 'Professional laundry and linen processing service across Bangkok.',
       popular: newServicePopular,
@@ -911,7 +911,7 @@ export function AdminPOS({
       leaveWithJuristic: true,
       quantity: isManualPiece ? (parseInt(manualWeight) || 1) : null,
       unit: isManualPiece ? (selManualSrv?.unit || 'piece') : 'KG',
-      estimatedWeightKg: isManualPiece ? (parseInt(manualWeight) || 1) : (parseFloat(manualWeight) || 4.0),
+      estimatedWeightKg: isManualPiece ? (parseInt(manualWeight) || 1) : (parseFloat(manualWeight) || 5.0),
       turnaroundSpeed: manualSpeed,
       pickupDate: new Date().toISOString().split('T')[0],
       pickupTime: TIME_SLOTS[0],
@@ -1020,7 +1020,7 @@ export function AdminPOS({
             NoName Laundry Admin Back-Office
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Configure minimum weights (default 4.0 KG), service prices, 3rd-party payment gateway, add new services, and manage job lifecycles.
+            Configure minimum weights (default 5.0 KG), service prices, 3rd-party payment gateway, add new services, and manage job lifecycles.
           </p>
         </div>
 
@@ -1293,7 +1293,7 @@ export function AdminPOS({
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[10px] text-slate-400">Rate: ฿{order.pricePerKg}/KG (Min {order.minWeightAppliedKg || 4}KG)</div>
+                              <div className="text-[10px] text-slate-400">Rate: ฿{order.pricePerKg}/KG (Min {order.minWeightAppliedKg || 5}KG)</div>
                             </td>
 
                             <td className="py-3.5 px-4">
@@ -1617,7 +1617,7 @@ export function AdminPOS({
                                 const newType = e.target.value;
                                 handleDraftFieldChange(service.id, 'pricingType', newType);
                                 handleDraftFieldChange(service.id, 'unit', newType === 'piece' ? 'piece' : 'KG');
-                                if (newType === 'piece' && (parseFloat(draft.minWeightKg) || 4.0) > 1.0) {
+                                if (newType === 'piece' && (parseFloat(draft.minWeightKg) || 5.0) > 1.0) {
                                   handleDraftFieldChange(service.id, 'minWeightKg', 1.0);
                                 }
                               }}
@@ -1745,7 +1745,7 @@ export function AdminPOS({
                               />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">{unitLabel}</span>
                             </div>
-                            <span className="text-[10px] text-slate-400 mt-1 block">{isPiece ? 'Min 1 item' : 'Standard 4.0 KG min'}</span>
+                            <span className="text-[10px] text-slate-400 mt-1 block">{isPiece ? 'Min 1 item' : 'Standard 5.0 KG min'}</span>
                           </div>
                         </div>
                       </div>
@@ -3501,7 +3501,7 @@ export function AdminPOS({
                       if (catObj?.pricingType) {
                         setNewServicePricingType(catObj.pricingType);
                         setNewServiceUnit(catObj.pricingType === 'piece' ? 'piece' : 'KG');
-                        setNewServiceMinWeight(catObj.pricingType === 'piece' ? '1.0' : '4.0');
+                        setNewServiceMinWeight(catObj.pricingType === 'piece' ? '1.0' : '5.0');
                       }
                     }}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold"
@@ -3520,7 +3520,7 @@ export function AdminPOS({
                       const pt = e.target.value;
                       setNewServicePricingType(pt);
                       setNewServiceUnit(pt === 'piece' ? 'piece' : 'KG');
-                      setNewServiceMinWeight(pt === 'piece' ? '1.0' : '4.0');
+                      setNewServiceMinWeight(pt === 'piece' ? '1.0' : '5.0');
                     }}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold text-sky-900"
                   >

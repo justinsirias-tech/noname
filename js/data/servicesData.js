@@ -101,7 +101,7 @@ export const INITIAL_SERVICES = [
     nextDayPricePerKg: 100,
     sameDayPricePerKg: 200,
     sameDayAvailable: true,
-    minWeightKg: 4.0,
+    minWeightKg: 5.0,
     turnaroundHours: 24,
     popular: true,
     features: [
@@ -131,7 +131,7 @@ export const INITIAL_SERVICES = [
     nextDayPricePerKg: 150,
     sameDayPricePerKg: 300,
     sameDayAvailable: true,
-    minWeightKg: 4.0,
+    minWeightKg: 5.0,
     turnaroundHours: 36,
     popular: false,
     features: [
@@ -161,7 +161,7 @@ export const INITIAL_SERVICES = [
     nextDayPricePerKg: 170,
     sameDayPricePerKg: 340,
     sameDayAvailable: true,
-    minWeightKg: 4.0,
+    minWeightKg: 5.0,
     turnaroundHours: 48,
     popular: false,
     features: [

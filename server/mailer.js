@@ -252,8 +252,8 @@ async function sendConfirmedBillingEmail(order, overrideRecipient = null) {
   const unitLabel = isPiece ? (order.unit || 'pc') : 'KG';
   const scaleWeight = order.actualWeightKg !== null && order.actualWeightKg !== undefined
     ? Number(order.actualWeightKg)
-    : (Number(order.estimatedWeightKg) || (isPiece ? 1 : 4.0));
-  const minWeight = Number(order.minWeightAppliedKg || (isPiece ? 1 : 4.0));
+    : (Number(order.estimatedWeightKg) || (isPiece ? 1 : 5.0));
+  const minWeight = Number(order.minWeightAppliedKg || (isPiece ? 1 : 5.0));
   const billableWeight = isPiece ? scaleWeight : Math.max(scaleWeight, minWeight);
   const unitRate = Number(order.pricePerKg || 70);
 

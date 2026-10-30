@@ -39,7 +39,7 @@ Even worse is the **in-unit condo washing machine struggle**:
 
 | Feature / Cost Factor | Self-Service Coin Laundromat (DIY) | Traditional Per-Piece Condo Shop | **NoName Laundry (Digital By-the-KG)** |
 | :--- | :--- | :--- | :--- |
-| **Pricing Model** | ฿50–฿60 Wash + ฿50–฿60 Dry + Detergent (~฿130–฿160 per load) | ฿25–฿60 per individual item (40 pcs = ฿1,200+) | **฿70/KG all-inclusive** (4.0 KG load = **฿280** for ~20–25 items) |
+| **Pricing Model** | ฿50–฿60 Wash + ฿50–฿60 Dry + Detergent (~฿130–฿160 per load) | ฿25–฿60 per individual item (40 pcs = ฿1,200+) | **฿70/KG all-inclusive** (5.0 KG load = **฿350** for ~25–30 items) |
 | **Time Spent by You** | **90–120 minutes** (walking, waiting, unloading, folding) | 2 trips to shop during limited hours; cash-only receipts | **60 seconds** (book online & drop bag at condo lobby/juristic) |
 | **Folding & Finishing** | DIY folding on public tables | Basic fold or harsh hot-plate iron | **Professional commercial fold or hand steam press** |
 | **Weight & Billing Audit** | Unweighed; easy to overload drum | Hand-written paper slips | **Certified digital scale photo receipt** via LINE / WhatsApp |
@@ -70,24 +70,24 @@ Whether your residence is managed by **Sansiri, AP Thai, Ananda (Ideo / Ashton),
 
 ## Choosing the Right Tier: Wash & Fold (฿70/KG) vs. Steam Iron & Fold (฿95/KG) vs. Hanger (฿120/KG)
 
-Unlike traditional dry cleaners that charge ฿50 to ฿120 per single shirt or pair of trousers, **by-the-KG laundry pricing** lets you pay strictly for the physical weight of your clothes. Our minimum order is just **4.0 KG**—which equals roughly **5 to 7 days of daily clothes** for an individual living in Bangkok.
+Unlike traditional dry cleaners that charge ฿50 to ฿120 per single shirt or pair of trousers, **by-the-KG laundry pricing** lets you pay strictly for the physical weight of your clothes. Our minimum order is just **5.0 KG**—which equals roughly **6 to 8 days of daily clothes** for an individual living in Bangkok.
 
-### What Does 4.0 KG of Laundry Actually Look Like?
+### What Does 5.0 KG of Laundry Actually Look Like?
 
-A typical **4.0 KG condominium laundry bag** comfortably holds around **20 to 24 everyday garments**:
+A typical **5.0 KG condominium laundry bag** comfortably holds around **25 to 30 everyday garments**:
 - **7x** Cotton T-shirts or polo shirts (~1.1 KG)
 - **4x** Gym shorts, running tops, or yoga leggings (~0.6 KG)
 - **3x** Casual trousers, chinos, or denim jeans (~1.2 KG)
-- **2x** Bath towels (~0.8 KG)
-- **7x** Pairs of socks and undergarments (~0.3 KG)
+- **3x** Bath towels (~1.2 KG)
+- **10x** Pairs of socks and undergarments (~0.5 KG)
 
-At **฿70/KG**, this entire week of laundry costs just **฿280**—working out to roughly **฿11 to ฿14 per garment**!
+At **฿70/KG**, this entire week of laundry costs just **฿350**—working out to roughly **฿12 to ฿14 per garment**!
 
 ### Complete By-the-KG Rate & Turnaround Speed Breakdown
 
 We offer three specialized care tiers and three turnaround speeds so you can match your laundry service to your schedule and wardrobe needs:
 
-| Service Tier (By Weight — 4.0 KG Min) | Standard (48h) | Next-Day (24h) | Same-Day Express | Best For Wardrobe Items |
+| Service Tier (By Weight — 5.0 KG Min) | Standard (48h) | Next-Day (24h) | Same-Day Express | Best For Wardrobe Items |
 | :--- | :--- | :--- | :--- | :--- |
 | **Wash / Fold** (*ซัก อบ พับ*) | **฿70 / KG** | **฿100 / KG** | **฿130 / KG** | T-shirts, gym & activewear, shorts, undergarments, socks, casual cottons, bath towels |
 | **Wash / Iron / Fold** (*ซัก อบ รีด พับ*) | **฿95 / KG** | **฿130 / KG** | **฿160 / KG** | Smart-casual polo shirts, chinos, linen shorts, casual work blouses, travel-ready stacks |
@@ -119,8 +119,8 @@ NoName Laundry operates a dedicated logistics network covering **all 50 district
 ### 1. Do I need to weigh my laundry before booking a pickup?
 **No.** You never need to guess or weigh your clothes at home. Simply select an estimated weight in our [online calculator](/#book) when booking. Once your bag reaches our facility, we weigh it on a **certified digital scale** and send you a clear photo of the digital readout on **LINE (`@nonamelaundry`)** or **WhatsApp (`+66 80 888 9885`)** before billing.
 
-### 2. What happens if my laundry bag weighs less than the 4.0 KG minimum?
-Our minimum order weight for by-the-KG services is **4.0 KG** (which starts at just **฿280** for Standard Wash & Fold). If your bag weighs 3.2 KG, it is simply billed at the 4.0 KG minimum tier. To maximize value, most condo residents include a couple of bath towels, gym clothes, or pillowcases to easily reach 4.0 KG.
+### 2. What happens if my laundry bag weighs less than the 5.0 KG minimum?
+Our minimum order weight for by-the-KG services is **5.0 KG** (which starts at just **฿350** for Standard Wash & Fold). If your bag weighs 3.2 KG, it is simply billed at the 5.0 KG minimum tier. To maximize value, most condo residents include a couple of bath towels, gym clothes, or pillowcases to easily reach 5.0 KG.
 
 ### 3. Are my clothes washed together with other customers' laundry?
 **Never.** Every single customer order is washed and dried in a **dedicated, sanitized single-client drum**. We never mix your garments with anyone else’s laundry, and our commercial washers run automated hospital-grade drum disinfection cycles between loads.

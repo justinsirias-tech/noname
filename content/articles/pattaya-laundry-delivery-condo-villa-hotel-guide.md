@@ -81,7 +81,7 @@ Sand, sea salt, and suntan lotion trapped in bath towels and moisture-wicking go
 
 ### Complete Pattaya By-the-KG Pricing & Turnaround Speeds
 
-| Service Tier (4.0 KG Minimum Order) | Standard (48h) | Next-Day (24h) | Same-Day Express | Ideal For |
+| Service Tier (5.0 KG Minimum Order) | Standard (48h) | Next-Day (24h) | Same-Day Express | Ideal For |
 | :--- | :--- | :--- | :--- | :--- |
 | **Wash / Fold** (*ซัก อบ พับ*) | **฿70 / KG** | **฿100 / KG** | **฿130 / KG** | Everyday t-shirts, shorts, swimwear, gym/golf gear, socks, beach & bath towels |
 | **Wash / Iron / Fold** (*ซัก อบ รีด พับ*) | **฿95 / KG** | **฿130 / KG** | **฿160 / KG** | Linen shirts, smart polo tops, chinos, resort trousers, folded travel wardrobes |

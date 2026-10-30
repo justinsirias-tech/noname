@@ -25,7 +25,7 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       initialSelectedItems.forEach(it => {
         if (it && it.id) {
           map[it.id] = {
-            weightKg: Number(it.weight || it.estimatedWeightKg || it.minWeight || 4.0),
+            weightKg: Number(it.weight || it.estimatedWeightKg || it.minWeight || 5.0),
             quantity: Number(it.qty || it.quantity || 1)
           };
         }
@@ -37,7 +37,7 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       const isPc = defaultSrv?.pricingType === 'piece' || defaultSrv?.unit === 'piece';
       return {
         [initialServiceId]: {
-          weightKg: initialWeight || (isPc ? 1.0 : Number(defaultSrv?.minWeightKg || 4.0)),
+          weightKg: initialWeight || (isPc ? 1.0 : Number(defaultSrv?.minWeightKg || 5.0)),
           quantity: 1
         }
       };
@@ -343,7 +343,7 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       initialSelectedItems.forEach(it => {
         if (it && it.id) {
           map[it.id] = {
-            weightKg: Number(it.weight || it.estimatedWeightKg || it.minWeight || 4.0),
+            weightKg: Number(it.weight || it.estimatedWeightKg || it.minWeight || 5.0),
             quantity: Number(it.qty || it.quantity || 1)
           };
         }
@@ -358,7 +358,7 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       const isPc = srv?.pricingType === 'piece' || srv?.unit === 'piece';
       setSelectedServicesMap({
         [initialServiceId]: {
-          weightKg: initialWeight || (isPc ? 1.0 : Number(srv?.minWeightKg || 4.0)),
+          weightKg: initialWeight || (isPc ? 1.0 : Number(srv?.minWeightKg || 5.0)),
           quantity: 1
         }
       });
@@ -389,7 +389,7 @@ export function BookingWizard({ services, categories: propCategories, initialSer
     const srv = services.find(s => s.id === srvId);
     if (!srv) return;
     const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
-    const defaultMin = Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
+    const defaultMin = Number(srv.minWeightKg || (isPiece ? 1.0 : 5.0));
 
     setSelectedServicesMap(prev => {
       if (prev[srvId]) {
@@ -453,7 +453,7 @@ export function BookingWizard({ services, categories: propCategories, initialSer
     if (!srv) return null;
     const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
     const unitLabel = isPiece ? (srv.unit || 'piece') : 'KG';
-    const minWeight = Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
+    const minWeight = Number(srv.minWeightKg || (isPiece ? 1.0 : 5.0));
     const stdRate = Number(srv.standardPricePerKg || srv.pricePerKg || (srv.id === 'wash_fold' ? 70 : 70));
     const nextRate = Number(srv.nextDayPricePerKg || Math.round(stdRate * 1.3));
     const sameRate = Number(srv.sameDayPricePerKg || Math.round(stdRate * 1.75));
@@ -1037,12 +1037,12 @@ Please confirm our pickup schedule. Thank you!`
         </p>
         <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex items-center gap-3 shadow-xs">
           <span className="w-8 h-8 rounded-xl bg-amber-500 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
-            4KG
+            5KG
           </span>
           <p className="text-xs sm:text-sm font-extrabold tracking-tight">
             {language === 'th'
-              ? 'กรุณาอ่านก่อนทำการจอง: บริการซักผ้าทุกรายการคิดค่าบริการขั้นต่ำที่ 4 กิโลกรัม (4KG)'
-              : 'Please note before booking: All laundry services have a minimum charge of 4KG.'}
+              ? 'กรุณาอ่านก่อนทำการจอง: บริการซักผ้าทุกรายการคิดค่าบริการขั้นต่ำที่ 5 กิโลกรัม (5KG)'
+              : 'Please note before booking: All laundry services have a minimum charge of 5KG.'}
           </p>
         </div>
       </div>
@@ -1059,7 +1059,7 @@ Please confirm our pickup schedule. Thank you!`
                   {language === 'th' ? 'เลือกบริการและความเร็วการจัดส่ง' : 'Choose Services & Turnaround'}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {language === 'th' ? 'เลือกระดับความเร็ว จากนั้นแตะเลือกบริการที่ต้องการ (บริการซักผ้าทุกรายการมีขั้นต่ำ 4KG)' : 'Pick turnaround speed, then tap the services you need. All laundry services have a minimum charge of 4KG.'}
+                  {language === 'th' ? 'เลือกระดับความเร็ว จากนั้นแตะเลือกบริการที่ต้องการ (บริการซักผ้าทุกรายการมีขั้นต่ำ 5KG)' : 'Pick turnaround speed, then tap the services you need. All laundry services have a minimum charge of 5KG.'}
                 </p>
               </div>
             </div>
@@ -1178,9 +1178,9 @@ Please confirm our pickup schedule. Thank you!`
                 if (activeSpeed === 'same_day') activePrice = samePrice;
                 else if (activeSpeed === 'next_day_24h') activePrice = nextPrice;
 
-                const currentWeight = selectedServicesMap[srv.id]?.weightKg || Number(srv.minWeightKg || (isPiece ? 1.0 : 4.0));
+                const currentWeight = selectedServicesMap[srv.id]?.weightKg || Number(srv.minWeightKg || (isPiece ? 1.0 : 5.0));
                 const currentQty = selectedServicesMap[srv.id]?.quantity || 1;
-                const billable = isPiece ? currentQty : Math.max(currentWeight, Number(srv.minWeightKg || 4.0));
+                const billable = isPiece ? currentQty : Math.max(currentWeight, Number(srv.minWeightKg || 5.0));
                 const cardSubtotal = Math.round(billable * activePrice);
 
                 const srvName = (language === 'th' && srv.nameTh) ? srv.nameTh : srv.name;
@@ -1238,7 +1238,7 @@ Please confirm our pickup schedule. Thank you!`
                         <span className="text-[10px] text-slate-400 ml-auto">
                           {isPiece 
                             ? (language === 'th' ? `ขั้นต่ำ 1 ชิ้น` : `Min 1 ${unitLabel}`) 
-                            : (language === 'th' ? `ขั้นต่ำ ${srv.minWeightKg || 4} กก.` : `Min ${srv.minWeightKg || 4} KG`)}
+                            : (language === 'th' ? `ขั้นต่ำ ${srv.minWeightKg || 5} กก.` : `Min ${srv.minWeightKg || 5} KG`)}
                         </span>
                       </div>
                     </div>

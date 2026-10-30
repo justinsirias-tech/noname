@@ -64,7 +64,7 @@ let initialServices = [
     nextPrice: 100,
     samePrice: 200,
     sameAvail: true,
-    minWeight: 4.0,
+    minWeight: 5.0,
     turnaround: 24,
     popular: true,
     features: ['Eco-friendly detergent', 'Gentle tumble drying', 'Neat compact folding', 'Moisture-proof dust bags']
@@ -81,7 +81,7 @@ let initialServices = [
     nextPrice: 150,
     samePrice: 300,
     sameAvail: true,
-    minWeight: 4.0,
+    minWeight: 5.0,
     turnaround: 36,
     popular: false,
     features: ['Stain pre-treatment', 'Fabric conditioning', 'Steam ironing', 'Clear protective packaging']
@@ -98,7 +98,7 @@ let initialServices = [
     nextPrice: 170,
     samePrice: 340,
     sameAvail: true,
-    minWeight: 4.0,
+    minWeight: 5.0,
     turnaround: 48,
     popular: false,
     features: ['Delicate temperature-controlled wash', 'Hand steam pressing', 'Heavy-duty hangers included', 'Breathable garment cover']
@@ -399,7 +399,7 @@ function mapOrder(row) {
     leaveWithJuristic: Boolean(row.leave_with_juristic),
     estimatedWeightKg: row.estimated_weight_kg !== null ? Number(row.estimated_weight_kg) : null,
     actualWeightKg: row.actual_weight_kg !== null ? Number(row.actual_weight_kg) : null,
-    minWeightAppliedKg: Number(row.min_weight_applied_kg || 4.0),
+    minWeightAppliedKg: Number(row.min_weight_applied_kg || 5.0),
     pricePerKg: Number(row.price_per_kg),
     totalPrice: Number(row.total_price),
     turnaroundSpeed: row.turnaround_speed || 'standard_48h',
@@ -1826,11 +1826,11 @@ app.post('/api/orders', async (req, res) => {
     condoName: o.condoName || '',
     roomNumber: o.roomNumber || '',
     leaveWithJuristic: Boolean(o.leaveWithJuristic),
-    estimatedWeightKg: o.estimatedWeightKg !== undefined ? Number(o.estimatedWeightKg) : 4.0,
+    estimatedWeightKg: o.estimatedWeightKg !== undefined ? Number(o.estimatedWeightKg) : 5.0,
     actualWeightKg: o.actualWeightKg !== undefined && o.actualWeightKg !== null ? Number(o.actualWeightKg) : null,
-    minWeightAppliedKg: Number(o.minWeightAppliedKg) || 4.0,
+    minWeightAppliedKg: Number(o.minWeightAppliedKg) || 5.0,
     pricePerKg: Number(o.pricePerKg) || 70,
-    totalPrice: Number(o.totalPrice) || 280,
+    totalPrice: Number(o.totalPrice) || 350,
     turnaroundSpeed: o.turnaroundSpeed || 'standard_48h',
     status: o.status || 'TBA',
     paymentStatus: o.paymentStatus || 'PENDING',
@@ -1891,7 +1891,7 @@ app.post('/api/orders', async (req, res) => {
       Boolean(o.leaveWithJuristic),
       Number(o.estimatedWeightKg) || 0,
       o.actualWeightKg !== undefined && o.actualWeightKg !== null ? Number(o.actualWeightKg) : null,
-      Number(o.minWeightAppliedKg) || 4.0,
+      Number(o.minWeightAppliedKg) || 5.0,
       Number(o.pricePerKg) || 70,
       Number(o.totalPrice) || 0,
       o.turnaroundSpeed || 'standard_48h',
@@ -1998,7 +1998,7 @@ const handleOrderStatusUpdate = async (req, res) => {
     const targetServiceName = serviceName || sUpdates.serviceName || currentOrder.service_name || currentOrder.serviceName;
     const targetTurnaround = turnaroundSpeed || sUpdates.turnaroundSpeed || currentOrder.turnaround_speed || currentOrder.turnaroundSpeed;
     const targetPricePerKg = (pricePerKg !== undefined && pricePerKg !== null) ? Number(pricePerKg) : (sUpdates.pricePerKg !== undefined ? Number(sUpdates.pricePerKg) : Number(currentOrder.price_per_kg || currentOrder.pricePerKg || 70));
-    const targetMinWeight = (minWeightAppliedKg !== undefined && minWeightAppliedKg !== null) ? Number(minWeightAppliedKg) : (sUpdates.minWeightAppliedKg !== undefined ? Number(sUpdates.minWeightAppliedKg) : Number(currentOrder.min_weight_applied_kg || currentOrder.minWeightAppliedKg || 4.0));
+    const targetMinWeight = (minWeightAppliedKg !== undefined && minWeightAppliedKg !== null) ? Number(minWeightAppliedKg) : (sUpdates.minWeightAppliedKg !== undefined ? Number(sUpdates.minWeightAppliedKg) : Number(currentOrder.min_weight_applied_kg || currentOrder.minWeightAppliedKg || 5.0));
     const targetQuantity = (req.body.quantity !== undefined && req.body.quantity !== null) ? Number(req.body.quantity) : (currentOrder.quantity || 1);
     const targetUnit = req.body.unit || sUpdates.unit || currentOrder.unit || 'KG';
     const targetCategoryId = req.body.categoryId || sUpdates.categoryId || currentOrder.category_id || currentOrder.categoryId || 'laundry_by_weight';
@@ -2014,7 +2014,7 @@ const handleOrderStatusUpdate = async (req, res) => {
       ? sUpdates.items
       : (Array.isArray(currentOrder.items) ? currentOrder.items : []);
 
-    const effectiveKg = (updatedActualKg !== null && updatedActualKg !== undefined) ? updatedActualKg : Number(currentOrder.estimated_weight_kg || currentOrder.estimatedWeightKg || 4.0);
+    const effectiveKg = (updatedActualKg !== null && updatedActualKg !== undefined) ? updatedActualKg : Number(currentOrder.estimated_weight_kg || currentOrder.estimatedWeightKg || 5.0);
     const billableKg = Math.max(effectiveKg, targetMinWeight);
 
     let calculatedTotal = 0;
@@ -2852,10 +2852,10 @@ app.post('/api/admin/test-email', async (req, res) => {
       customerName: 'Admin Diagnostics',
       email: recipient,
       serviceName: 'Wash / Fold (SMTP Diagnostic Test)',
-      actualWeightKg: 4.0,
-      minWeightAppliedKg: 4.0,
+      actualWeightKg: 5.0,
+      minWeightAppliedKg: 5.0,
       pricePerKg: 70,
-      totalPrice: 280,
+      totalPrice: 350,
       pickupDate: new Date().toISOString().split('T')[0],
       pickupTime: '10:00 - 12:00',
       deliveryDate: 'Standard',
@@ -2866,7 +2866,7 @@ app.post('/api/admin/test-email', async (req, res) => {
       subdistrict: 'Khlong Tan Nuea',
       city: 'Bangkok',
       unit: 'KG',
-      items: [{ serviceName: 'Wash / Fold (SMTP Diagnostic Test)', quantity: 4.0, unit: 'KG', pricePerKg: 70, billableAmount: 4.0 }]
+      items: [{ serviceName: 'Wash / Fold (SMTP Diagnostic Test)', quantity: 5.0, unit: 'KG', pricePerKg: 70, billableAmount: 5.0 }]
     };
     const emailRes = await sendConfirmedBillingEmail(testOrder, recipient);
     res.json(emailRes);

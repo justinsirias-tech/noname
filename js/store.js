@@ -500,7 +500,7 @@ export class LaundryStore {
           sameDayAvailable: s.sameDayAvailable !== undefined ? Boolean(s.sameDayAvailable) : true,
           pricePerKg: stdPrice,
           turnaroundHours: s.turnaroundHours ? Number(s.turnaroundHours) : 48,
-          minWeightKg: isPiece ? (Number(s.minWeightKg) || 1.0) : (Number(s.minWeightKg) < 4.0 ? 4.0 : Number(s.minWeightKg))
+          minWeightKg: isPiece ? (Number(s.minWeightKg) || 1.0) : (Number(s.minWeightKg) < 5.0 ? 5.0 : Number(s.minWeightKg))
         });
       });
 
@@ -1058,7 +1058,7 @@ export class LaundryStore {
       nextDayPricePerKg: nextPrice,
       sameDayPricePerKg: samePrice,
       sameDayAvailable: serviceData.sameDayAvailable !== undefined ? Boolean(serviceData.sameDayAvailable) : true,
-      minWeightKg: isPiece ? (Number(serviceData.minWeightKg) || 1.0) : Math.max(4.0, Number(serviceData.minWeightKg) || 4.0),
+      minWeightKg: isPiece ? (Number(serviceData.minWeightKg) || 1.0) : Math.max(5.0, Number(serviceData.minWeightKg) || 5.0),
       turnaroundHours: Number(serviceData.turnaroundHours) || 48,
       popular: Boolean(serviceData.popular),
       features: serviceData.features && serviceData.features.length > 0
@@ -1123,10 +1123,10 @@ export class LaundryStore {
       ? orderInput.items.filter(i => i.pricingType === 'piece' || i.unit === 'piece').reduce((s, i) => s + (Number(i.quantity) || 1), 0)
       : ((orderInput.quantity !== undefined && orderInput.quantity !== null && orderInput.quantity !== '')
         ? Number(orderInput.quantity)
-        : (isPiece ? 1 : Number(orderInput.estimatedWeightKg || 4.0)));
+        : (isPiece ? 1 : Number(orderInput.estimatedWeightKg || 5.0)));
     const totalEstWeight = hasMultiItems
       ? orderInput.items.filter(i => i.pricingType !== 'piece' && i.unit !== 'piece').reduce((s, i) => s + (Number(i.estimatedWeightKg || i.billableAmount) || 0), 0)
-      : (isPiece ? null : Number(orderInput.estimatedWeightKg || 4.0));
+      : (isPiece ? null : Number(orderInput.estimatedWeightKg || 5.0));
 
     let calculatedTotal = 0;
     let mainServiceName = service.name;
@@ -1137,7 +1137,7 @@ export class LaundryStore {
     } else {
       const billableAmount = isPiece
         ? quantity
-        : Math.max(Number(orderInput.estimatedWeightKg || 4.0), Number(service.minWeightKg || 4.0));
+        : Math.max(Number(orderInput.estimatedWeightKg || 5.0), Number(service.minWeightKg || 5.0));
       calculatedTotal = Math.round(billableAmount * unitPrice);
     }
 
@@ -1194,8 +1194,8 @@ export class LaundryStore {
             quantity,
             rate: unitPrice,
             pricePerKg: unitPrice,
-            estimatedWeightKg: isPiece ? null : Number(orderInput.estimatedWeightKg || 4.0),
-            billableAmount: isPiece ? quantity : Math.max(Number(orderInput.estimatedWeightKg || 4.0), Number(service.minWeightKg || 4.0)),
+            estimatedWeightKg: isPiece ? null : Number(orderInput.estimatedWeightKg || 5.0),
+            billableAmount: isPiece ? quantity : Math.max(Number(orderInput.estimatedWeightKg || 5.0), Number(service.minWeightKg || 5.0)),
             subtotal: calculatedTotal
           }],
       district: orderInput.district,
@@ -1404,8 +1404,8 @@ export class LaundryStore {
         const isPiece = updated.unit === 'piece' || (serviceUpdates && serviceUpdates.unit === 'piece');
         const effectiveKg = updated.actualWeightKg !== null && updated.actualWeightKg !== undefined
           ? Number(updated.actualWeightKg)
-          : Number(updated.estimatedWeightKg || 4.0);
-        const billableKg = Math.max(effectiveKg, updated.minWeightAppliedKg || 4.0);
+          : Number(updated.estimatedWeightKg || 5.0);
+        const billableKg = Math.max(effectiveKg, updated.minWeightAppliedKg || 5.0);
         
         let subtotal = 0;
         if (hasItems && updated.items.length > 1) {
@@ -2407,7 +2407,7 @@ export class LaundryStore {
   }
 
   resetAllData() {
-    this.services = INITIAL_SERVICES.map(s => ({ ...s, minWeightKg: 4.0 }));
+    this.services = INITIAL_SERVICES.map(s => ({ ...s, minWeightKg: 5.0 }));
     this.orders = INITIAL_ORDERS;
     this.incidents = INITIAL_INCIDENTS;
     this.customers = INITIAL_CUSTOMERS;

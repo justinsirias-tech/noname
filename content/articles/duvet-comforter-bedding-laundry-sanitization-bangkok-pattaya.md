@@ -20,7 +20,7 @@ author: "NoName Laundry Editorial Team"
 
 Everyone loves the crisp, cloud-like feeling of slipping into a 5-star hotel bed—until you try to wash a **King-size duvet, thick quilted comforter, or mattress topper** inside a Bangkok or Pattaya condominium.
 
-While everyday t-shirts and gym shorts can easily fit into a standard 4.0 KG wash-and-fold load, bulky bedding is a completely different engineering challenge. In Thailand’s year-round tropical humidity, a King or Queen duvet absorbs liters of nocturnal perspiration, skin oils, and microscopic house dust mites (*ไรฝุ่น*). Yet stuffing a heavy duvet into an 8 KG condo washing machine—or hanging wet bed sheets over two chairs on a narrow balcony—almost always results in clumped filling, detergent residue, and a lingering damp smell (*กลิ่นอับ*).
+While everyday t-shirts and gym shorts can easily fit into a standard 5.0 KG wash-and-fold load, bulky bedding is a completely different engineering challenge. In Thailand’s year-round tropical humidity, a King or Queen duvet absorbs liters of nocturnal perspiration, skin oils, and microscopic house dust mites (*ไรฝุ่น*). Yet stuffing a heavy duvet into an 8 KG condo washing machine—or hanging wet bed sheets over two chairs on a narrow balcony—almost always results in clumped filling, detergent residue, and a lingering damp smell (*กลิ่นอับ*).
 
 At **NoName Laundry**, we provide dedicated, door-to-door **commercial duvet, comforter, and bedding sanitization** across **all 50 Bangkok districts** and **every Pattaya residential zone**. Here is why bulky bedding requires specialized commercial care, how our thermal anti-dust mite sanitization works, and our transparent per-piece pricing.
 
@@ -99,7 +99,7 @@ Because nighttime temperatures and humidity in Bangkok and Pattaya remain high a
 ### 1. Does the ฿220 Duvet price apply to King-size (6 ft) duvets?
 **Yes!** Our **฿220/piece** Standard rate covers Single (3.5 ft), Queen (5 ft), and King (6 ft) duvets, comforters, and thick blankets with zero size surcharges.
 
-### 2. Can I combine my duvet and bed sheets with a regular 4.0 KG Wash & Fold clothes order?
+### 2. Can I combine my duvet and bed sheets with a regular 5.0 KG Wash & Fold clothes order?
 **Yes, and it’s the smartest way to unlock Free Delivery!** You can book a regular **by-the-KG clothes bag (from ฿70/KG)** alongside per-piece bedding items in the exact same pickup. Once your combined order reaches **฿600–฿700** (depending on your district), round-trip pickup and delivery is **100% FREE**.
 
 ### 3. Will high-heat drying shrink my Tencel or high-thread-count Egyptian cotton sheets?
