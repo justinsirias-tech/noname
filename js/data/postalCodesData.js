@@ -3995,7 +3995,9 @@ export function calculateDeliveryFee(locationInput, subtotal = 0, customZonesLis
     : DEFAULT_ALL_DELIVERY_ZONES;
     
   const config = customConfig || DEFAULT_DELIVERY_CONFIG;
-  const fallbackFee = config.baseDeliveryFee || 50;
+  const fallbackFee = config.defaultFallbackFee !== undefined
+    ? Number(config.defaultFallbackFee)
+    : (Number(config.baseDeliveryFee) || 50);
   const isFreeDeliveryEnabled = config.storeWideFreeDeliveryThreshold !== null && config.storeWideFreeDeliveryThreshold !== undefined;
 
   let queryCity = '';
@@ -4026,21 +4028,37 @@ export function calculateDeliveryFee(locationInput, subtotal = 0, customZonesLis
     matched = zones.find(z => z.id === queryId);
   }
 
-  // 2. City + Subdistrict match
+  // 2. City + Subdistrict match (prioritize exact match before partial substring match)
   if (!matched && querySubdistrict) {
-    matched = zones.find(z => {
-      const zCity = (z.city || '').toLowerCase();
-      const zSub = (z.subdistrict || '').toLowerCase();
-      const zSubTh = (z.subdistrictTh || '').toLowerCase();
-      
-      const cityMatches = !queryCity || zCity === queryCity;
-      const subMatches = zSub === querySubdistrict || 
-                         zSubTh === querySubdistrict ||
-                         querySubdistrict.includes(zSub) || 
-                         zSub.includes(querySubdistrict);
-
-      return cityMatches && subMatches;
-    });
+    if (queryDistrict) {
+      matched = zones.find(z => {
+        const zCity = (z.city || '').toLowerCase();
+        const zDist = (z.district || '').toLowerCase();
+        const zSub = (z.subdistrict || '').toLowerCase();
+        const zSubTh = (z.subdistrictTh || '').toLowerCase();
+        const cityMatches = !queryCity || zCity === queryCity;
+        return cityMatches && zDist === queryDistrict && (zSub === querySubdistrict || zSubTh === querySubdistrict);
+      });
+    }
+    if (!matched) {
+      matched = zones.find(z => {
+        const zCity = (z.city || '').toLowerCase();
+        const zSub = (z.subdistrict || '').toLowerCase();
+        const zSubTh = (z.subdistrictTh || '').toLowerCase();
+        const cityMatches = !queryCity || zCity === queryCity;
+        return cityMatches && (zSub === querySubdistrict || zSubTh === querySubdistrict);
+      });
+    }
+    if (!matched) {
+      matched = zones.find(z => {
+        const zCity = (z.city || '').toLowerCase();
+        const zSub = (z.subdistrict || '').toLowerCase();
+        const zSubTh = (z.subdistrictTh || '').toLowerCase();
+        const cityMatches = !queryCity || zCity === queryCity;
+        const subMatches = querySubdistrict.includes(zSub) || zSub.includes(querySubdistrict) || (zSubTh && (querySubdistrict.includes(zSubTh) || zSubTh.includes(querySubdistrict)));
+        return cityMatches && subMatches;
+      });
+    }
   }
 
   // 3. District + Postal match

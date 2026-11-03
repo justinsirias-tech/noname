@@ -1480,6 +1480,7 @@ function mergeCustomerLists(dbCustomers = [], localCusts = []) {
 
 // 2. Full State for instant hydration
 app.get('/api/state', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   try {
     const [servicesRes, ordersRes, incidentsRes, settingsRes, customersRes] = await Promise.all([
       query('SELECT * FROM services ORDER BY price_per_kg ASC'),
@@ -1794,6 +1795,118 @@ app.get('/api/orders/:id', async (req, res) => {
   }
 });
 
+// Helper: Synchronize booking to TLS Cloud All Jobs (Status: TBA)
+async function syncOrderToTlsCloud(o, reqHeaders = {}) {
+  try {
+    const cleanPhone = (o.contactValue || o.phone || '').replace(/[^0-9]/g, '');
+    const bookingPayload = {
+      orderId: o.id,
+      status: 'tba',
+      scheduledDate: o.pickupDate || new Date().toISOString().split('T')[0],
+      timeSlot: o.pickupTime || 'Anytime',
+      servicePreferences: [o.serviceName || 'wash_fold'],
+      customerNote: o.specialInstructions || '',
+      leaveWithJuristic: Boolean(o.leaveWithJuristic),
+      address: {
+        label: o.condoName || 'Condo',
+        placeName: o.condoName || undefined,
+        address: `${o.condoName || ''}, ${o.district || 'Bangkok'}`,
+        district: o.district || 'Bangkok',
+        roomNumber: o.roomNumber || undefined,
+        contactName: o.customerName,
+        contactPhone: cleanPhone,
+        leaveWithJuristic: Boolean(o.leaveWithJuristic)
+      }
+    };
+
+    const forwardHeaders = {};
+    if (reqHeaders.authorization) {
+      forwardHeaders['Authorization'] = reqHeaders.authorization;
+    }
+    if (o.customerId) {
+      forwardHeaders['x-customer-id'] = o.customerId;
+    }
+
+    // Resolve customer ID from remote TLS database or local if not passed
+    if (!forwardHeaders['Authorization'] && !forwardHeaders['x-customer-id'] && cleanPhone) {
+      try {
+        const { Client } = require('pg');
+        const tlsDb = new Client({
+          connectionString: 'postgresql://postgres:%40K0tApq9R%40(CEQk%22@34.10.25.133:5432/tls_test',
+          ssl: { rejectUnauthorized: false }
+        });
+        await tlsDb.connect();
+        const remoteCustRes = await tlsDb.query(
+          'SELECT id FROM "Customer" WHERE phone = $1 OR ($2 <> \'\' AND phone LIKE \'%\' || $2) LIMIT 1',
+          [cleanPhone, cleanPhone.slice(-8)]
+        );
+        await tlsDb.end();
+        if (remoteCustRes.rows.length > 0) {
+          forwardHeaders['x-customer-id'] = remoteCustRes.rows[0].id;
+        }
+      } catch (rErr) {
+        console.warn('[BOOKING SYNC] Remote customer check note:', rErr.message);
+      }
+    }
+
+    const tlsBookingRes = await callTlsApi('/api/v1/external/orders/booking', {
+      method: 'POST',
+      headers: forwardHeaders,
+      body: bookingPayload
+    });
+
+    if (tlsBookingRes.ok && tlsBookingRes.data?.order?.id) {
+      console.log(`[BOOKING SYNC] Successfully created job in TLS POS: ${tlsBookingRes.data.order.id}`);
+    } else {
+      console.warn('[BOOKING SYNC] TLS POS API notice, activating direct Cloud SQL insert:', tlsBookingRes.data);
+      // Direct fallback insert to Cloud SQL Job table
+      try {
+        const { Client } = require('pg');
+        const tlsDb = new Client({
+          connectionString: 'postgresql://postgres:%40K0tApq9R%40(CEQk%22@34.10.25.133:5432/tls_test',
+          ssl: { rejectUnauthorized: false }
+        });
+        await tlsDb.connect();
+        const scheduledTime = o.pickupDate ? new Date(o.pickupDate) : new Date();
+
+        await tlsDb.query(`
+          INSERT INTO "Job" (
+            id, type, "customerId", "customerName", "customerPhone",
+            "pickupLocation", "pickupLat", "pickupLng",
+            "dropoffLocation", "dropoffLat", "dropoffLng",
+            distance, fee, status, "serviceType", "laundryTypes",
+            brand, source, "scheduledAt", "pickupScheduledAt",
+            remark, "totalAmount", "createdAt", "updatedAt"
+          ) VALUES (
+            $1, 'pickup', $2, $3, $4,
+            $5, 13.736717, 100.560632,
+            'That Laundry Shop (Central)', 13.736717, 100.560632,
+            3.5, 0, 'tba', $6, $6,
+            'noname_laundry', 'app', $7, $7,
+            $8, $9, NOW(), NOW()
+          ) ON CONFLICT (id) DO NOTHING
+        `, [
+          o.id,
+          forwardHeaders['x-customer-id'] || null,
+          o.customerName || 'Online Customer',
+          cleanPhone,
+          `${o.condoName || ''}, ${o.district || 'Bangkok'}`,
+          o.serviceName || 'wash_fold',
+          scheduledTime,
+          `[Noname Web Booking: ${o.id}] Condo: ${o.condoName || ''} | Room: ${o.roomNumber || ''} | TimeSlot: ${o.pickupTime || 'Anytime'}`,
+          Number(o.totalPrice) || 0
+        ]);
+        await tlsDb.end();
+        console.log(`[BOOKING SYNC] Direct Cloud SQL insert succeeded in TBA: ${o.id}`);
+      } catch (dbErr) {
+        console.warn('[BOOKING SYNC] Cloud SQL sync note:', dbErr.message);
+      }
+    }
+  } catch (tlsErr) {
+    console.error('[BOOKING SYNC ERROR]', tlsErr.message);
+  }
+}
+
 app.post('/api/orders', async (req, res) => {
   const o = req.body;
   const trackingNumber = o.id || ('NNL-' + Math.floor(1000 + Math.random() * 9000) + '-BK');
@@ -1931,6 +2044,11 @@ app.post('/api/orders', async (req, res) => {
       console.error('[MAILER] Background notification error:', mailErr);
     });
 
+    // Asynchronously sync booking to TLS Cloud All Jobs (Status: TBA)
+    syncOrderToTlsCloud(createdOrder, req.headers).catch(syncErr => {
+      console.error('[BOOKING SYNC] Async error:', syncErr.message);
+    });
+
     res.status(201).json(createdOrder);
   } catch (err) {
     console.warn('[SERVER] PostgreSQL query fallback for /api/orders (persisting locally):', err.message);
@@ -1939,6 +2057,11 @@ app.post('/api/orders', async (req, res) => {
 
     sendBookingNotificationEmail(localOrderObj).catch(mailErr => {
       console.error('[MAILER] Background notification error:', mailErr);
+    });
+
+    // Asynchronously sync booking to TLS Cloud All Jobs (Status: TBA)
+    syncOrderToTlsCloud(localOrderObj, req.headers).catch(syncErr => {
+      console.error('[BOOKING SYNC] Async error:', syncErr.message);
     });
 
     res.status(201).json(localOrderObj);
@@ -2792,6 +2915,7 @@ app.delete('/api/incidents/:id', async (req, res) => {
 
 // 6. Settings API
 app.get('/api/settings', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   try {
     const result = await query("SELECT value FROM settings WHERE key = 'app_config'");
     if (result.rows.length === 0) {
@@ -2805,17 +2929,139 @@ app.get('/api/settings', async (req, res) => {
 
 app.post('/api/settings', requireAdminAuth, async (req, res) => {
   try {
-    const updatedSettings = req.body;
+    const updatedSettings = req.body || {};
+
+    // 1. Fetch current settings from DB to perform a safe deep merge
+    const currentRes = await query("SELECT value FROM settings WHERE key = 'app_config'");
+    const currentSettings = (currentRes.rows.length > 0 && currentRes.rows[0].value) ? currentRes.rows[0].value : {};
+
+    const mergedSettings = {
+      ...currentSettings,
+      ...updatedSettings,
+      paymentGateway: {
+        ...(currentSettings.paymentGateway || {}),
+        ...(updatedSettings.paymentGateway || {})
+      },
+      deliveryConfig: {
+        ...(currentSettings.deliveryConfig || {}),
+        ...(updatedSettings.deliveryConfig || {})
+      },
+      // Preserve existing postalCodeRates if incoming is omitted or empty
+      postalCodeRates: (Array.isArray(updatedSettings.postalCodeRates) && updatedSettings.postalCodeRates.length > 0)
+        ? updatedSettings.postalCodeRates
+        : (currentSettings.postalCodeRates || defaultDeliveryZones || []),
+      // Preserve existing categories if incoming is omitted or empty
+      categories: (Array.isArray(updatedSettings.categories) && updatedSettings.categories.length > 0)
+        ? updatedSettings.categories
+        : (currentSettings.categories || [])
+    };
+
     await query(`
       INSERT INTO settings (key, value, updated_at)
       VALUES ('app_config', $1, NOW())
       ON CONFLICT (key)
       DO UPDATE SET value = $1, updated_at = NOW()
-    `, [JSON.stringify(updatedSettings)]);
-    console.log('[POSTGRES] Settings updated successfully:', Object.keys(updatedSettings));
-    res.json({ success: true, settings: updatedSettings });
+    `, [JSON.stringify(mergedSettings)]);
+    console.log('[POSTGRES] Settings merged & updated successfully:', Object.keys(updatedSettings));
+    res.json({ success: true, settings: mergedSettings });
   } catch (err) {
     console.error('[POSTGRES ERROR] Updating settings:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Dedicated Delivery Zones CRUD Endpoints for granular, atomic updates
+app.put('/api/delivery-zones/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const currentRes = await query("SELECT value FROM settings WHERE key = 'app_config'");
+    const currentSettings = (currentRes.rows.length > 0 && currentRes.rows[0].value) ? currentRes.rows[0].value : {};
+    let rates = currentSettings.postalCodeRates || defaultDeliveryZones || [];
+
+    const cleanId = String(id || '').trim();
+    let idx = rates.findIndex(r => r.id && r.id === cleanId);
+    if (idx === -1) {
+      idx = rates.findIndex(r => r.code === cleanId);
+    }
+    if (idx === -1) {
+      return res.status(404).json({ error: `Delivery zone "${id}" not found.` });
+    }
+
+    rates[idx] = {
+      ...rates[idx],
+      ...updates,
+      fee: updates.fee !== undefined ? Math.max(0, Number(updates.fee)) : rates[idx].fee,
+      freeDeliveryAbove: updates.freeDeliveryAbove !== undefined ? Number(updates.freeDeliveryAbove) : rates[idx].freeDeliveryAbove,
+      isActive: updates.isActive !== undefined ? Boolean(updates.isActive) : rates[idx].isActive
+    };
+
+    currentSettings.postalCodeRates = rates;
+    await query(`
+      UPDATE settings
+      SET value = $1, updated_at = NOW()
+      WHERE key = 'app_config'
+    `, [JSON.stringify(currentSettings)]);
+
+    console.log(`[POSTGRES] Delivery zone "${cleanId}" updated to fee ฿${rates[idx].fee}`);
+    res.json({ success: true, zone: rates[idx], postalCodeRates: rates });
+  } catch (err) {
+    console.error('[POSTGRES ERROR] Updating delivery zone:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/delivery-zones', requireAdminAuth, async (req, res) => {
+  try {
+    const newZone = req.body;
+    if (!newZone || !newZone.code) {
+      return res.status(400).json({ error: 'Zone postal code is required.' });
+    }
+    const currentRes = await query("SELECT value FROM settings WHERE key = 'app_config'");
+    const currentSettings = (currentRes.rows.length > 0 && currentRes.rows[0].value) ? currentRes.rows[0].value : {};
+    let rates = currentSettings.postalCodeRates || defaultDeliveryZones || [];
+
+    const existingIdx = rates.findIndex(r => (newZone.id && r.id === newZone.id) || (r.code === newZone.code && r.subdistrict === newZone.subdistrict));
+    if (existingIdx !== -1) {
+      rates[existingIdx] = { ...rates[existingIdx], ...newZone };
+    } else {
+      rates.push(newZone);
+    }
+
+    currentSettings.postalCodeRates = rates;
+    await query(`
+      UPDATE settings
+      SET value = $1, updated_at = NOW()
+      WHERE key = 'app_config'
+    `, [JSON.stringify(currentSettings)]);
+
+    res.json({ success: true, zone: newZone, postalCodeRates: rates });
+  } catch (err) {
+    console.error('[POSTGRES ERROR] Adding delivery zone:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/delivery-zones/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cleanId = String(id || '').trim();
+    const currentRes = await query("SELECT value FROM settings WHERE key = 'app_config'");
+    const currentSettings = (currentRes.rows.length > 0 && currentRes.rows[0].value) ? currentRes.rows[0].value : {};
+    let rates = currentSettings.postalCodeRates || [];
+
+    rates = rates.filter(r => r.id !== cleanId && r.code !== cleanId);
+    currentSettings.postalCodeRates = rates;
+
+    await query(`
+      UPDATE settings
+      SET value = $1, updated_at = NOW()
+      WHERE key = 'app_config'
+    `, [JSON.stringify(currentSettings)]);
+
+    res.json({ success: true, id: cleanId });
+  } catch (err) {
+    console.error('[POSTGRES ERROR] Deleting delivery zone:', err);
     res.status(500).json({ error: err.message });
   }
 });

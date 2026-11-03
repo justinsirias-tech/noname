@@ -196,16 +196,31 @@ export class LaundryStore {
   initCrossTabSync() {
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
-        if (e.key === STORAGE_KEYS.ORDERS && e.newValue) {
-          try {
+        if (!e.newValue) return;
+        try {
+          if (e.key === STORAGE_KEYS.ORDERS) {
             const remoteOrders = JSON.parse(e.newValue);
             if (Array.isArray(remoteOrders)) {
               this.orders = remoteOrders;
               this.notify();
             }
-          } catch (err) {
-            console.warn('Cross-tab sync error:', err);
+          } else if (e.key === STORAGE_KEYS.POSTAL_CODES) {
+            const remoteRates = JSON.parse(e.newValue);
+            if (Array.isArray(remoteRates) && remoteRates.length > 0) {
+              this.postalCodeRates = remoteRates;
+              this.settings = { ...this.settings, postalCodeRates: remoteRates };
+              this.notify();
+            }
+          } else if (e.key === STORAGE_KEYS.DELIVERY_CONFIG) {
+            const remoteCfg = JSON.parse(e.newValue);
+            if (remoteCfg && typeof remoteCfg === 'object') {
+              this.deliveryConfig = remoteCfg;
+              this.settings = { ...this.settings, deliveryConfig: remoteCfg };
+              this.notify();
+            }
           }
+        } catch (err) {
+          console.warn('Cross-tab sync error:', err);
         }
       });
     }
@@ -614,15 +629,13 @@ export class LaundryStore {
       }
       this.postalCodeRates = parsedRates.map(r => ({
         ...r,
-        freeDeliveryAbove: [600, 700, 800].includes(Number(r.freeDeliveryAbove)) ? 500 : (Number(r.freeDeliveryAbove) || 500)
+        fee: Number(r.fee) || 0,
+        freeDeliveryAbove: r.freeDeliveryAbove !== undefined ? Number(r.freeDeliveryAbove) : 500
       }));
       this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
 
       const savedDeliveryConfig = localStorage.getItem(STORAGE_KEYS.DELIVERY_CONFIG);
       const parsedConfig = savedDeliveryConfig ? JSON.parse(savedDeliveryConfig) : DEFAULT_DELIVERY_CONFIG;
-      if ([600, 700, 800].includes(Number(parsedConfig.storeWideFreeDeliveryThreshold))) {
-        parsedConfig.storeWideFreeDeliveryThreshold = 500;
-      }
       this.deliveryConfig = parsedConfig;
     } catch (e) {
       console.error('Error loading state from localStorage:', e);
@@ -638,8 +651,9 @@ export class LaundryStore {
   }
 
   async fetchRemoteState() {
+    const fetchStartedAt = Date.now();
     try {
-      const res = await fetch('/api/state');
+      const res = await fetch('/api/state', { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
       
@@ -671,7 +685,8 @@ export class LaundryStore {
             .sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99));
           this.persist(STORAGE_KEYS.CATEGORIES, this.categories);
         }
-        if (data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {
+        const isPostalFresh = !this._lastLocalPostalUpdate || fetchStartedAt > this._lastLocalPostalUpdate;
+        if (isPostalFresh && data.settings.postalCodeRates && Array.isArray(data.settings.postalCodeRates)) {
           // Strip out legacy 26-district-level rates without subdistricts
           const remoteCodes = data.settings.postalCodeRates.filter(r => Boolean(r.subdistrict) && Boolean(r.id || r.subdistrictTh));
           const existingKeys = new Set(remoteCodes.map(r => r.id || `${r.city || 'Bangkok'}-${r.subdistrict || r.district}-${r.code}`));
@@ -681,17 +696,20 @@ export class LaundryStore {
             : remoteCodes;
           this.postalCodeRates = combined.map(r => ({
             ...r,
-            freeDeliveryAbove: [600, 700, 800].includes(Number(r.freeDeliveryAbove)) ? 500 : (Number(r.freeDeliveryAbove) || 500)
+            fee: Number(r.fee) || 0,
+            freeDeliveryAbove: r.freeDeliveryAbove !== undefined ? Number(r.freeDeliveryAbove) : 500
           }));
+          this.settings.postalCodeRates = this.postalCodeRates;
           this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+        } else if (!isPostalFresh) {
+          this.settings.postalCodeRates = this.postalCodeRates;
         }
-        if (data.settings.deliveryConfig) {
-          const cfg = { ...data.settings.deliveryConfig };
-          if ([600, 700, 800].includes(Number(cfg.storeWideFreeDeliveryThreshold))) {
-            cfg.storeWideFreeDeliveryThreshold = 500;
-          }
-          this.deliveryConfig = cfg;
+        if (isPostalFresh && data.settings.deliveryConfig) {
+          this.deliveryConfig = { ...data.settings.deliveryConfig };
+          this.settings.deliveryConfig = this.deliveryConfig;
           this.persist(STORAGE_KEYS.DELIVERY_CONFIG, this.deliveryConfig);
+        } else if (!isPostalFresh) {
+          this.settings.deliveryConfig = this.deliveryConfig;
         }
         this.persist(STORAGE_KEYS.SETTINGS, this.settings);
         this.syncContactChannels(this.settings);
@@ -729,7 +747,9 @@ export class LaundryStore {
       ...this.settings,
       lineOaId: newLineOaId || this.settings.lineOaId,
       whatsappNumber: newWhatsapp || this.settings.whatsappNumber,
-      supportEmail: newEmail || this.settings.supportEmail
+      supportEmail: newEmail || this.settings.supportEmail,
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
     };
     this.syncContactChannels(this.settings);
     this.persist(STORAGE_KEYS.SETTINGS, this.settings);
@@ -738,7 +758,12 @@ export class LaundryStore {
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: this.getAdminAuthHeaders(),
-      body: JSON.stringify(this.settings)
+      body: JSON.stringify({
+        lineOaId: this.settings.lineOaId,
+        whatsappNumber: this.settings.whatsappNumber,
+        supportEmail: this.settings.supportEmail,
+        contact: this.settings.contact
+      })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -754,7 +779,9 @@ export class LaundryStore {
       paymentGateway: {
         ...this.settings.paymentGateway,
         ...gatewayConfig
-      }
+      },
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
     };
     this.persist(STORAGE_KEYS.SETTINGS, this.settings);
     this.notify();
@@ -762,7 +789,9 @@ export class LaundryStore {
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: this.getAdminAuthHeaders(),
-      body: JSON.stringify(this.settings)
+      body: JSON.stringify({
+        paymentGateway: this.settings.paymentGateway
+      })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -775,7 +804,9 @@ export class LaundryStore {
   async updateGoogleMapsSettings(apiKey) {
     this.settings = {
       ...this.settings,
-      googleMapsApiKey: (apiKey || '').trim()
+      googleMapsApiKey: (apiKey || '').trim(),
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
     };
     this.persist(STORAGE_KEYS.SETTINGS, this.settings);
     this.notify();
@@ -783,7 +814,9 @@ export class LaundryStore {
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: this.getAdminAuthHeaders(),
-      body: JSON.stringify(this.settings)
+      body: JSON.stringify({
+        googleMapsApiKey: this.settings.googleMapsApiKey
+      })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -2284,8 +2317,15 @@ export class LaundryStore {
   }
 
   async updatePostalCodeRate(idOrCode, updatedFields) {
+    this._lastLocalPostalUpdate = Date.now();
     if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_ALL_DELIVERY_ZONES];
-    const idx = this.postalCodeRates.findIndex(r => r.id === idOrCode || r.code === idOrCode);
+    const cleanId = String(idOrCode || '').trim();
+    let idx = this.postalCodeRates.findIndex(r => r.id && r.id === cleanId);
+    if (idx === -1) {
+      idx = this.postalCodeRates.findIndex(r => r.code === cleanId);
+    }
+
+    let updatedZone = null;
     if (idx !== -1) {
       this.postalCodeRates[idx] = {
         ...this.postalCodeRates[idx],
@@ -2293,27 +2333,60 @@ export class LaundryStore {
         fee: updatedFields.fee !== undefined ? Math.max(0, Number(updatedFields.fee)) : this.postalCodeRates[idx].fee,
         freeDeliveryAbove: updatedFields.freeDeliveryAbove !== undefined ? Number(updatedFields.freeDeliveryAbove) : this.postalCodeRates[idx].freeDeliveryAbove
       };
+      updatedZone = this.postalCodeRates[idx];
     } else {
-      this.postalCodeRates.push({
-        id: idOrCode,
+      updatedZone = {
+        id: cleanId,
         city: updatedFields.city || 'Bangkok',
         district: updatedFields.district || 'Bangkok',
         subdistrict: updatedFields.subdistrict || '',
         subdistrictTh: updatedFields.subdistrictTh || '',
-        code: updatedFields.code || idOrCode,
+        code: updatedFields.code || cleanId,
         areas: updatedFields.areas || '',
         fee: Math.max(0, Number(updatedFields.fee || 50)),
         isActive: updatedFields.isActive !== undefined ? Boolean(updatedFields.isActive) : true,
         freeDeliveryAbove: Number(updatedFields.freeDeliveryAbove || 500)
-      });
+      };
+      this.postalCodeRates.push(updatedZone);
     }
+
+    this.settings = {
+      ...this.settings,
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
+    };
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
     this.notify();
-    await this.syncPostalRatesToBackend();
+
+    // Try atomic backend update first, fallback to full settings sync
+    const targetId = updatedZone.id || cleanId;
+    let syncSuccess = false;
+    try {
+      const res = await fetch(`/api/delivery-zones/${encodeURIComponent(targetId)}`, {
+        method: 'PUT',
+        headers: this.getAdminAuthHeaders(),
+        body: JSON.stringify(updatedFields)
+      });
+      if (res.ok) {
+        this._lastLocalPostalUpdate = Date.now();
+        syncSuccess = true;
+      } else if (res.status === 401) {
+        throw new Error('Admin session expired or unauthorized. Please log in again.');
+      }
+    } catch (zoneErr) {
+      if (zoneErr.message && zoneErr.message.includes('Admin session')) throw zoneErr;
+    }
+
+    if (!syncSuccess) {
+      await this.syncPostalRatesToBackend();
+    }
+
     return this.postalCodeRates;
   }
 
   async addPostalCodeRate(rateData) {
+    this._lastLocalPostalUpdate = Date.now();
     if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_ALL_DELIVERY_ZONES];
     const cleanCode = (rateData.code || '').trim();
     if (!cleanCode) throw new Error('Postal code is required');
@@ -2339,70 +2412,159 @@ export class LaundryStore {
       freeDeliveryAbove: Number(rateData.freeDeliveryAbove) || 500
     };
     this.postalCodeRates.push(newEntry);
+    this.settings = {
+      ...this.settings,
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
+    };
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
     this.notify();
-    await this.syncPostalRatesToBackend();
+
+    let addedViaApi = false;
+    try {
+      const res = await fetch('/api/delivery-zones', {
+        method: 'POST',
+        headers: this.getAdminAuthHeaders(),
+        body: JSON.stringify(newEntry)
+      });
+      if (res.ok) addedViaApi = true;
+    } catch (_) {}
+
+    if (!addedViaApi) {
+      await this.syncPostalRatesToBackend();
+    }
     return newEntry;
   }
 
   async deletePostalCodeRate(idOrCode) {
+    this._lastLocalPostalUpdate = Date.now();
     if (!this.postalCodeRates) return;
-    this.postalCodeRates = this.postalCodeRates.filter(r => r.id !== idOrCode && r.code !== idOrCode);
+    const cleanId = String(idOrCode || '').trim();
+    this.postalCodeRates = this.postalCodeRates.filter(r => r.id !== cleanId && r.code !== cleanId);
+    this.settings = {
+      ...this.settings,
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
+    };
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
     this.notify();
-    await this.syncPostalRatesToBackend();
+
+    let deletedViaApi = false;
+    try {
+      const res = await fetch(`/api/delivery-zones/${encodeURIComponent(cleanId)}`, {
+        method: 'DELETE',
+        headers: this.getAdminAuthHeaders()
+      });
+      if (res.ok) deletedViaApi = true;
+    } catch (_) {}
+
+    if (!deletedViaApi) {
+      await this.syncPostalRatesToBackend();
+    }
   }
 
   async togglePostalCodeActive(idOrCode) {
+    this._lastLocalPostalUpdate = Date.now();
     if (!this.postalCodeRates) this.postalCodeRates = [...DEFAULT_ALL_DELIVERY_ZONES];
-    const entry = this.postalCodeRates.find(r => r.id === idOrCode || r.code === idOrCode);
+    const cleanId = String(idOrCode || '').trim();
+    const entry = this.postalCodeRates.find(r => r.id === cleanId || r.code === cleanId);
     if (entry) {
       entry.isActive = !entry.isActive;
+      this.settings = {
+        ...this.settings,
+        postalCodeRates: this.postalCodeRates,
+        deliveryConfig: this.deliveryConfig
+      };
       this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+      this.persist(STORAGE_KEYS.SETTINGS, this.settings);
       this.notify();
-      await this.syncPostalRatesToBackend();
+
+      let toggledViaApi = false;
+      try {
+        const res = await fetch(`/api/delivery-zones/${encodeURIComponent(entry.id || cleanId)}`, {
+          method: 'PUT',
+          headers: this.getAdminAuthHeaders(),
+          body: JSON.stringify({ isActive: entry.isActive })
+        });
+        if (res.ok) toggledViaApi = true;
+      } catch (_) {}
+
+      if (!toggledViaApi) {
+        await this.syncPostalRatesToBackend();
+      }
       return entry.isActive;
     }
     return false;
   }
 
   async updateDeliveryConfig(newConfig) {
+    this._lastLocalPostalUpdate = Date.now();
     this.deliveryConfig = {
       ...(this.deliveryConfig || DEFAULT_DELIVERY_CONFIG),
       ...newConfig
     };
+    this.settings = {
+      ...this.settings,
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
+    };
     this.persist(STORAGE_KEYS.DELIVERY_CONFIG, this.deliveryConfig);
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
     this.notify();
     await this.syncPostalRatesToBackend();
     return this.deliveryConfig;
   }
 
   async resetPostalCodeRates() {
+    this._lastLocalPostalUpdate = Date.now();
     this.postalCodeRates = [...DEFAULT_ALL_DELIVERY_ZONES];
     this.deliveryConfig = { ...DEFAULT_DELIVERY_CONFIG };
+    this.settings = {
+      ...this.settings,
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
+    };
     this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
     this.persist(STORAGE_KEYS.DELIVERY_CONFIG, this.deliveryConfig);
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
     this.notify();
     await this.syncPostalRatesToBackend();
     return this.postalCodeRates;
   }
 
   async syncPostalRatesToBackend() {
+    this._lastLocalPostalUpdate = Date.now();
+    this.settings = {
+      ...this.settings,
+      postalCodeRates: this.postalCodeRates,
+      deliveryConfig: this.deliveryConfig
+    };
+    this.persist(STORAGE_KEYS.POSTAL_CODES, this.postalCodeRates);
+    this.persist(STORAGE_KEYS.SETTINGS, this.settings);
+
     try {
-      this.settings = {
-        ...this.settings,
-        postalCodeRates: this.postalCodeRates,
-        deliveryConfig: this.deliveryConfig
-      };
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: this.getAdminAuthHeaders(),
         body: JSON.stringify(this.settings)
       });
-      return res.ok;
+      if (!res.ok) {
+        let msg = `Failed to sync delivery rates (HTTP ${res.status})`;
+        try {
+          const errData = await res.json();
+          if (errData?.error) msg = errData.error;
+        } catch (_) {}
+        if (res.status === 401) {
+          msg = 'Admin session expired or unauthorized. Please log in again to save delivery rates.';
+        }
+        throw new Error(msg);
+      }
+      return true;
     } catch (e) {
       console.warn('Failed to sync postal code rates to backend:', e);
-      return false;
+      throw e;
     }
   }
 
