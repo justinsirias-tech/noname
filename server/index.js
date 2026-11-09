@@ -173,11 +173,20 @@ async function ensureDatabaseSchema() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
       ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS phone VARCHAR(64);
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'active';
       ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '[]'::jsonb;
       UPDATE admin_users 
       SET role = 'super_admin'
       WHERE LOWER(email) = 'justin.sirias@gmail.com' 
          OR LOWER(username) = 'test@nonamelaundry.com';
+
+      ALTER TABLE services ALTER COLUMN min_weight_kg SET DEFAULT 5.0;
+      ALTER TABLE orders ALTER COLUMN min_weight_applied_kg SET DEFAULT 5.0;
+      UPDATE services
+      SET min_weight_kg = 5.0, updated_at = NOW()
+      WHERE (category_id = 'laundry_by_weight' OR id IN ('wash_fold', 'wash_iron_fold', 'wash_iron_hang'))
+        AND min_weight_kg = 4;
     `);
     console.log('[POSTGRES] Orders reconciliation, customer first/last names, delivery fee, categories, and admin users verified.');
 

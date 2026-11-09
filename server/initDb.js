@@ -91,9 +91,13 @@ CREATE TABLE IF NOT EXISTS admin_users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(64) UNIQUE NOT NULL,
   email VARCHAR(255),
+  full_name VARCHAR(255),
+  phone VARCHAR(64),
   password_hash VARCHAR(255) NOT NULL,
   salt VARCHAR(64) NOT NULL,
   role VARCHAR(32) DEFAULT 'admin',
+  status VARCHAR(32) DEFAULT 'active',
+  permissions JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
