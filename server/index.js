@@ -7,6 +7,16 @@ const cors = require('cors');
 const { query } = require('./db');
 const { hashPassword, verifyPassword, createSession, getSession, deleteSession, requireAdminAuth } = require('./auth');
 const { createTlsProxyRouter, callTlsApi, TLS_API_URL, TLS_BRAND } = require('./tlsProxy');
+const {
+  syncCustomerToTlsCloud,
+  deleteCustomerFromTlsCloud,
+  syncOrderToTlsCloud,
+  deleteOrderFromTlsCloud,
+  pullTlsCustomersToNoname,
+  pullTlsJobsToNoname,
+  pushExistingNonameDataToTlsCloud,
+  startTlsCloudRealtimeListener
+} = require('./tlsCloudSync');
 const { sendBookingConfirmationEmail, sendConfirmedBillingEmail, sendBookingNotificationEmail, verifySmtpConnection, resetTransporter } = require('./mailer');
 let defaultDeliveryZones = [];
 try {
@@ -45,10 +55,6 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
-
-// TLS Multi-Brand Cloud Proxy Router (Server Test & Production)
-app.use('/api/external', createTlsProxyRouter());
-app.use('/api/tls', createTlsProxyRouter());
 
 // Shared initial default services
 let initialServices = [
@@ -127,6 +133,10 @@ async function ensureDatabaseSchema() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS deposit_bank_ref VARCHAR(128);
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS billing_sent_at TIMESTAMPTZ;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS billing_channel VARCHAR(50);
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS city VARCHAR(64) DEFAULT 'Bangkok';
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS subdistrict VARCHAR(255) DEFAULT '';
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS items JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS assigned_rider VARCHAR(128);
 
       CREATE TABLE IF NOT EXISTS customers (
         id VARCHAR(64) PRIMARY KEY,
@@ -835,9 +845,11 @@ async function autoSaveCustomerFromOrder(o) {
         `, [JSON.stringify(updatedAddrs), email || null, fName || null, lName || null, existing.id]);
       } catch (updErr) {}
 
-      localCustomers = (localCustomers || []).map(c => c.id === existing.id ? { ...c, addresses: updatedAddrs } : c);
+      const updatedExisting = { ...existing, addresses: updatedAddrs, email: email || existing.email, firstName: fName || existing.firstName, lastName: lName || existing.lastName };
+      localCustomers = (localCustomers || []).map(c => c.id === existing.id ? updatedExisting : c);
       saveLocalCustomers(localCustomers);
-      return existing;
+      syncCustomerToTlsCloud(updatedExisting, query).catch(() => {});
+      return updatedExisting;
     } else if (fullName || fName) {
       const custId = o.customerId || ('CUST-' + Math.floor(1000 + Math.random() * 9000));
       const newCust = {
@@ -885,6 +897,7 @@ async function autoSaveCustomerFromOrder(o) {
 
       localCustomers = [newCust, ...(localCustomers || []).filter(c => c.id !== custId)];
       saveLocalCustomers(localCustomers);
+      syncCustomerToTlsCloud(newCust, query).catch(() => {});
       console.log(`[CRM AUTO-SAVE] Auto-saved new customer "${fullName}" (${custId}) from booking.`);
       return newCust;
     }
@@ -893,6 +906,37 @@ async function autoSaveCustomerFromOrder(o) {
   }
   return null;
 }
+
+// Start Two-Way Real-Time Sync with TLS Cloud (All Jobs & CRM)
+startTlsCloudRealtimeListener({
+  localQuery: query,
+  mapCustomerFn: mapCustomer,
+  mapOrderFn: mapOrder,
+  onCustomersUpdated: (updatedCusts) => {
+    localCustomers = updatedCusts;
+    saveLocalCustomers(localCustomers);
+  },
+  onOrdersUpdated: (updatedOrds) => {
+    localOrders = updatedOrds;
+    saveLocalOrders(localOrders);
+  }
+});
+
+// Explicit endpoint to trigger immediate two-way sync between Noname and TLS Cloud
+app.all(['/api/tls/sync', '/api/tls-sync'], async (req, res) => {
+  try {
+    await pullTlsCustomersToNoname(query, mapCustomer, (u) => { localCustomers = u; saveLocalCustomers(u); }, true);
+    await pullTlsJobsToNoname(query, mapOrder, (u) => { localOrders = u; saveLocalOrders(u); }, true);
+    await pushExistingNonameDataToTlsCloud(query, mapCustomer, mapOrder);
+    res.json({ success: true, message: 'Two-way sync between NoName Laundry and TLS Cloud completed.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// TLS Multi-Brand Cloud Proxy Router (Server Test & Production)
+app.use('/api/external', createTlsProxyRouter());
+app.use('/api/tls', createTlsProxyRouter());
 
 // Admin Authentication Routes
 app.post('/api/admin/login', async (req, res) => {
@@ -1491,6 +1535,11 @@ function mergeCustomerLists(dbCustomers = [], localCusts = []) {
 app.get('/api/state', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   try {
+    await Promise.all([
+      pullTlsJobsToNoname(query, mapOrder, (u) => { localOrders = u; saveLocalOrders(u); }),
+      pullTlsCustomersToNoname(query, mapCustomer, (u) => { localCustomers = u; saveLocalCustomers(u); })
+    ]).catch(() => {});
+
     const [servicesRes, ordersRes, incidentsRes, settingsRes, customersRes] = await Promise.all([
       query('SELECT * FROM services ORDER BY price_per_kg ASC'),
       query('SELECT * FROM orders ORDER BY created_at DESC'),
@@ -1760,7 +1809,9 @@ app.delete('/api/services/:id', requireAdminAuth, async (req, res) => {
 // 4. Orders API
 let lastOrdersDbWarn = 0;
 app.get('/api/orders', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   try {
+    await pullTlsJobsToNoname(query, mapOrder, (u) => { localOrders = u; saveLocalOrders(u); }).catch(() => {});
     const result = await query('SELECT * FROM orders ORDER BY created_at DESC');
     const dbOrders = result.rows.map(mapOrder);
     return res.json(dbOrders);
@@ -1781,6 +1832,7 @@ app.delete('/api/orders/:id', async (req, res) => {
     } catch (pgErr) {}
     localOrders = (localOrders || []).filter(o => o && o.id !== id);
     saveLocalOrders(localOrders);
+    deleteOrderFromTlsCloud(id).catch(() => {});
     res.json({ success: true, deletedId: id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1804,117 +1856,7 @@ app.get('/api/orders/:id', async (req, res) => {
   }
 });
 
-// Helper: Synchronize booking to TLS Cloud All Jobs (Status: TBA)
-async function syncOrderToTlsCloud(o, reqHeaders = {}) {
-  try {
-    const cleanPhone = (o.contactValue || o.phone || '').replace(/[^0-9]/g, '');
-    const bookingPayload = {
-      orderId: o.id,
-      status: 'tba',
-      scheduledDate: o.pickupDate || new Date().toISOString().split('T')[0],
-      timeSlot: o.pickupTime || 'Anytime',
-      servicePreferences: [o.serviceName || 'wash_fold'],
-      customerNote: o.specialInstructions || '',
-      leaveWithJuristic: Boolean(o.leaveWithJuristic),
-      address: {
-        label: o.condoName || 'Condo',
-        placeName: o.condoName || undefined,
-        address: `${o.condoName || ''}, ${o.district || 'Bangkok'}`,
-        district: o.district || 'Bangkok',
-        roomNumber: o.roomNumber || undefined,
-        contactName: o.customerName,
-        contactPhone: cleanPhone,
-        leaveWithJuristic: Boolean(o.leaveWithJuristic)
-      }
-    };
-
-    const forwardHeaders = {};
-    if (reqHeaders.authorization) {
-      forwardHeaders['Authorization'] = reqHeaders.authorization;
-    }
-    if (o.customerId) {
-      forwardHeaders['x-customer-id'] = o.customerId;
-    }
-
-    // Resolve customer ID from remote TLS database or local if not passed
-    if (!forwardHeaders['Authorization'] && !forwardHeaders['x-customer-id'] && cleanPhone) {
-      try {
-        const { Client } = require('pg');
-        const tlsDb = new Client({
-          connectionString: 'postgresql://postgres:%40K0tApq9R%40(CEQk%22@34.10.25.133:5432/tls_test',
-          ssl: { rejectUnauthorized: false }
-        });
-        await tlsDb.connect();
-        const remoteCustRes = await tlsDb.query(
-          'SELECT id FROM "Customer" WHERE phone = $1 OR ($2 <> \'\' AND phone LIKE \'%\' || $2) LIMIT 1',
-          [cleanPhone, cleanPhone.slice(-8)]
-        );
-        await tlsDb.end();
-        if (remoteCustRes.rows.length > 0) {
-          forwardHeaders['x-customer-id'] = remoteCustRes.rows[0].id;
-        }
-      } catch (rErr) {
-        console.warn('[BOOKING SYNC] Remote customer check note:', rErr.message);
-      }
-    }
-
-    const tlsBookingRes = await callTlsApi('/api/v1/external/orders/booking', {
-      method: 'POST',
-      headers: forwardHeaders,
-      body: bookingPayload
-    });
-
-    if (tlsBookingRes.ok && tlsBookingRes.data?.order?.id) {
-      console.log(`[BOOKING SYNC] Successfully created job in TLS POS: ${tlsBookingRes.data.order.id}`);
-    } else {
-      console.warn('[BOOKING SYNC] TLS POS API notice, activating direct Cloud SQL insert:', tlsBookingRes.data);
-      // Direct fallback insert to Cloud SQL Job table
-      try {
-        const { Client } = require('pg');
-        const tlsDb = new Client({
-          connectionString: 'postgresql://postgres:%40K0tApq9R%40(CEQk%22@34.10.25.133:5432/tls_test',
-          ssl: { rejectUnauthorized: false }
-        });
-        await tlsDb.connect();
-        const scheduledTime = o.pickupDate ? new Date(o.pickupDate) : new Date();
-
-        await tlsDb.query(`
-          INSERT INTO "Job" (
-            id, type, "customerId", "customerName", "customerPhone",
-            "pickupLocation", "pickupLat", "pickupLng",
-            "dropoffLocation", "dropoffLat", "dropoffLng",
-            distance, fee, status, "serviceType", "laundryTypes",
-            brand, source, "scheduledAt", "pickupScheduledAt",
-            remark, "totalAmount", "createdAt", "updatedAt"
-          ) VALUES (
-            $1, 'pickup', $2, $3, $4,
-            $5, 13.736717, 100.560632,
-            'That Laundry Shop (Central)', 13.736717, 100.560632,
-            3.5, 0, 'tba', $6, $6,
-            'noname_laundry', 'app', $7, $7,
-            $8, $9, NOW(), NOW()
-          ) ON CONFLICT (id) DO NOTHING
-        `, [
-          o.id,
-          forwardHeaders['x-customer-id'] || null,
-          o.customerName || 'Online Customer',
-          cleanPhone,
-          `${o.condoName || ''}, ${o.district || 'Bangkok'}`,
-          o.serviceName || 'wash_fold',
-          scheduledTime,
-          `[Noname Web Booking: ${o.id}] Condo: ${o.condoName || ''} | Room: ${o.roomNumber || ''} | TimeSlot: ${o.pickupTime || 'Anytime'}`,
-          Number(o.totalPrice) || 0
-        ]);
-        await tlsDb.end();
-        console.log(`[BOOKING SYNC] Direct Cloud SQL insert succeeded in TBA: ${o.id}`);
-      } catch (dbErr) {
-        console.warn('[BOOKING SYNC] Cloud SQL sync note:', dbErr.message);
-      }
-    }
-  } catch (tlsErr) {
-    console.error('[BOOKING SYNC ERROR]', tlsErr.message);
-  }
-}
+// syncOrderToTlsCloud is provided by ./tlsCloudSync
 
 app.post('/api/orders', async (req, res) => {
   const o = req.body;
@@ -2239,6 +2181,10 @@ const handleOrderStatusUpdate = async (req, res) => {
         else localOrders.unshift(mapped);
         saveLocalOrders(localOrders);
 
+        syncOrderToTlsCloud(mapped).catch(syncErr => {
+          console.warn('[TLS-SYNC] Status update sync warning:', syncErr.message);
+        });
+
         return res.json(mapped);
       } catch (dbUpdateErr) {
         console.warn('[SERVER] PostgreSQL update failed in handleOrderStatusUpdate, falling back to local:', dbUpdateErr.message);
@@ -2275,6 +2221,10 @@ const handleOrderStatusUpdate = async (req, res) => {
       localOrders.unshift(updatedLocalOrder);
     }
     saveLocalOrders(localOrders);
+
+    syncOrderToTlsCloud(updatedLocalOrder).catch(syncErr => {
+      console.warn('[TLS-SYNC] Status update local sync warning:', syncErr.message);
+    });
 
     res.json(updatedLocalOrder);
   } catch (err) {
@@ -2388,6 +2338,8 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
       saveLocalOrders(localOrders);
     }
 
+    syncOrderToTlsCloud(order).catch(() => {});
+
     res.json({
       success: true,
       billingSentAt,
@@ -2457,6 +2409,8 @@ app.post('/api/orders/:id/record-invoice-sent', async (req, res) => {
       localOrders[locIdx] = { ...localOrders[locIdx], ...order, billingSentAt, billingChannel };
       saveLocalOrders(localOrders);
     }
+
+    syncOrderToTlsCloud(order).catch(() => {});
 
     res.json({
       success: true,
@@ -2533,6 +2487,10 @@ const handleOrderPayment = async (req, res) => {
         else localOrders.unshift(mapped);
         saveLocalOrders(localOrders);
 
+        syncOrderToTlsCloud(mapped).catch(syncErr => {
+          console.warn('[TLS-SYNC] Payment sync warning:', syncErr.message);
+        });
+
         return res.json(mapped);
       } catch (dbErr) {
         console.warn('[SERVER] PostgreSQL update failed for payment, fallback to local:', dbErr.message);
@@ -2551,6 +2509,8 @@ const handleOrderPayment = async (req, res) => {
     if (locIdx !== -1) localOrders[locIdx] = updatedLocal;
     else localOrders.unshift(updatedLocal);
     saveLocalOrders(localOrders);
+
+    syncOrderToTlsCloud(updatedLocal).catch(() => {});
 
     res.json(updatedLocal);
   } catch (err) {
@@ -3077,7 +3037,9 @@ app.delete('/api/delivery-zones/:id', requireAdminAuth, async (req, res) => {
 
 // 7. Customers API
 app.get('/api/customers', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   try {
+    await pullTlsCustomersToNoname(query, mapCustomer, (u) => { localCustomers = u; saveLocalCustomers(u); }).catch(() => {});
     const result = await query('SELECT * FROM customers ORDER BY created_at DESC').catch(() => ({ rows: [] }));
     const dbCustomers = (result?.rows || []).map(mapCustomer).filter(Boolean);
     const combined = mergeCustomerLists(dbCustomers, localCustomers);
@@ -3635,6 +3597,7 @@ app.post('/api/customers/register', async (req, res) => {
     const mapped = mapCustomer(result.rows[0]);
     localCustomers = [mapped, ...(localCustomers || []).filter(c => c.id !== mapped.id)];
     saveLocalCustomers(localCustomers);
+    syncCustomerToTlsCloud({ ...mapped, pinCode: (data.pinCode || data.password || '123456').trim() }, query).catch(() => {});
 
     console.log(`[CUSTOMER REGISTERED] ID: ${mapped.id}, Name: ${mapped.fullName}, Mobile: ${mapped.mobileNumber}`);
     res.status(201).json({
@@ -3738,6 +3701,7 @@ app.post('/api/customers', async (req, res) => {
     const mapped = mapCustomer(result.rows[0]);
     localCustomers = [mapped, ...(localCustomers || []).filter(c => c.id !== mapped.id)];
     saveLocalCustomers(localCustomers);
+    syncCustomerToTlsCloud(mapped, query).catch(() => {});
 
     res.status(201).json(mapped);
   } catch (err) {
@@ -3810,6 +3774,7 @@ app.put('/api/customers/:id', async (req, res) => {
       };
       localCustomers = [updatedCust, ...(localCustomers || []).filter(c => c && c.id !== id)];
       saveLocalCustomers(localCustomers);
+      syncCustomerToTlsCloud(updatedCust, query).catch(() => {});
       return res.json(updatedCust);
     }
 
@@ -3828,6 +3793,7 @@ app.delete('/api/customers/:id', async (req, res) => {
     } catch (pgErr) {}
     localCustomers = (localCustomers || []).filter(c => c && c.id !== id);
     saveLocalCustomers(localCustomers);
+    deleteCustomerFromTlsCloud(id).catch(() => {});
     res.json({ success: true, deletedId: id });
   } catch (err) {
     console.error('Error deleting customer:', err);
