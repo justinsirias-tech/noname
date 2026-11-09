@@ -178,7 +178,7 @@ export default function GoogleMapsCondoAutocomplete({
 
   // Update suggestions whenever query changes or on focus
   const handleInputChange = (e) => {
-    const val = e.target.value;
+    const val = e.target.value.toUpperCase();
     setQuery(val);
 
     // Real-time location auto-detection: if typed text matches known building, house, or subdistrict
@@ -301,7 +301,7 @@ export default function GoogleMapsCondoAutocomplete({
             });
 
             const resolvedPlace = {
-              name: details.name || place.name,
+              name: (details.name || place.name || '').toUpperCase(),
               address: details.formatted_address || place.formattedAddress,
               formattedAddress: details.formatted_address || place.formattedAddress,
               city: matched.city,
@@ -352,15 +352,16 @@ export default function GoogleMapsCondoAutocomplete({
       name: place.name
     });
 
+    const upperName = (place.name || '').toUpperCase();
     const fullPlace = {
       ...place,
-      name: place.name,
+      name: upperName,
       city: matched.city,
       district: matched.district,
       subdistrict: matched.subdistrict,
       postalCode: matched.postalCode,
       zipcode: matched.postalCode,
-      address: place.formattedAddress || `${place.name}, ${matched.city}`,
+      address: place.formattedAddress || `${upperName}, ${matched.city}`,
       lat: place.lat || 13.7563,
       lng: place.lng || 100.5018,
       googleMapsUrl: place.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + ' ' + matched.city)}`,
@@ -474,7 +475,7 @@ export default function GoogleMapsCondoAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoComplete="off"
-          className={`w-full pl-10 pr-24 py-2.5 sm:py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm shadow-xs transition bg-white placeholder:text-slate-400 ${className}`}
+          className={`w-full pl-10 pr-24 py-2.5 sm:py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm shadow-xs transition bg-white placeholder:text-slate-400 uppercase placeholder:normal-case ${className}`}
         />
 
         {/* Action Buttons inside Input */}

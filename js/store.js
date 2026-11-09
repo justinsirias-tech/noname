@@ -50,7 +50,7 @@ const STORAGE_KEYS = {
   CATEGORIES: 'noname_categories_v1',
   ORDERS: 'noname_laundry_orders_v3',
   INCIDENTS: 'noname_laundry_incidents_v3',
-  CUSTOMERS: 'noname_laundry_customers_v4',
+  CUSTOMERS: 'noname_laundry_customers_v5',
   SETTINGS: 'noname_laundry_settings_v2',
   FAQS: 'noname_laundry_faqs_v2',
   POSTAL_CODES: 'noname_delivery_zones_v2',
@@ -519,7 +519,32 @@ export class LaundryStore {
         });
       });
 
-      // Purge legacy v1/v2/v3 demo cache keys so old demo data never resurrects
+      // Purge legacy v1/v2/v3/v4 demo cache keys and stale customer sessions so old demo data never resurrects
+      const MOCK_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921', 'A15623B8-35EC-40A9-B178-CCF11706A41A'];
+      const isMockCust = (c) => {
+        if (!c) return false;
+        const cid = String(c.id || '').toUpperCase();
+        const fName = String(c.fullName || c.name || '').toLowerCase();
+        const first = String(c.firstName || '').toLowerCase();
+        const nick = String(c.nickName || '').toLowerCase();
+        const em = String(c.email || '').toLowerCase();
+        const ph = String(c.mobileNumber || c.phone || '').replace(/\D/g, '');
+        return (
+          MOCK_IDS.includes(cid) ||
+          fName.includes('alex') ||
+          fName.includes('test noname') ||
+          fName.includes('test_noname') ||
+          first === 'alex' ||
+          first === 'test' ||
+          nick === 'tester' ||
+          em.includes('@example.com') ||
+          em.includes('test_noname') ||
+          ph.endsWith('899990001') ||
+          ph.endsWith('824559182') ||
+          ph.endsWith('897123456')
+        );
+      };
+
       try {
         localStorage.removeItem('noname_laundry_services_v1');
         localStorage.removeItem('noname_laundry_services_v2');
@@ -531,36 +556,12 @@ export class LaundryStore {
         localStorage.removeItem('noname_laundry_customers_v1');
         localStorage.removeItem('noname_laundry_customers_v2');
         localStorage.removeItem('noname_laundry_customers_v3');
-        const MOCK_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'];
-        const isMockCust = (c) => c && (MOCK_IDS.includes(c.id) || (c.fullName && c.fullName.toLowerCase().includes('alex')) || (c.firstName && c.firstName.toLowerCase() === 'alex'));
-
-        const curCustRaw = localStorage.getItem('noname_current_customer');
-        if (curCustRaw) {
-          try {
-            const curCust = JSON.parse(curCustRaw);
-            if (isMockCust(curCust)) {
-              localStorage.removeItem('noname_current_customer');
-              localStorage.removeItem('noname_customer_token');
-            }
-          } catch (e) {
-            localStorage.removeItem('noname_current_customer');
-          }
-        }
-
-        const sessionRaw = localStorage.getItem('noname_customer_session');
-        if (sessionRaw) {
-          try {
-            const sCust = JSON.parse(sessionRaw);
-            if (isMockCust(sCust)) {
-              localStorage.removeItem('noname_customer_session');
-              localStorage.removeItem('noname_customer_token');
-              localStorage.removeItem('tls_customer_token');
-              this.currentCustomer = null;
-            }
-          } catch (e) {
-            localStorage.removeItem('noname_customer_session');
-          }
-        }
+        localStorage.removeItem('noname_laundry_customers_v4');
+        localStorage.removeItem('noname_current_customer');
+        localStorage.removeItem('noname_customer_session');
+        localStorage.removeItem('noname_customer_token');
+        localStorage.removeItem('tls_customer_token');
+        this.currentCustomer = null;
       } catch (cleanupErr) {}
 
       const savedOrders = localStorage.getItem(STORAGE_KEYS.ORDERS);
@@ -598,13 +599,16 @@ export class LaundryStore {
         whatsappNumber: '@nonamelaundry',
         supportEmail: 'nonamelaundrybooking@gmail.com',
         paymentGateway: {
-          provider: 'Omise / Opn Payments (Thailand)',
+          provider: 'Beam Checkout (Thailand)',
           merchantName: 'NoName Laundry Bangkok Co., Ltd.',
+          beamMerchantId: 'thatlaundryshop-38s3vq',
+          beamApiKey: '1ZHKXSTU0gi3UKvBTMQhU0SC7pO7muP9sCGSMPdEiGY=',
+          beamEnvironment: 'production',
           promptpayEnabled: true,
           creditCardEnabled: true,
           trueMoneyEnabled: true,
-          testMode: true,
-          modeNotice: '100% Cashless System via 3rd-Party Gateway'
+          testMode: false,
+          modeNotice: '100% Cashless System Powered by Beam Checkout'
         },
         googleMapsApiKey: '',
         contact: CONTACT_CHANNELS
@@ -2072,36 +2076,14 @@ export class LaundryStore {
 
   
   getCurrentCustomer() {
-    const MOCK_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'];
-    const isMock = (c) => c && (MOCK_IDS.includes(c.id) || (c.fullName && c.fullName.toLowerCase().includes('alex')) || (c.firstName && c.firstName.toLowerCase() === 'alex'));
-
-    if (this.currentCustomer) {
-      if (isMock(this.currentCustomer)) {
-        this.currentCustomer = null;
-        if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem('noname_customer_session');
-          localStorage.removeItem('noname_current_customer');
-          localStorage.removeItem('tls_customer_token');
-        }
-        return null;
-      }
-      return this.currentCustomer;
-    }
-    try {
-      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('noname_customer_session') : null;
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (isMock(parsed)) {
-          localStorage.removeItem('noname_customer_session');
-          localStorage.removeItem('noname_current_customer');
-          localStorage.removeItem('tls_customer_token');
-          return null;
-        }
-        this.currentCustomer = parsed;
-        return this.currentCustomer;
-      }
-    } catch (e) {
-      console.warn('Error reading customer session:', e);
+    this.currentCustomer = null;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('noname_customer_session');
+        localStorage.removeItem('noname_current_customer');
+        localStorage.removeItem('noname_customer_token');
+        localStorage.removeItem('tls_customer_token');
+      } catch (e) {}
     }
     return null;
   }

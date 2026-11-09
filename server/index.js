@@ -17,7 +17,7 @@ const {
   pushExistingNonameDataToTlsCloud,
   startTlsCloudRealtimeListener
 } = require('./tlsCloudSync');
-const { sendBookingConfirmationEmail, sendConfirmedBillingEmail, sendBookingNotificationEmail, verifySmtpConnection, resetTransporter } = require('./mailer');
+const { sendBookingConfirmationEmail, sendConfirmedBillingEmail, sendOfficialReceiptEmail, sendBookingNotificationEmail, verifySmtpConnection, resetTransporter } = require('./mailer');
 let defaultDeliveryZones = [];
 try {
   const deliveryData = require('./deliveryZonesData.json');
@@ -190,9 +190,16 @@ async function ensureDatabaseSchema() {
       SET role = 'super_admin'
       WHERE LOWER(email) = 'justin.sirias@gmail.com' 
          OR LOWER(username) = 'test@nonamelaundry.com';
+      DELETE FROM customers
+      WHERE LOWER(email) LIKE '%@example.com%'
+         OR LOWER(email) LIKE '%test_noname%'
+         OR LOWER(full_name) LIKE '%test noname%'
+         OR LOWER(id) = 'a15623b8-35ec-40a9-b178-ccf11706a41a'
+         OR mobile_number LIKE '%899990001%';
 
       ALTER TABLE services ALTER COLUMN min_weight_kg SET DEFAULT 5.0;
       ALTER TABLE orders ALTER COLUMN min_weight_applied_kg SET DEFAULT 5.0;
+      UPDATE orders SET status = 'IN_PROCESS' WHERE status = 'WASHING';
       UPDATE services
       SET min_weight_kg = 5.0, updated_at = NOW()
       WHERE (category_id = 'laundry_by_weight' OR id IN ('wash_fold', 'wash_iron_fold', 'wash_iron_hang'))
@@ -1991,7 +1998,8 @@ app.post('/api/orders', async (req, res) => {
     saveLocalOrders(localOrders);
 
     // Asynchronously dispatch email notification to business inbox (non-blocking)
-    sendBookingNotificationEmail(createdOrder).catch(mailErr => {
+    const originUrl = req.headers.origin || (req.get('host') ? `${req.protocol}://${req.get('host')}` : '');
+    sendBookingNotificationEmail({ ...createdOrder, originUrl }).catch(mailErr => {
       console.error('[MAILER] Background notification error:', mailErr);
     });
 
@@ -2006,7 +2014,8 @@ app.post('/api/orders', async (req, res) => {
     localOrders = [localOrderObj, ...localOrders.filter(x => x.id !== localOrderObj.id)];
     saveLocalOrders(localOrders);
 
-    sendBookingNotificationEmail(localOrderObj).catch(mailErr => {
+    const originUrl = req.headers.origin || (req.get('host') ? `${req.protocol}://${req.get('host')}` : '');
+    sendBookingNotificationEmail({ ...localOrderObj, originUrl }).catch(mailErr => {
       console.error('[MAILER] Background notification error:', mailErr);
     });
 
@@ -2116,7 +2125,9 @@ const handleOrderStatusUpdate = async (req, res) => {
     let targetBillingSentAt = req.body.billingSentAt !== undefined
       ? req.body.billingSentAt
       : (sUpdates.billingSentAt !== undefined ? sUpdates.billingSentAt : (currentOrder.billing_sent_at !== undefined ? currentOrder.billing_sent_at : currentOrder.billingSentAt));
-    if (targetStatus === 'BILLING' && req.body.markBillingSent && !targetBillingSentAt) {
+    if (['TBA', 'SCHEDULED', 'CANCELLED'].includes(targetStatus)) {
+      targetBillingSentAt = null;
+    } else if (targetStatus === 'BILLING' && req.body.markBillingSent && !targetBillingSentAt) {
       targetBillingSentAt = now.toISOString();
     }
 
@@ -2279,7 +2290,8 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
     const now = new Date();
 
     // Dispatch the confirmed billing email
-    const emailRes = await sendConfirmedBillingEmail(order, targetEmail);
+    const originUrl = req.headers.origin || (req.get('host') ? `${req.protocol}://${req.get('host')}` : '');
+    const emailRes = await sendConfirmedBillingEmail({ ...order, originUrl }, targetEmail);
 
     if (!emailRes.sent) {
       console.warn(`[SERVER] Failed to dispatch invoice email for ${id} to ${targetEmail}:`, emailRes.error);
@@ -2309,24 +2321,29 @@ app.post('/api/orders/:id/send-billing', async (req, res) => {
     // Only update billingSentAt and billingChannel on CONFIRMED successful dispatch
     const billingSentAt = now.toISOString();
     const billingChannel = 'EMAIL';
+    const nextStatus = (order.status === 'TBA' || order.status === 'SCHEDULED' || !order.status) ? 'BILLING' : order.status;
+    order.status = nextStatus;
     order.billingSentAt = billingSentAt;
     order.billingChannel = billingChannel;
 
     // Audit log
     const auditNote = note || `Admin sent Official Tax Invoice & Cashless Payment Link to customer (${targetEmail}) for ฿${order.totalPrice} THB via Email.`;
-    const timelineEntry = { status: order.status || 'BILLING', timestamp: now.toISOString(), note: auditNote };
+    const timelineEntry = { status: nextStatus, timestamp: now.toISOString(), note: auditNote };
     order.timeline = [...(order.timeline || []), timelineEntry];
 
     if (fromDb) {
       try {
         await query(`
           UPDATE orders
-          SET billing_sent_at = $1,
-              billing_channel = $2,
-              timeline = $3,
+          SET status = $1,
+              actual_weight_kg = $2,
+              total_price = $3,
+              billing_sent_at = $4,
+              billing_channel = $5,
+              timeline = $6,
               updated_at = NOW()
-          WHERE id = $4
-        `, [billingSentAt, billingChannel, JSON.stringify(order.timeline), id]);
+          WHERE id = $7
+        `, [nextStatus, order.actualWeightKg ?? null, order.totalPrice ?? 0, billingSentAt, billingChannel, JSON.stringify(order.timeline), id]);
       } catch (dbErr) {
         console.warn('[SERVER] Could not update billing_sent_at in Postgres:', dbErr.message);
       }
@@ -2382,23 +2399,26 @@ app.post('/api/orders/:id/record-invoice-sent', async (req, res) => {
     const now = new Date();
     const billingSentAt = now.toISOString();
     const billingChannel = String(channel).toUpperCase();
+    const nextStatus = (order.status === 'TBA' || order.status === 'SCHEDULED' || !order.status) ? 'BILLING' : order.status;
+    order.status = nextStatus;
     order.billingSentAt = billingSentAt;
     order.billingChannel = billingChannel;
 
     const auditNote = note || `Official Tax Invoice & Cashless Payment Link dispatched to customer via ${billingChannel} (Total: ฿${order.totalPrice || 0} THB).`;
-    const timelineEntry = { status: order.status || 'BILLING', timestamp: billingSentAt, note: auditNote };
+    const timelineEntry = { status: nextStatus, timestamp: billingSentAt, note: auditNote };
     order.timeline = [...(order.timeline || []), timelineEntry];
 
     if (fromDb) {
       try {
         await query(`
           UPDATE orders
-          SET billing_sent_at = $1,
-              billing_channel = $2,
-              timeline = $3,
+          SET status = $1,
+              billing_sent_at = $2,
+              billing_channel = $3,
+              timeline = $4,
               updated_at = NOW()
-          WHERE id = $4
-        `, [billingSentAt, billingChannel, JSON.stringify(order.timeline), id]);
+          WHERE id = $5
+        `, [nextStatus, billingSentAt, billingChannel, JSON.stringify(order.timeline), id]);
       } catch (dbErr) {
         console.warn('[SERVER] Could not update billing_sent_at in Postgres:', dbErr.message);
       }
@@ -2454,12 +2474,15 @@ const handleOrderPayment = async (req, res) => {
     const now = new Date();
     const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
     const ref = paymentRef || transactionRef || ('TXN-' + Math.floor(100000 + Math.random() * 900000));
+    const receiptNumber = `RCP-${id}`;
+    const currentOrderStatus = currentOrder.status || 'BILLING';
+    const nextOrderStatus = currentOrderStatus === 'BILLING' ? 'IN_PROCESS' : currentOrderStatus;
 
     const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
     const newTimelineEvent = {
-      status: 'PAID',
+      status: nextOrderStatus,
       timestamp: timestampStr,
-      note: `Cashless payment verified via 3rd-Party Gateway (${paymentMethod}). Ref: ${ref}. Amount: ฿${currentOrder.total_price || currentOrder.totalPrice} THB.`
+      note: `Cashless payment verified via 3rd-Party Gateway (${paymentMethod}). Ref: ${ref}. Official Receipt #${receiptNumber} issued for ฿${currentOrder.total_price || currentOrder.totalPrice} THB.`
     };
     const updatedTimeline = [...currentTimeline, newTimelineEvent];
 
@@ -2467,14 +2490,16 @@ const handleOrderPayment = async (req, res) => {
       try {
         const result = await query(`
           UPDATE orders
-          SET payment_status = 'PAID',
-              payment_method = $1,
-              payment_ref = $2,
-              timeline = $3,
+          SET status = $1,
+              payment_status = 'PAID',
+              payment_method = $2,
+              payment_ref = $3,
+              timeline = $4,
               updated_at = NOW()
-          WHERE id = $4
+          WHERE id = $5
           RETURNING *
         `, [
+          nextOrderStatus,
           paymentMethod,
           ref,
           JSON.stringify(updatedTimeline),
@@ -2482,10 +2507,16 @@ const handleOrderPayment = async (req, res) => {
         ]);
 
         const mapped = mapOrder(result.rows[0]);
+        mapped.receiptNumber = receiptNumber;
         const locIdx = localOrders.findIndex(o => o.id === id);
         if (locIdx !== -1) localOrders[locIdx] = mapped;
         else localOrders.unshift(mapped);
         saveLocalOrders(localOrders);
+
+        // Automatically issue & send Official Receipt email
+        sendOfficialReceiptEmail(mapped).catch(err =>
+          console.warn('[MAILER] Non-blocking receipt email warning:', err.message)
+        );
 
         syncOrderToTlsCloud(mapped).catch(syncErr => {
           console.warn('[TLS-SYNC] Payment sync warning:', syncErr.message);
@@ -2499,9 +2530,11 @@ const handleOrderPayment = async (req, res) => {
 
     const updatedLocal = {
       ...currentOrder,
+      status: nextOrderStatus,
       paymentStatus: 'PAID',
       paymentMethod,
       paymentRef: ref,
+      receiptNumber,
       timeline: updatedTimeline,
       updatedAt: now.toISOString()
     };
@@ -2509,6 +2542,10 @@ const handleOrderPayment = async (req, res) => {
     if (locIdx !== -1) localOrders[locIdx] = updatedLocal;
     else localOrders.unshift(updatedLocal);
     saveLocalOrders(localOrders);
+
+    sendOfficialReceiptEmail(updatedLocal).catch(err =>
+      console.warn('[MAILER] Non-blocking receipt email warning:', err.message)
+    );
 
     syncOrderToTlsCloud(updatedLocal).catch(() => {});
 
@@ -2521,6 +2558,605 @@ const handleOrderPayment = async (req, res) => {
 app.patch('/api/orders/:id/pay', handleOrderPayment);
 app.put('/api/orders/:id/pay', handleOrderPayment);
 app.put('/api/orders/:id/paid', handleOrderPayment);
+
+// ============================================================================
+// BEAM CHECKOUT (THAILAND) V1 PAYMENT LINKS & WEBHOOK INTEGRATION
+// ============================================================================
+let cachedBeamConfig = null;
+let cachedBeamConfigAt = 0;
+const activeBeamRefsByOrder = new Map(); // orderId -> Set<refId>
+
+function registerBeamRef(orderId, refId) {
+  if (!orderId || !refId) return;
+  if (!activeBeamRefsByOrder.has(orderId)) {
+    activeBeamRefsByOrder.set(orderId, new Set());
+  }
+  activeBeamRefsByOrder.get(orderId).add(refId);
+}
+
+async function getBeamConfig(forceRefresh = false) {
+  if (!forceRefresh && cachedBeamConfig && Date.now() - cachedBeamConfigAt < 60000) {
+    return cachedBeamConfig;
+  }
+  let gw = {};
+  try {
+    const res = await query("SELECT value FROM settings WHERE key = 'app_config'");
+    if (res.rows.length > 0 && res.rows[0].value && res.rows[0].value.paymentGateway) {
+      gw = res.rows[0].value.paymentGateway;
+    }
+  } catch (e) {
+    // Fallback to env if DB not reachable
+  }
+  const merchantId = (gw.beamMerchantId || process.env.BEAM_MERCHANT_ID || 'thatlaundryshop-38s3vq').trim();
+  const apiKey = (gw.beamApiKey || process.env.BEAM_API_KEY || '1ZHKXSTU0gi3UKvBTMQhU0SC7pO7muP9sCGSMPdEiGY=').trim();
+  const environment = (gw.beamEnvironment || process.env.BEAM_ENVIRONMENT || 'production').toLowerCase();
+  const isSandbox = environment === 'sandbox' || environment === 'playground' || environment === 'test';
+  const baseUrl = isSandbox
+    ? 'https://playground.api.beamcheckout.com'
+    : 'https://api.beamcheckout.com';
+
+  cachedBeamConfig = {
+    merchantId,
+    apiKey,
+    environment: isSandbox ? 'sandbox' : 'production',
+    baseUrl,
+    promptpayEnabled: gw.promptpayEnabled !== false,
+    creditCardEnabled: gw.creditCardEnabled !== false,
+    merchantName: gw.merchantName || 'NoName Laundry Bangkok Co., Ltd.'
+  };
+  cachedBeamConfigAt = Date.now();
+  return cachedBeamConfig;
+}
+
+async function markOrderPaidFromBeam(orderId, paymentMethod, paymentRef, notePrefix = 'Beam Checkout') {
+  let currentOrder = null;
+  let fromDb = false;
+  try {
+    const checkRes = await query('SELECT * FROM orders WHERE id = $1', [orderId]);
+    if (checkRes.rows.length > 0) {
+      currentOrder = checkRes.rows[0];
+      fromDb = true;
+    }
+  } catch (e) {
+    // fallback
+  }
+  if (!currentOrder) {
+    const found = localOrders.find(o => o.id === orderId);
+    if (found) currentOrder = found;
+  }
+  if (!currentOrder) return null;
+
+  const currentStatus = currentOrder.payment_status || currentOrder.paymentStatus;
+  if (currentStatus === 'PAID') {
+    return fromDb ? mapOrder(currentOrder) : currentOrder;
+  }
+
+  const now = new Date();
+  const timestampStr = now.toISOString().replace('T', ' ').substring(0, 16);
+  const ref = paymentRef || ('BEAM-' + Math.floor(100000 + Math.random() * 900000));
+  const receiptNumber = `RCP-${orderId}`;
+  const currentOrderStatus = currentOrder.status || 'BILLING';
+  const nextOrderStatus = currentOrderStatus === 'BILLING' ? 'IN_PROCESS' : currentOrderStatus;
+
+  const currentTimeline = Array.isArray(currentOrder.timeline) ? currentOrder.timeline : [];
+  for (const k of beamQrCache.keys()) {
+    if (k.startsWith(`${orderId}:`)) beamQrCache.delete(k);
+  }
+  activeBeamRefsByOrder.delete(orderId);
+  const newTimelineEvent = {
+    status: nextOrderStatus,
+    timestamp: timestampStr,
+    note: `Cashless payment verified via ${notePrefix} (${paymentMethod}). Ref: ${ref}. Official Receipt #${receiptNumber} issued for ฿${currentOrder.total_price || currentOrder.totalPrice} THB.`
+  };
+  const updatedTimeline = [...currentTimeline, newTimelineEvent];
+
+  if (fromDb) {
+    try {
+      const result = await query(`
+        UPDATE orders
+        SET status = $1,
+            payment_status = 'PAID',
+            payment_method = $2,
+            payment_ref = $3,
+            timeline = $4,
+            updated_at = NOW()
+        WHERE id = $5
+        RETURNING *
+      `, [nextOrderStatus, paymentMethod, ref, JSON.stringify(updatedTimeline), orderId]);
+      const mapped = mapOrder(result.rows[0]);
+      mapped.receiptNumber = receiptNumber;
+      const locIdx = localOrders.findIndex(o => o.id === orderId);
+      if (locIdx !== -1) localOrders[locIdx] = mapped;
+      else localOrders.unshift(mapped);
+      saveLocalOrders(localOrders);
+
+      // Automatically dispatch Official Receipt email to customer
+      sendOfficialReceiptEmail(mapped).catch(err =>
+        console.warn('[BEAM MAILER] Non-blocking receipt email warning:', err.message)
+      );
+
+      syncOrderToTlsCloud(mapped).catch(() => {});
+
+      return mapped;
+    } catch (e) {
+      console.warn('[BEAM] DB update fallback:', e.message);
+    }
+  }
+
+  const updatedLocal = {
+    ...currentOrder,
+    status: nextOrderStatus,
+    paymentStatus: 'PAID',
+    paymentMethod,
+    paymentRef: ref,
+    receiptNumber,
+    timeline: updatedTimeline,
+    updatedAt: now.toISOString()
+  };
+  const locIdx = localOrders.findIndex(o => o.id === orderId);
+  if (locIdx !== -1) localOrders[locIdx] = updatedLocal;
+  else localOrders.unshift(updatedLocal);
+  saveLocalOrders(localOrders);
+
+  sendOfficialReceiptEmail(updatedLocal).catch(err =>
+    console.warn('[BEAM MAILER] Non-blocking receipt email warning:', err.message)
+  );
+
+  syncOrderToTlsCloud(updatedLocal).catch(() => {});
+
+  return updatedLocal;
+}
+
+// In-memory cache of active Beam PromptPay QR charges by `${orderId}:${netAmountSatang}`
+const beamQrCache = new Map();
+
+// Helper: Check a single Beam reference (either `ch_...` chargeId or paymentLinkId)
+async function checkBeamRefStatus(beam, refId) {
+  if (!beam.merchantId || !beam.apiKey || !refId || refId.startsWith('TXN-') || refId.startsWith('BEAM-')) {
+    return { isPaid: false, status: 'PENDING', methodLabel: 'Beam Checkout' };
+  }
+  const basicAuth = Buffer.from(`${beam.merchantId}:${beam.apiKey}`).toString('base64');
+  const isCharge = refId.startsWith('ch_');
+  const endpoint = isCharge
+    ? `${beam.baseUrl}/api/v1/charges/${encodeURIComponent(refId)}`
+    : `${beam.baseUrl}/api/v1/payment-links/${encodeURIComponent(refId)}`;
+
+  const beamRes = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Basic ${basicAuth}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!beamRes.ok) {
+    return { isPaid: false, status: 'UNKNOWN', methodLabel: 'Beam Checkout' };
+  }
+  const data = await beamRes.json().catch(() => ({}));
+  const status = String(data.status || '').toUpperCase();
+  const isPaid = status === 'PAID' || status === 'COMPLETED' || status === 'SUCCEEDED';
+  const methodLabel = isCharge
+    ? 'Beam Checkout (Thai PromptPay QR)'
+    : 'Beam Checkout (PromptPay / Card)';
+  const referenceId = data.referenceId || data.order?.referenceId || '';
+  return { isPaid, status, methodLabel, referenceId, data };
+}
+
+// Background Poller: Automatically check Beam Checkout payment status in parallel every 3s
+let isBeamAutoPolling = false;
+async function pollActiveBeamPaymentLinks() {
+  if (isBeamAutoPolling) return;
+  isBeamAutoPolling = true;
+  try {
+    const beam = await getBeamConfig();
+    if (!beam.merchantId || !beam.apiKey) return;
+
+    const pendingOrders = localOrders
+      .filter(o => o && o.paymentStatus !== 'PAID' && (o.paymentRef || activeBeamRefsByOrder.has(o.id)))
+      .slice(0, 15);
+
+    if (pendingOrders.length === 0) return;
+
+    await Promise.all(
+      pendingOrders.map(async (order) => {
+        const refs = new Set();
+        if (order.paymentRef && !order.paymentRef.startsWith('TXN-') && !order.paymentRef.startsWith('BEAM-')) {
+          refs.add(order.paymentRef);
+        }
+        const tracked = activeBeamRefsByOrder.get(order.id);
+        if (tracked) {
+          for (const r of tracked) refs.add(r);
+        }
+        for (const refId of refs) {
+          try {
+            const check = await checkBeamRefStatus(beam, refId);
+            if (check.isPaid) {
+              console.log(`[BEAM AUTO-POLL] Detected ${check.status} status for Order ${order.id} (Ref ${refId}) — updating status & issuing Official Receipt RCP-${order.id}`);
+              activeBeamRefsByOrder.delete(order.id);
+              await markOrderPaidFromBeam(order.id, check.methodLabel, refId);
+              break;
+            }
+          } catch (innerErr) {}
+        }
+      })
+    );
+  } catch (err) {
+    // silent background poll
+  } finally {
+    isBeamAutoPolling = false;
+  }
+}
+
+setInterval(pollActiveBeamPaymentLinks, 3000);
+
+// 1A. Create Live Scannable Thai PromptPay QR Code via Beam Checkout Charges API
+app.post('/api/payments/beam/create-qr', async (req, res) => {
+  try {
+    const { orderId, originUrl, forceNew } = req.body || {};
+    if (!orderId) {
+      return res.status(400).json({ error: 'orderId is required' });
+    }
+
+    let order = null;
+    try {
+      const dbRes = await query('SELECT * FROM orders WHERE id = $1', [orderId]);
+      if (dbRes.rows.length > 0) order = mapOrder(dbRes.rows[0]);
+    } catch (e) {}
+    if (!order) {
+      order = localOrders.find(o => o.id === orderId);
+    }
+    if (!order) {
+      return res.status(404).json({ error: `Order ${orderId} not found` });
+    }
+
+    if (order.paymentStatus === 'PAID') {
+      return res.status(400).json({ error: 'Order is already PAID. QR code has been cleared.', paid: true });
+    }
+    if (!order.billingSentAt) {
+      return res.status(403).json({
+        error: 'Payment is locked until the laundry has been weighed and the bill is unlocked by Admin.'
+      });
+    }
+
+    const totalThb = Number(order.totalPrice || 0);
+    if (totalThb <= 0) {
+      return res.status(400).json({ error: 'Invalid order total amount for payment.' });
+    }
+
+    const beam = await getBeamConfig();
+    if (!beam.merchantId || !beam.apiKey) {
+      return res.status(400).json({
+        error: 'Beam Checkout Merchant ID and API Key are not configured.',
+        notConfigured: true
+      });
+    }
+
+    const netAmountSatang = Math.round(totalThb * 100);
+    const cacheKey = `${order.id}:${netAmountSatang}`;
+    if (!forceNew && beamQrCache.has(cacheKey)) {
+      const cached = beamQrCache.get(cacheKey);
+      if (cached && cached.expiresAtMs > Date.now() + 60000) {
+        return res.json(cached.payload);
+      }
+    }
+
+    const baseRedirect = (originUrl || process.env.PUBLIC_SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+    const returnUrl = `${baseRedirect}/?track=${encodeURIComponent(order.id)}&beam_status=success`;
+
+    const chargeBody = {
+      amount: netAmountSatang,
+      currency: 'THB',
+      referenceId: String(order.id),
+      paymentMethod: {
+        paymentMethodType: 'QR_PROMPT_PAY',
+        qrPromptPay: {}
+      },
+      returnUrl
+    };
+
+    const basicAuth = Buffer.from(`${beam.merchantId}:${beam.apiKey}`).toString('base64');
+    const beamRes = await fetch(`${beam.baseUrl}/api/v1/charges`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${basicAuth}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(chargeBody)
+    });
+
+    const data = await beamRes.json().catch(() => ({}));
+    if (!beamRes.ok) {
+      console.error('[BEAM QR] Error creating PromptPay QR charge:', beamRes.status, data);
+      return res.status(beamRes.status).json({
+        error: data.message || data.error || `Beam Checkout QR API returned HTTP ${beamRes.status}`,
+        details: data
+      });
+    }
+
+    const chargeId = data.chargeId || data.id || '';
+    const base64Png = data.encodedImage?.imageBase64Encoded || '';
+    const rawData = data.encodedImage?.rawData || '';
+    const expiry = data.encodedImage?.expiry || null;
+
+    if (chargeId) {
+      registerBeamRef(order.id, chargeId);
+      const idx = localOrders.findIndex(o => o.id === order.id);
+      if (idx !== -1) {
+        localOrders[idx].paymentRef = chargeId;
+        saveLocalOrders(localOrders);
+      }
+      query('UPDATE orders SET payment_ref = $1, updated_at = NOW() WHERE id = $2', [chargeId, order.id]).catch(() => {});
+    }
+
+    const responsePayload = {
+      success: true,
+      orderId: order.id,
+      chargeId,
+      amountThb: totalThb,
+      qrImageDataUrl: base64Png ? `data:image/png;base64,${base64Png}` : '',
+      rawData,
+      expiry,
+      environment: beam.environment
+    };
+
+    beamQrCache.set(cacheKey, {
+      expiresAtMs: expiry ? new Date(expiry).getTime() : (Date.now() + 15 * 60 * 1000),
+      payload: responsePayload
+    });
+
+    return res.json(responsePayload);
+  } catch (err) {
+    console.error('[BEAM QR] Exception in create-qr:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 1B. Create Beam Checkout Hosted Payment Link for an Order (Credit / Debit Card & Hosted Checkout)
+app.post('/api/payments/beam/create-link', async (req, res) => {
+  try {
+    const { orderId, originUrl } = req.body;
+    if (!orderId) {
+      return res.status(400).json({ error: 'orderId is required' });
+    }
+
+    let order = null;
+    try {
+      const dbRes = await query('SELECT * FROM orders WHERE id = $1', [orderId]);
+      if (dbRes.rows.length > 0) order = mapOrder(dbRes.rows[0]);
+    } catch (e) {}
+    if (!order) {
+      order = localOrders.find(o => o.id === orderId);
+    }
+    if (!order) {
+      return res.status(404).json({ error: `Order ${orderId} not found` });
+    }
+
+    // Enforce Billing Stage + Admin Unlock before allowing payment link creation
+    if (order.paymentStatus === 'PAID') {
+      return res.status(400).json({ error: 'Order is already PAID. QR code has been cleared.', paid: true });
+    }
+    if (!order.billingSentAt) {
+      return res.status(403).json({
+        error: 'Payment is locked until the laundry has been weighed and the bill is unlocked by Admin.'
+      });
+    }
+
+    const totalThb = Number(order.totalPrice || 0);
+    if (totalThb <= 0) {
+      return res.status(400).json({ error: 'Invalid order total amount for payment.' });
+    }
+
+    const beam = await getBeamConfig();
+    if (!beam.merchantId || !beam.apiKey) {
+      return res.status(400).json({
+        error: 'Beam Checkout Merchant ID and API Key are not configured yet. Please configure them in Admin -> Payment Gateway or .env (BEAM_MERCHANT_ID, BEAM_API_KEY).',
+        notConfigured: true
+      });
+    }
+
+    const baseRedirect = (originUrl || process.env.PUBLIC_SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+    const redirectUrl = `${baseRedirect}/?track=${encodeURIComponent(order.id)}&beam_status=success`;
+
+    // Beam Checkout API uses Satang (smallest currency unit: 1 THB = 100 Satang)
+    const netAmountSatang = Math.round(totalThb * 100);
+
+    const payload = {
+      order: {
+        currency: 'THB',
+        netAmount: netAmountSatang,
+        description: `NoName Laundry Order #${order.id} (${order.serviceName || 'Laundry Service'})`,
+        referenceId: String(order.id)
+      },
+      redirectUrl,
+      linkSettings: {
+        card: { isEnabled: Boolean(beam.creditCardEnabled) },
+        qrPromptPay: { isEnabled: Boolean(beam.promptpayEnabled) }
+      }
+    };
+
+    const basicAuth = Buffer.from(`${beam.merchantId}:${beam.apiKey}`).toString('base64');
+    const beamRes = await fetch(`${beam.baseUrl}/api/v1/payment-links`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${basicAuth}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await beamRes.json().catch(() => ({}));
+    if (!beamRes.ok) {
+      console.error('[BEAM] Error creating payment link:', beamRes.status, data);
+      return res.status(beamRes.status).json({
+        error: data.message || data.error || `Beam Checkout API returned HTTP ${beamRes.status}`,
+        details: data
+      });
+    }
+
+    const paymentLinkId = data.paymentLinkId || data.id || '';
+    const paymentUrl = data.url || data.paymentUrl || '';
+
+    // Save paymentLinkId reference in order payment_ref for verification
+    if (paymentLinkId) {
+      registerBeamRef(order.id, paymentLinkId);
+      const idx = localOrders.findIndex(o => o.id === order.id);
+      if (idx !== -1) {
+        localOrders[idx].paymentRef = paymentLinkId;
+        saveLocalOrders(localOrders);
+      }
+      query('UPDATE orders SET payment_ref = $1, updated_at = NOW() WHERE id = $2', [paymentLinkId, order.id]).catch(() => {});
+    }
+
+    return res.json({
+      success: true,
+      orderId: order.id,
+      paymentLinkId,
+      url: paymentUrl,
+      environment: beam.environment
+    });
+  } catch (err) {
+    console.error('[BEAM] Exception in create-link:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Verify Beam Checkout Payment Status (Fast In-Memory + Parallel Multi-Ref Check)
+app.get('/api/payments/beam/verify/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    let order = localOrders.find(o => o.id === orderId) || null;
+    if (!order) {
+      try {
+        const dbRes = await query('SELECT * FROM orders WHERE id = $1', [orderId]);
+        if (dbRes.rows.length > 0) order = mapOrder(dbRes.rows[0]);
+      } catch (e) {}
+    }
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    if (order.paymentStatus === 'PAID') {
+      return res.json({ paid: true, order });
+    }
+
+    const beam = await getBeamConfig();
+    const candidateRefs = new Set();
+    if (req.query.chargeId) candidateRefs.add(String(req.query.chargeId));
+    if (req.query.paymentLinkId) candidateRefs.add(String(req.query.paymentLinkId));
+    if (order.paymentRef && !order.paymentRef.startsWith('TXN-') && !order.paymentRef.startsWith('BEAM-')) {
+      candidateRefs.add(order.paymentRef);
+    }
+    const trackedRefs = activeBeamRefsByOrder.get(order.id);
+    if (trackedRefs) {
+      for (const r of trackedRefs) candidateRefs.add(r);
+    }
+
+    if (beam.merchantId && beam.apiKey && candidateRefs.size > 0) {
+      const checks = await Promise.all(
+        Array.from(candidateRefs).map(async (refId) => {
+          const check = await checkBeamRefStatus(beam, refId);
+          return { refId, ...check };
+        })
+      );
+
+      const paidCheck = checks.find(c => c.isPaid);
+      if (paidCheck) {
+        activeBeamRefsByOrder.delete(order.id);
+        const updated = await markOrderPaidFromBeam(
+          order.id,
+          paidCheck.methodLabel,
+          paidCheck.refId
+        );
+        return res.json({ paid: true, order: updated, beamStatus: paidCheck.status });
+      }
+
+      const firstStatus = checks[0]?.status || 'PENDING';
+      return res.json({ paid: false, beamStatus: firstStatus, order });
+    }
+
+    return res.json({ paid: order.paymentStatus === 'PAID', order });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Beam Checkout Webhook Endpoint (payment_link.paid / charge.succeeded)
+app.post('/api/webhooks/beam', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const eventType = String(req.headers['x-beam-event'] || body.event || body.eventType || body.type || '').toLowerCase();
+    const data = body.data || body;
+    let status = String(data.status || body.status || '').toUpperCase();
+    let referenceId =
+      data.order?.referenceId ||
+      data.referenceId ||
+      body.order?.referenceId ||
+      body.referenceId ||
+      '';
+    const refId =
+      data.chargeId ||
+      data.paymentLinkId ||
+      data.id ||
+      body.chargeId ||
+      body.paymentLinkId ||
+      body.id ||
+      '';
+    const paymentMethodRaw =
+      data.paymentMethod?.paymentMethodType ||
+      data.paymentMethod ||
+      body.paymentMethod?.paymentMethodType ||
+      'PromptPay / Card';
+
+    console.log(`[BEAM WEBHOOK] Event=${eventType || 'direct'} Status=${status} Ref=${referenceId} ID=${refId}`);
+
+    // If webhook payload only includes chargeId / paymentLinkId without referenceId, resolve via DB or Beam API
+    if (!referenceId && refId) {
+      try {
+        const dbMatch = await query('SELECT id FROM orders WHERE payment_ref = $1 LIMIT 1', [refId]);
+        if (dbMatch.rows.length > 0) {
+          referenceId = dbMatch.rows[0].id;
+        }
+      } catch (e) {}
+
+      if (!referenceId) {
+        const localMatch = localOrders.find(o => o.paymentRef === refId);
+        if (localMatch) referenceId = localMatch.id;
+      }
+
+      if (!referenceId) {
+        const beam = await getBeamConfig();
+        const check = await checkBeamRefStatus(beam, refId);
+        if (check.referenceId) referenceId = check.referenceId;
+        if (check.status && check.status !== 'UNKNOWN') status = check.status;
+      }
+    }
+
+    const isPaidEvent =
+      status === 'PAID' ||
+      status === 'SUCCEEDED' ||
+      status === 'COMPLETED' ||
+      eventType.includes('paid') ||
+      eventType.includes('succeeded');
+
+    if (isPaidEvent && referenceId) {
+      const updated = await markOrderPaidFromBeam(
+        referenceId,
+        `Beam Checkout (${paymentMethodRaw})`,
+        refId || `BEAM-${Date.now()}`
+      );
+      return res.status(200).json({
+        received: true,
+        orderUpdated: Boolean(updated),
+        orderId: referenceId,
+        receiptNumber: `RCP-${referenceId}`
+      });
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error('[BEAM WEBHOOK] Error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // Single Order Reconciliation
 app.patch('/api/orders/:id/reconcile', async (req, res) => {
@@ -2931,6 +3567,8 @@ app.post('/api/settings', requireAdminAuth, async (req, res) => {
       ON CONFLICT (key)
       DO UPDATE SET value = $1, updated_at = NOW()
     `, [JSON.stringify(mergedSettings)]);
+    cachedBeamConfig = null;
+    cachedBeamConfigAt = 0;
     console.log('[POSTGRES] Settings merged & updated successfully:', Object.keys(updatedSettings));
     res.json({ success: true, settings: mergedSettings });
   } catch (err) {
@@ -3414,6 +4052,18 @@ app.get(['/api/customers/check-mobile', '/api/customers/lookup'], async (req, re
     }
 
     if (found) {
+      const fEmail = String(found.email || '').toLowerCase();
+      const fName = String(found.fullName || '').toLowerCase();
+      const fId = String(found.id || '').toLowerCase();
+      if (
+        fEmail.includes('@example.com') ||
+        fEmail.includes('test_noname') ||
+        fName.includes('test noname') ||
+        fId === 'a15623b8-35ec-40a9-b178-ccf11706a41a' ||
+        suffix.endsWith('899990001')
+      ) {
+        return res.json({ exists: false });
+      }
       return res.json({
         exists: true,
         customer: {

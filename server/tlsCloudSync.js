@@ -109,6 +109,7 @@ function mapNonameToTlsStatus(nonameStatus) {
       return { status: 'billing', subStatus: 'billing', kanbanStage: 'billing' };
     case 'IN_PROCESS':
     case 'IN_WASH':
+    case 'WASHING':
     case 'IRON_FOLD':
     case 'PROCESSING':
       return { status: 'billing', subStatus: 'wash', kanbanStage: 'process' };

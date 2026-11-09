@@ -1094,10 +1094,10 @@ export function CustomerPortal({
                     <input
                       type="text"
                       value={addrLabel}
-                      onChange={(e) => setAddrLabel(e.target.value)}
+                      onChange={(e) => setAddrLabel(e.target.value.toUpperCase())}
                       placeholder={isTh ? 'เช่น คอนโดบ้าน, ที่ทำงาน, คอนโดพัทยา' : 'e.g. Home Condo, Office, Weekend Condo'}
                       required
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-sky-500 outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-sky-500 outline-none uppercase placeholder:normal-case"
                     />
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {[
@@ -1222,9 +1222,9 @@ export function CustomerPortal({
                     <input
                       type="text"
                       value={addrRoomNumber}
-                      onChange={(e) => setAddrRoomNumber(e.target.value)}
+                      onChange={(e) => setAddrRoomNumber(e.target.value.toUpperCase())}
                       placeholder={isTh ? 'เช่น Tower A, ห้อง 1804' : 'e.g. Tower A, Rm 1804'}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none uppercase placeholder:normal-case"
                     />
                   </div>
                 </div>
@@ -1523,9 +1523,9 @@ export function CustomerPortal({
                 <input
                   type="text"
                   value={nickName}
-                  onChange={(e) => setNickName(e.target.value)}
+                  onChange={(e) => setNickName(e.target.value.toUpperCase())}
                   placeholder={isTh ? 'เช่น Alex, Som' : 'e.g. Alex, Som'}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none uppercase placeholder:normal-case"
                 />
               </div>
 
@@ -1549,9 +1549,9 @@ export function CustomerPortal({
                 <input
                   type="text"
                   value={lineId}
-                  onChange={(e) => setLineId(e.target.value)}
+                  onChange={(e) => setLineId(e.target.value.toUpperCase())}
                   placeholder="@line_id"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-sky-500 outline-none uppercase placeholder:normal-case"
                 />
               </div>
 

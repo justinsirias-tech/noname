@@ -51,7 +51,9 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
   const [showLineQr, setShowLineQr] = useState(false);
 
   // Cashless Payment Gateway Modal State
-  const [showPaymentModal, setShowPaymentModal] = useState(Boolean(initialOpenPayment));
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [checkingBeamStatus, setCheckingBeamStatus] = useState(false);
 
   useEffect(() => {
     if (initialTrackingId) {
@@ -61,10 +63,7 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
       setSearchQuery(customerOrders[0].id);
       setSelectedOrderId(customerOrders[0].id);
     }
-    if (initialOpenPayment) {
-      setShowPaymentModal(true);
-    }
-  }, [initialTrackingId, initialOpenPayment, customerOrders]);
+  }, [initialTrackingId, customerOrders]);
 
   // ESC key listener to close modals
   useEffect(() => {
@@ -82,25 +81,50 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
   }, [showServiceChangeModal, showPaymentModal]);
 
   const [paymentTab, setPaymentTab] = useState('promptpay'); // 'promptpay', 'card'
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [beamCheckoutLoading, setBeamCheckoutLoading] = useState(false);
+  const [beamCheckoutError, setBeamCheckoutError] = useState('');
+  const [beamQrImage, setBeamQrImage] = useState('');
+  const [beamQrChargeId, setBeamQrChargeId] = useState('');
+  const [beamQrExpiry, setBeamQrExpiry] = useState('');
+  const [beamQrLoading, setBeamQrLoading] = useState(false);
 
   const lineOaId = laundryStore.settings?.lineOaId || '@nonamelaundry';
   const gatewayInfo = laundryStore.settings?.paymentGateway || {
-    provider: 'Omise / Opn Payments (Thailand)',
+    provider: 'Beam Checkout (Thailand)',
     merchantName: 'NoName Laundry Bangkok Co., Ltd.'
   };
 
   const searchablePool = customerOrders.length > 0 ? customerOrders : orders;
+  const [fetchedOrder, setFetchedOrder] = useState(null);
 
-  const activeOrder = searchablePool.find(o => 
+  const localMatchedOrder = searchablePool.find(o => 
     o.id.toLowerCase() === (selectedOrderId || searchQuery).trim().toLowerCase()
   ) || orders.find(o => 
     o.id.toLowerCase() === (selectedOrderId || searchQuery).trim().toLowerCase()
   );
+
+  const activeOrder = localMatchedOrder || (
+    fetchedOrder && fetchedOrder.id?.toLowerCase() === (selectedOrderId || searchQuery).trim().toLowerCase()
+      ? fetchedOrder
+      : null
+  );
+
+  useEffect(() => {
+    const targetId = (selectedOrderId || searchQuery || '').trim();
+    if (!targetId) return;
+    let cancelled = false;
+    fetch(`/api/orders/${encodeURIComponent(targetId)}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!cancelled && data && data.id) {
+          setFetchedOrder(data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOrderId, searchQuery]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -112,6 +136,8 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
     ) || orders.find(o => o.id.toLowerCase() === searchQuery.trim().toLowerCase());
     if (found) {
       setSelectedOrderId(found.id);
+    } else {
+      setSelectedOrderId(searchQuery.trim().toUpperCase());
     }
   };
 
@@ -192,10 +218,10 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
     const newSpeed = trackerTurnaroundSpeed || activeOrder.turnaroundSpeed || 'standard_48h';
     const rate = getRateForSpeed(srv, newSpeed);
     const isPiece = srv.pricingType === 'piece' || srv.unit === 'piece';
-    const minWeight = srv.minWeightKg || (isPiece ? 1.0 : 4.0);
+    const minWeight = srv.minWeightKg || (isPiece ? 1.0 : 5.0);
     const weight = activeOrder.actualWeightKg !== null && activeOrder.actualWeightKg !== undefined
       ? activeOrder.actualWeightKg
-      : (activeOrder.quantity || activeOrder.estimatedWeightKg || (isPiece ? 1 : 4.0));
+      : (activeOrder.quantity || activeOrder.estimatedWeightKg || (isPiece ? 1 : 5.0));
     const billableAmount = isPiece ? (activeOrder.quantity || 1) : Math.max(weight, minWeight);
     const newServiceSubtotal = Math.round(billableAmount * rate);
     const deliveryFee = Number(activeOrder.deliveryFee || 0);
@@ -227,15 +253,147 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
     setTimeout(() => setTrackerSuccessMsg(''), 6000);
   };
 
-  const handleSimulatePayment = (methodName) => {
-    if (!activeOrder) return;
-    setIsProcessingPayment(true);
-    setTimeout(() => {
-      laundryStore.markOrderPaid(activeOrder.id, methodName);
-      setIsProcessingPayment(false);
-      setShowPaymentModal(false);
-    }, 800);
+  const loadBeamPromptPayQr = async (forceNew = false) => {
+    if (!activeOrder?.id || activeOrder.paymentStatus === 'PAID' || !activeOrder.billingSentAt) return;
+    setBeamQrLoading(true);
+    setBeamCheckoutError('');
+    try {
+      const res = await fetch('/api/payments/beam/create-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: activeOrder.id,
+          originUrl: window.location.origin,
+          forceNew
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.qrImageDataUrl) {
+        setBeamQrImage(data.qrImageDataUrl);
+        setBeamQrChargeId(data.chargeId || '');
+        setBeamQrExpiry(data.expiry || '');
+      } else {
+        setBeamCheckoutError(data.error || 'Could not generate Beam PromptPay QR code.');
+      }
+    } catch (err) {
+      setBeamCheckoutError(`Failed to load Beam PromptPay QR: ${err.message}`);
+    } finally {
+      setBeamQrLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (activeOrder?.paymentStatus === 'PAID') {
+      setBeamQrImage('');
+      setBeamQrChargeId('');
+      setBeamQrExpiry('');
+      setShowPaymentModal(false);
+      return;
+    }
+    if (showPaymentModal && activeOrder?.id && activeOrder.paymentStatus !== 'PAID' && activeOrder.billingSentAt) {
+      loadBeamPromptPayQr(false);
+    }
+  }, [showPaymentModal, activeOrder?.id, activeOrder?.totalPrice, activeOrder?.billingSentAt, activeOrder?.paymentStatus]);
+
+  const isBeamPollInFlightRef = React.useRef(false);
+
+  const handleCheckBeamPaymentStatus = async (silent = false) => {
+    const targetId = (activeOrder?.id || selectedOrderId || searchQuery || '').trim();
+    if (!targetId) return;
+    if (silent && isBeamPollInFlightRef.current) return;
+    isBeamPollInFlightRef.current = true;
+    if (!silent) setCheckingBeamStatus(true);
+    try {
+      const querySuffix = beamQrChargeId ? `?chargeId=${encodeURIComponent(beamQrChargeId)}` : '';
+      const res = await fetch(`/api/payments/beam/verify/${encodeURIComponent(targetId)}${querySuffix}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.order) {
+          setFetchedOrder(data.order);
+          if (Array.isArray(laundryStore.orders)) {
+            laundryStore.mergeOrders([data.order]);
+          }
+          if (data.paid) {
+            setShowPaymentModal(false);
+            setShowReceiptModal(true);
+            setTrackerSuccessMsg(`Payment verified via Beam Checkout! Order status updated & Official Receipt #RCP-${targetId} issued.`);
+          } else if (!silent) {
+            setBeamCheckoutError(`Payment status is currently ${data.beamStatus || 'PENDING'}. As soon as you complete the scan in your banking app, your receipt will issue automatically.`);
+          }
+        }
+      }
+    } catch (e) {
+      // ignore silent poll error
+    } finally {
+      isBeamPollInFlightRef.current = false;
+      if (!silent) setCheckingBeamStatus(false);
+    }
+  };
+
+  const handleBeamCheckout = async () => {
+    if (!activeOrder) return;
+    setBeamCheckoutLoading(true);
+    setBeamCheckoutError('');
+    try {
+      const res = await fetch('/api/payments/beam/create-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: activeOrder.id,
+          originUrl: window.location.origin
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setBeamCheckoutError(data.error || 'Unable to generate Beam Checkout link. Please use the QR / Card form below or check Beam API keys in Admin settings.');
+        setBeamCheckoutLoading(false);
+        return;
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      setBeamCheckoutError(`Beam Checkout connection error: ${err.message}`);
+      setBeamCheckoutLoading(false);
+    }
+  };
+
+  // Auto-verify Beam Checkout payment on return (?beam_status=success or ?receipt=1) and poll while awaiting payment
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const beamStatus = params.get('beam_status');
+    const openReceipt = params.get('receipt');
+    const targetId = (selectedOrderId || searchQuery || params.get('track') || '').trim();
+    if (openReceipt === '1') {
+      setShowReceiptModal(true);
+    }
+    if (beamStatus === 'success' && targetId) {
+      handleCheckBeamPaymentStatus(true);
+    }
+  }, [selectedOrderId, searchQuery]);
+
+  // Live high-speed poll (1.5s when payment modal is open, 3.5s when viewing billing order) + instant check on window focus / tab return
+  useEffect(() => {
+    if (!activeOrder || activeOrder.paymentStatus === 'PAID') return;
+    if (!activeOrder.billingSentAt && !showPaymentModal) return;
+
+    const pollIntervalMs = showPaymentModal ? 1500 : 3500;
+    const interval = setInterval(() => {
+      handleCheckBeamPaymentStatus(true);
+    }, pollIntervalMs);
+
+    const handleInstantFocusCheck = () => {
+      if (!document.hidden) {
+        handleCheckBeamPaymentStatus(true);
+      }
+    };
+    window.addEventListener('focus', handleInstantFocusCheck);
+    document.addEventListener('visibilitychange', handleInstantFocusCheck);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleInstantFocusCheck);
+      document.removeEventListener('visibilitychange', handleInstantFocusCheck);
+    };
+  }, [activeOrder?.id, activeOrder?.paymentStatus, activeOrder?.billingSentAt, showPaymentModal, beamQrChargeId]);
 
   const currentStage = getTrackingStage(activeOrder?.status);
   const statusMeta = {
@@ -254,6 +412,17 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
   const lineDeepLink = getLineOaMessageUrl(lineMessage, lineOaId);
   const lineQrUrl = getLineQrCodeUrl(lineOaId);
   const isPaid = activeOrder?.paymentStatus === 'PAID';
+  const isInBillingOrLater = currentStepNumber >= 3;
+  const isAdminBillReleased = Boolean(activeOrder?.billingSentAt);
+  const isPaymentAllowed = !isPaid && isInBillingOrLater && isAdminBillReleased;
+
+  useEffect(() => {
+    if (initialOpenPayment && isPaymentAllowed) {
+      setShowPaymentModal(true);
+    } else if (!isPaymentAllowed) {
+      setShowPaymentModal(false);
+    }
+  }, [initialOpenPayment, isPaymentAllowed]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -267,8 +436,8 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
         const isPiece = selectedSrv?.pricingType === 'piece' || selectedSrv?.unit === 'piece';
         const weight = activeOrder.actualWeightKg !== null && activeOrder.actualWeightKg !== undefined
           ? activeOrder.actualWeightKg
-          : (activeOrder.quantity || activeOrder.estimatedWeightKg || (isPiece ? 1 : 4.0));
-        const minWeight = selectedSrv?.minWeightKg || (isPiece ? 1.0 : 4.0);
+          : (activeOrder.quantity || activeOrder.estimatedWeightKg || (isPiece ? 1 : 5.0));
+        const minWeight = selectedSrv?.minWeightKg || (isPiece ? 1.0 : 5.0);
         const billableAmount = isPiece ? (activeOrder.quantity || 1) : Math.max(weight, minWeight);
         const newServiceSubtotal = Math.round(billableAmount * effectiveRate);
         const newTotal = newServiceSubtotal + Number(activeOrder.deliveryFee || 0);
@@ -490,7 +659,7 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
       })()}
 
       {/* 3RD-PARTY CASHLESS PAYMENT GATEWAY MODAL */}
-      {showPaymentModal && activeOrder && (
+      {showPaymentModal && activeOrder && isPaymentAllowed && (
         <div 
           className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setShowPaymentModal(false)}
@@ -523,11 +692,59 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
                 <div className="font-extrabold text-slate-900 text-xs">{gatewayInfo.merchantName}</div>
-                <div className="text-[11px] text-slate-500">Order: <strong>{activeOrder.id}</strong> • {gatewayInfo.provider}</div>
+                <div className="text-[11px] text-slate-500">Order: <strong>{activeOrder.id}</strong> • {gatewayInfo.provider || 'Beam Checkout (Thailand)'}</div>
               </div>
               <div className="text-right">
                 <div className="text-xs text-slate-500 font-bold">Total Due</div>
                 <div className="text-xl font-black text-emerald-600">฿{activeOrder.totalPrice} THB</div>
+              </div>
+            </div>
+
+            {/* Official Beam Checkout Hosted Payment Button */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-900 to-slate-900 text-white space-y-2.5 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-sky-500 text-white text-[10px] font-black uppercase tracking-wider">
+                    BEAM CHECKOUT
+                  </span>
+                  <span className="text-xs font-bold text-sky-200">
+                    Official Hosted Checkout (PromptPay QR & Card)
+                  </span>
+                </div>
+                <Icon name="shield" className="w-4 h-4 text-emerald-400" />
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Pay securely via Beam Checkout Thailand with instant Thai PromptPay QR or 3D-Secure Credit/Debit Card.
+              </p>
+              {beamCheckoutError && (
+                <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-[11px] font-semibold">
+                  {beamCheckoutError}
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  disabled={beamCheckoutLoading}
+                  onClick={handleBeamCheckout}
+                  className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-2"
+                >
+                  <Icon name="credit-card" className="w-4 h-4" />
+                  <span>
+                    {beamCheckoutLoading
+                      ? 'Connecting to Beam Checkout...'
+                      : `Pay ฿${activeOrder.totalPrice} THB via Beam Checkout`}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={checkingBeamStatus}
+                  onClick={() => handleCheckBeamPaymentStatus(false)}
+                  className="px-3.5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition flex items-center justify-center gap-1.5"
+                  title="Check if your Beam Checkout payment has completed"
+                >
+                  <Icon name="check" className="w-4 h-4 text-emerald-400" />
+                  <span>{checkingBeamStatus ? 'Checking...' : 'Check Status'}</span>
+                </button>
               </div>
             </div>
 
@@ -555,98 +772,92 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
 
             {paymentTab === 'promptpay' ? (
               <div className="text-center space-y-3 py-2 animate-fadeIn">
-                <div className="bg-sky-50 border border-sky-200 p-2 rounded-xl inline-block shadow-sm">
-                  <img
-                    src={generatePromptPayQrUrl(activeOrder.totalPrice)}
-                    alt="PromptPay QR Code"
-                    className="w-48 h-48 mx-auto rounded-lg"
-                  />
+                <div className="bg-sky-50 border border-sky-200 p-3 rounded-2xl inline-block shadow-sm">
+                  {beamQrLoading ? (
+                    <div className="w-52 h-52 flex flex-col items-center justify-center text-xs font-bold text-sky-700 gap-2">
+                      <div className="w-8 h-8 rounded-full border-3 border-sky-600 border-t-transparent animate-spin" />
+                      <span>Generating Official Beam PromptPay QR...</span>
+                    </div>
+                  ) : beamQrImage ? (
+                    <img
+                      src={beamQrImage}
+                      alt="Beam Checkout Thai PromptPay QR Code"
+                      className="w-52 h-52 mx-auto rounded-lg bg-white p-2"
+                    />
+                  ) : (
+                    <div className="w-52 h-52 flex flex-col items-center justify-center text-xs text-slate-500 p-4 gap-2">
+                      <span>Could not load live QR image.</span>
+                      <button
+                        type="button"
+                        onClick={() => loadBeamPromptPayQr(true)}
+                        className="px-3 py-1.5 rounded-lg bg-sky-600 text-white font-bold text-xs"
+                      >
+                        Retry QR Generation
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="text-xs text-slate-600 space-y-1">
                   <div className="font-bold text-slate-900">Scan with any Thai Mobile Banking App</div>
-                  <div className="text-[11px] text-slate-500">K PLUS, SCB EASY, Krungthai NEXT, Bangkok Bank, etc.</div>
+                  <div className="text-[11px] text-slate-500">
+                    K PLUS, SCB EASY, Krungthai NEXT, Bangkok Bank, TTB • Exact Amount: <strong>฿{activeOrder.totalPrice}.00 THB</strong>
+                  </div>
+                  {beamQrChargeId && (
+                    <div className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 inline-block">
+                      ✓ Live Beam PromptPay Ref: {beamQrChargeId} (Auto-detecting payment...)
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={checkingBeamStatus}
+                    onClick={() => handleCheckBeamPaymentStatus(false)}
+                    className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+                  >
+                    <Icon name="check" className="w-4 h-4" />
+                    <span>{checkingBeamStatus ? 'Verifying with Beam Checkout...' : "I've Scanned & Paid — Verify Now"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={beamQrLoading}
+                    onClick={() => loadBeamPromptPayQr(true)}
+                    className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+                    title="Generate a fresh PromptPay QR code"
+                  >
+                    Refresh QR
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 py-3 text-center animate-fadeIn">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mx-auto">
+                    <Icon name="credit-card" className="w-6 h-6" />
+                  </div>
+                  <div className="font-extrabold text-slate-900 text-sm">
+                    3D-Secure Credit / Debit Card Checkout
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
+                    For PCI-DSS security, card payments (Visa, Mastercard, JCB) are processed directly on the encrypted <strong>Beam Checkout</strong> page.
+                  </p>
                 </div>
 
                 <button
                   type="button"
-                  disabled={isProcessingPayment}
-                  onClick={() => handleSimulatePayment('PromptPay QR')}
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+                  disabled={beamCheckoutLoading}
+                  onClick={handleBeamCheckout}
+                  className="w-full py-3.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-60 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2"
                 >
-                  <Icon name="check" className="w-4 h-4" />
-                  <span>{isProcessingPayment ? 'Verifying Gateway Webhook...' : 'Confirm PromptPay Payment'}</span>
+                  <Icon name="credit-card" className="w-4 h-4" />
+                  <span>
+                    {beamCheckoutLoading
+                      ? 'Opening Beam Card Checkout...'
+                      : `Pay ฿${activeOrder.totalPrice} THB by Card via Beam Checkout`}
+                  </span>
                 </button>
               </div>
-            ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSimulatePayment('Credit Card (Visa/Mastercard)');
-                }}
-                className="space-y-3 text-xs animate-fadeIn"
-              >
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Cardholder Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Name on card"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Card Number *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="4111 2222 3333 4444"
-                    maxLength="19"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Expiry Date *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="MM/YY"
-                      maxLength="5"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">CVV / CVC *</label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="123"
-                      maxLength="4"
-                      value={cardCvv}
-                      onChange={(e) => setCardCvv(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isProcessingPayment}
-                  className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 mt-2"
-                >
-                  <Icon name="check" className="w-4 h-4" />
-                  <span>{isProcessingPayment ? 'Securing 3D-Secure Transaction...' : `Pay ฿${activeOrder.totalPrice} THB via Gateway`}</span>
-                </button>
-              </form>
             )}
 
             <div className="text-[10px] text-center text-slate-400">
@@ -655,6 +866,138 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
           </div>
         </div>
       )}
+
+      {/* OFFICIAL TAX RECEIPT MODAL (PAID) */}
+      {showReceiptModal && activeOrder && isPaid && (() => {
+        const receiptNo = `RCP-${activeOrder.id}`;
+        const invoiceNo = `INV-${activeOrder.id}`;
+        const total = Number(activeOrder.totalPrice || 0);
+        const subtotalExclVat = Math.round(total / 1.07);
+        const vatAmt = total - subtotalExclVat;
+        const isPiece = activeOrder.unit === 'piece' || activeOrder.pricingType === 'piece';
+        const unitLbl = isPiece ? (activeOrder.unit || 'pc') : 'KG';
+        const scaleW = activeOrder.actualWeightKg !== null && activeOrder.actualWeightKg !== undefined
+          ? Number(activeOrder.actualWeightKg)
+          : Number(activeOrder.estimatedWeightKg || 5);
+        const minW = Number(activeOrder.minWeightAppliedKg || (isPiece ? 1 : 5));
+        const billableW = isPiece ? scaleW : Math.max(scaleW, minW);
+        const delivFee = Number(activeOrder.deliveryFee || 0);
+        const srvSub = Number(activeOrder.serviceSubtotal || (total - delivFee));
+
+        return (
+          <div
+            className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn"
+            onClick={() => setShowReceiptModal(false)}
+          >
+            <div
+              className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-200">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-extrabold uppercase tracking-wider">
+                    ✓ Official Tax Receipt • PAID
+                  </span>
+                  <h3 className="text-xl font-black text-slate-900 mt-2">
+                    NoName Laundry Bangkok Co., Ltd.
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    บริษัท โนเนม ลอนดรี้ แบงค็อก จำกัด • Tax ID: 0105567089123 • nonamelaundrybooking@gmail.com
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-black text-slate-900 font-mono">{receiptNo}</div>
+                  <div className="text-[11px] text-slate-500">Invoice Ref: <strong>{invoiceNo}</strong></div>
+                  <div className="text-[11px] text-emerald-700 font-mono font-bold">
+                    Ref: {activeOrder.paymentRef || `BEAM-${activeOrder.id}`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Received From / Customer
+                  </div>
+                  <div className="font-black text-slate-900 text-sm">{activeOrder.customerName}</div>
+                  <div className="text-slate-600">{activeOrder.pickupAddress || activeOrder.condoName}</div>
+                  <div className="text-slate-500">Room: {activeOrder.roomNumber || 'Lobby / Juristic'}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">
+                    Payment Verification
+                  </div>
+                  <div>Status: <strong className="text-emerald-600">PAID IN FULL</strong></div>
+                  <div>Method: <strong>{activeOrder.paymentMethod || 'Beam Checkout (PromptPay / Card)'}</strong></div>
+                  <div>Gateway Ref: <strong className="font-mono">{activeOrder.paymentRef || 'Verified'}</strong></div>
+                  <div>Order Status: <strong className="text-sky-700">{(activeOrder.status || 'WASHING').replace(/_/g, ' ')}</strong></div>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-600 text-[10px] font-extrabold uppercase">
+                      <th className="py-2.5 px-4">Service Description</th>
+                      <th className="py-2.5 px-3 text-center">Scale Weight</th>
+                      <th className="py-2.5 px-3 text-center">Billable</th>
+                      <th className="py-2.5 px-4 text-right">Amount (THB)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    <tr>
+                      <td className="py-3 px-4">
+                        <div className="font-extrabold text-slate-900">{activeOrder.serviceName}</div>
+                        <div className="text-[11px] text-slate-500"> Rate: ฿{activeOrder.pricePerKg || 70}/{unitLbl}</div>
+                      </td>
+                      <td className="py-3 px-3 text-center font-bold">{scaleW} {unitLbl}</td>
+                      <td className="py-3 px-3 text-center font-extrabold">{billableW} {unitLbl}</td>
+                      <td className="py-3 px-4 text-right font-extrabold">฿{srvSub.toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} className="py-2.5 px-4 font-bold text-slate-700">
+                        🚚 Two-Way Pickup &amp; Return Delivery ({activeOrder.city || 'Bangkok'})
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-extrabold">
+                        {delivFee > 0 ? `฿${delivFee}` : <span className="text-emerald-600">FREE</span>}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2 border-t border-slate-200">
+                <div className="text-xs text-slate-500 space-y-0.5">
+                  <div>Subtotal (Excl. VAT 7%): <strong className="font-mono">฿{subtotalExclVat.toLocaleString()} THB</strong></div>
+                  <div>VAT 7% (Included): <strong className="font-mono">฿{vatAmt.toLocaleString()} THB</strong></div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-bold text-slate-500">Total Amount Paid</div>
+                  <div className="text-2xl font-black text-emerald-600">฿{total.toLocaleString()} THB</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold shadow-sm transition flex items-center gap-2"
+                >
+                  <Icon name="receipt" className="w-4 h-4" />
+                  <span>Print / Save Official Receipt PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowReceiptModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Tracker Header & Search */}
       <div className="mb-8">
@@ -678,8 +1021,8 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
               type="text"
               placeholder="Search your order by Tracking ID (e.g. NNL-8491-BK)..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm font-semibold"
+              onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
+              className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm font-semibold uppercase placeholder:normal-case"
             />
           </div>
           <button
@@ -703,6 +1046,56 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
         </div>
       ) : (
         <div className="space-y-6">
+
+          {/* Active Current Orders & Live Laundry Process Summary Card */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-extrabold text-slate-900 uppercase tracking-wide text-xs flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse" />
+                <span>ACTIVE CURRENT ORDERS &amp; LIVE LAUNDRY PROCESS (1)</span>
+              </h4>
+            </div>
+
+            <div className="p-4 sm:p-5 rounded-2xl border-2 border-sky-300 bg-sky-50/40 space-y-3 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-bold text-sky-700 text-sm">{activeOrder.id}</span>
+                  <span className="font-bold text-slate-900 text-sm">• {activeOrder.serviceName}</span>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-sky-600 text-white font-bold text-[11px]">
+                  Stage {currentStage.step}/6: {currentStage.label} ({(activeOrder.status || 'TBA').replace(/_/g, ' ')})
+                </span>
+              </div>
+
+              {/* 6-Stage Laundry Process Mini Stepper */}
+              <div className="grid grid-cols-6 gap-1.5 pt-1">
+                {progressSteps.map((st, idx) => {
+                  const done = currentStage.step >= (idx + 1);
+                  const current = currentStage.step === (idx + 1);
+                  return (
+                    <div key={st.key} className="text-center">
+                      <div className={`h-1.5 rounded-full ${done ? 'bg-sky-600' : 'bg-slate-200'}`} />
+                      <div className={`text-[9px] sm:text-[10px] mt-1 font-bold truncate ${current ? 'text-sky-700 font-extrabold' : done ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {st.label}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1 text-slate-700">
+                <div>Est Weight: <strong>{activeOrder.estimatedWeightKg || 5} KG</strong></div>
+                <div>Actual Scale: <strong>{activeOrder.actualWeightKg !== null && activeOrder.actualWeightKg !== undefined ? `${activeOrder.actualWeightKg} KG` : 'Pending weigh-in'}</strong></div>
+                <div>Amount: <strong>฿{activeOrder.totalPrice} THB</strong></div>
+                <div>Speed: <span className="font-semibold text-sky-800">{(activeOrder.turnaroundSpeed || 'standard_48h').replace(/_/g, ' ')}</span></div>
+              </div>
+
+              <div className="text-xs text-slate-500 pt-2 border-t border-sky-200/60 flex items-center justify-between flex-wrap gap-2">
+                <span>Pickup: {activeOrder.pickupDate} ({activeOrder.pickupTime})</span>
+                <span>📦 {activeOrder.pickupAddress || activeOrder.condoName || activeOrder.district}</span>
+              </div>
+            </div>
+          </div>
           
           {/* Pre-Payment Update Success Notification Toast */}
           {trackerSuccessMsg && (
@@ -917,7 +1310,7 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
                   <div className="flex items-center gap-2 mb-3">
                     <Icon name={hasMultiItems ? 'layers' : isPiece ? 'layers' : 'scale'} className="w-4 h-4 text-sky-600" />
                     <h4 className="text-xs font-extrabold uppercase tracking-wide text-slate-700">
-                      {hasMultiItems ? `Multi-Service Intake & Order Audit (${activeOrder.items.length} Items)` : isPiece ? 'Item Quantity & Facility Intake Audit' : `Digital Scale Weight Audit (Min ${activeOrder.minWeightAppliedKg || 4.0} KG)`}
+                      {hasMultiItems ? `Multi-Service Intake & Order Audit (${activeOrder.items.length} Items)` : isPiece ? 'Item Quantity & Facility Intake Audit' : `Digital Scale Weight Audit (Min ${activeOrder.minWeightAppliedKg || 5.0} KG)`}
                     </h4>
                   </div>
 
@@ -958,16 +1351,18 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
                     </div>
 
                     <div className="bg-white p-3.5 rounded-xl border border-slate-200">
-                      <div className="text-[11px] text-slate-500 font-medium">Final Invoice Total</div>
-                      <div className="text-lg font-black text-emerald-600 mt-0.5">
-                        ฿{activeOrder.totalPrice} THB
+                      <div className="text-[11px] text-slate-500 font-medium">
+                        {isPaid || isPaymentAllowed ? 'Final Invoice Total' : 'Estimated Amount (Pre-Weigh)'}
+                      </div>
+                      <div className={`text-lg font-black mt-0.5 ${isPaid || isPaymentAllowed ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        {isPaid || isPaymentAllowed ? `฿${activeOrder.totalPrice} THB` : `~฿${activeOrder.totalPrice} THB`}
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-3 text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {!hasMultiItems && <span>Rate: ฿{activeOrder.pricePerKg} / {unitLbl} {!isPiece && `(Min ${activeOrder.minWeightAppliedKg || 4.0} KG applied)`}</span>}
+                      {!hasMultiItems && <span>Rate: ฿{activeOrder.pricePerKg} / {unitLbl} {!isPiece && `(Min ${activeOrder.minWeightAppliedKg || 5.0} KG applied)`}</span>}
                       {Number(activeOrder.deliveryFee) > 0 ? (
                         <span className="font-semibold text-slate-700">• Fixed Delivery: ฿{activeOrder.deliveryFee} THB ({activeOrder.city || 'Bangkok'} · {activeOrder.subdistrict || activeOrder.district || activeOrder.postalCode})</span>
                       ) : (
@@ -995,26 +1390,43 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
                   Invoice Status:{' '}
                   {isPaid ? (
                     <span className="text-emerald-400">PAID</span>
-                  ) : (
+                  ) : isPaymentAllowed ? (
                     <span className="text-amber-400">PENDING PAYMENT</span>
+                  ) : (
+                    <span className="text-sky-300">AWAITING WEIGH-IN &amp; BILL GENERATION</span>
                   )}
                 </div>
-                <div className="text-xs text-slate-300 mt-0.5">
+                <div className="text-xs text-slate-300 mt-0.5 leading-relaxed max-w-xl">
                   {isPaid ? (
-                    <span>Payment verified via {activeOrder.paymentMethod || '3rd-Party Gateway'} (Ref: {activeOrder.paymentRef || 'TXN-089123'})</span>
+                    <span>
+                      Payment verified via {activeOrder.paymentMethod || 'Beam Checkout'} (Ref: {activeOrder.paymentRef || 'TXN-089123'}) •{' '}
+                      <strong className="text-emerald-300">Official Receipt #RCP-{activeOrder.id} Issued</strong>
+                    </span>
+                  ) : isPaymentAllowed ? (
+                    <span>No cash handled by couriers. Official bill generated after facility weigh-in — please pay securely online via PromptPay QR or Credit Card.</span>
                   ) : (
-                    <span>No cash handled by couriers. Please pay securely online via PromptPay QR or Credit Card.</span>
+                    <span>Payment is not available yet. Our team must first bring back your laundry, weigh it on our certified digital scale, and generate your official bill in <strong>Stage 3 (Billing)</strong> before online payment is unlocked by our admin.</span>
                   )}
                 </div>
               </div>
 
               <div className="shrink-0 w-full sm:w-auto">
                 {isPaid ? (
-                  <div className="px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-2">
-                    <Icon name="check" className="w-4 h-4 text-emerald-400" />
-                    <span>Payment Complete</span>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    <div className="px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center justify-center gap-2">
+                      <Icon name="check" className="w-4 h-4 text-emerald-400" />
+                      <span>Payment Complete</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowReceiptModal(true)}
+                      className="px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-emerald-50 font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2"
+                    >
+                      <Icon name="receipt" className="w-4 h-4 text-emerald-600" />
+                      <span>Official Receipt (#RCP-{activeOrder.id})</span>
+                    </button>
                   </div>
-                ) : (
+                ) : isPaymentAllowed ? (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                     <button
                       type="button"
@@ -1037,6 +1449,11 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
                       <Icon name="receipt" className="w-4 h-4" />
                       <span>Pay ฿{activeOrder.totalPrice} THB (PromptPay / Card)</span>
                     </button>
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 rounded-xl bg-slate-800/90 text-slate-300 border border-slate-700 text-xs font-bold flex items-center justify-center gap-2">
+                    <span>🔒</span>
+                    <span>Payment Locked Until Weighed &amp; Billed (Stage 3)</span>
                   </div>
                 )}
               </div>
@@ -1216,8 +1633,8 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
                         type="text"
                         placeholder="e.g. White silk button shirt, Navy linen trousers, King-size duvet cover"
                         value={incidentAffectedItem}
-                        onChange={(e) => setIncidentAffectedItem(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500"
+                        onChange={(e) => setIncidentAffectedItem(e.target.value.toUpperCase())}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500 uppercase placeholder:normal-case"
                       />
                     </div>
 
@@ -1231,8 +1648,8 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
                         required
                         placeholder="e.g. Coffee stain treatment on collar / Urgent delivery schedule inquiry"
                         value={incidentSubject}
-                        onChange={(e) => setIncidentSubject(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500"
+                        onChange={(e) => setIncidentSubject(e.target.value.toUpperCase())}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500 uppercase placeholder:normal-case"
                       />
                     </div>
 
@@ -1246,8 +1663,8 @@ export function OrderTracker({ orders, customer, initialTrackingId, initialOpenP
                         required
                         placeholder="Please describe the issue in detail. For stain treatment, specify what caused it if known (coffee, oil, wine)..."
                         value={incidentMessage}
-                        onChange={(e) => setIncidentMessage(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500"
+                        onChange={(e) => setIncidentMessage(e.target.value.toUpperCase())}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500 uppercase placeholder:normal-case"
                       />
                     </div>
 

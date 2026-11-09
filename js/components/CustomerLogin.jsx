@@ -99,10 +99,10 @@ export function CustomerLogin({ onLoginSuccess, onNavigateToRegister, onNavigate
                 <input
                   type="text"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={(e) => setIdentifier(e.target.value.toUpperCase())}
                   placeholder={isTh ? 'เช่น 082-455-9182 หรือ CUST-8491' : 'e.g. 082-455-9182 or CUST-8491'}
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition uppercase placeholder:normal-case"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

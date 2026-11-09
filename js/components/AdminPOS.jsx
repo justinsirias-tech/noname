@@ -140,11 +140,15 @@ export function AdminPOS({
   ]);
 
   // 3rd-Party Cashless Gateway State
-  const [gatewayProvider, setGatewayProvider] = useState(laundryStore.settings?.paymentGateway?.provider || 'Omise / Opn Payments (Thailand)');
+  const [gatewayProvider, setGatewayProvider] = useState(laundryStore.settings?.paymentGateway?.provider || 'Beam Checkout (Thailand)');
   const [merchantName, setMerchantName] = useState(laundryStore.settings?.paymentGateway?.merchantName || 'NoName Laundry Bangkok Co., Ltd.');
+  const [beamMerchantId, setBeamMerchantId] = useState(laundryStore.settings?.paymentGateway?.beamMerchantId || 'thatlaundryshop-38s3vq');
+  const [beamApiKey, setBeamApiKey] = useState(laundryStore.settings?.paymentGateway?.beamApiKey || '1ZHKXSTU0gi3UKvBTMQhU0SC7pO7muP9sCGSMPdEiGY=');
+  const [beamEnvironment, setBeamEnvironment] = useState(laundryStore.settings?.paymentGateway?.beamEnvironment || 'production');
+  const [showBeamKey, setShowBeamKey] = useState(false);
   const [promptpayEnabled, setPromptpayEnabled] = useState(laundryStore.settings?.paymentGateway?.promptpayEnabled ?? true);
   const [cardEnabled, setCardEnabled] = useState(laundryStore.settings?.paymentGateway?.creditCardEnabled ?? true);
-  const [gatewayTestMode, setGatewayTestMode] = useState(laundryStore.settings?.paymentGateway?.testMode ?? true);
+  const [gatewayTestMode, setGatewayTestMode] = useState(laundryStore.settings?.paymentGateway?.testMode ?? false);
   const [promptpayFeeRate, setPromptpayFeeRate] = useState(laundryStore.settings?.paymentGateway?.promptpayFeeRate ?? 0.0);
   const [cardFeeRate, setCardFeeRate] = useState(laundryStore.settings?.paymentGateway?.cardFeeRate ?? 3.65);
   const [settlementBank, setSettlementBank] = useState(laundryStore.settings?.paymentGateway?.settlementBank || 'Kasikorn Bank (KBANK)');
@@ -186,6 +190,9 @@ export function AdminPOS({
       if (settings.paymentGateway) {
         if (settings.paymentGateway.provider !== undefined) setGatewayProvider(settings.paymentGateway.provider);
         if (settings.paymentGateway.merchantName !== undefined) setMerchantName(settings.paymentGateway.merchantName);
+        if (settings.paymentGateway.beamMerchantId !== undefined) setBeamMerchantId(settings.paymentGateway.beamMerchantId);
+        if (settings.paymentGateway.beamApiKey !== undefined) setBeamApiKey(settings.paymentGateway.beamApiKey);
+        if (settings.paymentGateway.beamEnvironment !== undefined) setBeamEnvironment(settings.paymentGateway.beamEnvironment);
         if (settings.paymentGateway.promptpayEnabled !== undefined) setPromptpayEnabled(Boolean(settings.paymentGateway.promptpayEnabled));
         if (settings.paymentGateway.creditCardEnabled !== undefined) setCardEnabled(Boolean(settings.paymentGateway.creditCardEnabled));
         if (settings.paymentGateway.testMode !== undefined) setGatewayTestMode(Boolean(settings.paymentGateway.testMode));
@@ -758,9 +765,12 @@ export function AdminPOS({
       await laundryStore.updatePaymentGatewaySettings({
         provider: gatewayProvider,
         merchantName: merchantName.trim(),
+        beamMerchantId: beamMerchantId.trim(),
+        beamApiKey: beamApiKey.trim(),
+        beamEnvironment,
         promptpayEnabled,
         creditCardEnabled: cardEnabled,
-        testMode: gatewayTestMode,
+        testMode: beamEnvironment === 'sandbox' ? true : gatewayTestMode,
         promptpayFeeRate: Number(promptpayFeeRate) || 0,
         cardFeeRate: Number(cardFeeRate) || 3.65,
         settlementBank: settlementBank.trim(),
@@ -939,7 +949,7 @@ export function AdminPOS({
       (filterStatusNorm === 'TBA' && (orderStatusNorm === 'TBA' || orderStatusNorm === 'BOOKING_REQUESTED' || orderStatusNorm === 'PENDING' || orderStatusNorm === 'PENDING_CONFIRMATION')) ||
       (filterStatusNorm === 'SCHEDULED' && (orderStatusNorm === 'SCHEDULED' || orderStatusNorm === 'PICKUP_SCHEDULED' || orderStatusNorm === 'PICKED_UP')) ||
       (filterStatusNorm === 'BILLING' && (orderStatusNorm === 'BILLING' || orderStatusNorm === 'BILLING_PENDING' || orderStatusNorm === 'AWAITING_PAYMENT' || orderStatusNorm === 'WEIGHED_INSPECTED')) ||
-      (filterStatusNorm === 'IN_PROCESS' && (orderStatusNorm === 'IN_PROCESS' || orderStatusNorm === 'IN_WASH' || orderStatusNorm === 'IRON_FOLD' || orderStatusNorm === 'PROCESSING')) ||
+      (filterStatusNorm === 'IN_PROCESS' && (orderStatusNorm === 'IN_PROCESS' || orderStatusNorm === 'IN_WASH' || orderStatusNorm === 'WASHING' || orderStatusNorm === 'IRON_FOLD' || orderStatusNorm === 'PROCESSING')) ||
       (filterStatusNorm === 'READY_FOR_DELIVERY' && (orderStatusNorm === 'READY_FOR_DELIVERY' || orderStatusNorm === 'OUT_FOR_DELIVERY')) ||
       (filterStatusNorm === 'DELIVERED' && (orderStatusNorm === 'DELIVERED' || orderStatusNorm === 'COMPLETED')) ||
       (filterStatusNorm === 'CANCELLED' && orderStatusNorm === 'CANCELLED');
@@ -1886,11 +1896,85 @@ export function AdminPOS({
                 onChange={(e) => setGatewayProvider(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold bg-white text-slate-900"
               >
-                <option value="Omise / Opn Payments (Thailand)">Omise / Opn Payments (Recommended for Thailand)</option>
+                <option value="Beam Checkout (Thailand)">Beam Checkout (Thailand — PromptPay QR & Cards)</option>
+                <option value="Omise / Opn Payments (Thailand)">Omise / Opn Payments (Thailand)</option>
                 <option value="Stripe (Thailand)">Stripe Payments (Thailand)</option>
                 <option value="2C2P Thailand">2C2P Payment Gateway</option>
                 <option value="GB Prime Pay">GB Prime Pay (Thai QR PromptPay)</option>
               </select>
+            </div>
+
+            {/* Beam Checkout API Credentials Box */}
+            <div className="p-4 bg-sky-50/70 rounded-2xl border border-sky-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-sky-600 text-white font-black text-[10px] uppercase tracking-wider">
+                    BEAM CHECKOUT API
+                  </span>
+                  <span className="font-bold text-slate-900 text-xs">
+                    Beam Lighthouse (beamcheckout.com) V1 Payment Links
+                  </span>
+                </div>
+                <select
+                  value={beamEnvironment}
+                  onChange={(e) => setBeamEnvironment(e.target.value)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                    beamEnvironment === 'production'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}
+                >
+                  <option value="sandbox">Sandbox / Playground</option>
+                  <option value="production">Production (Live THB)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Beam Merchant ID
+                  </label>
+                  <input
+                    type="text"
+                    value={beamMerchantId}
+                    onChange={(e) => setBeamMerchantId(e.target.value)}
+                    placeholder="e.g. nonamelaundry (from Beam Lighthouse)"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-xs bg-white text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Beam API Key (Secret)</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowBeamKey(!showBeamKey)}
+                      className="text-[10px] text-sky-600 hover:underline font-bold"
+                    >
+                      {showBeamKey ? 'Hide Key' : 'Show Key'}
+                    </button>
+                  </label>
+                  <input
+                    type={showBeamKey ? 'text' : 'password'}
+                    value={beamApiKey}
+                    onChange={(e) => setBeamApiKey(e.target.value)}
+                    placeholder="Enter Beam Lighthouse API Key..."
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-xs bg-white text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
+                <div>
+                  <span className="font-bold text-slate-700">Webhook Endpoint URL (for Beam Lighthouse): </span>
+                  <code className="font-mono text-sky-700 font-bold break-all">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/beam` : '/api/webhooks/beam'}
+                  </code>
+                </div>
+                <span className="text-[10px] text-slate-500">
+                  Events: <strong>payment_link.paid</strong>
+                </span>
+              </div>
             </div>
 
             <div>

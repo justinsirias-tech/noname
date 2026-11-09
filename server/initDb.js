@@ -217,13 +217,16 @@ const DEFAULT_SETTINGS = {
   whatsappNumber: '@nonamelaundry',
   supportEmail: 'nonamelaundrybooking@gmail.com',
   paymentGateway: {
-    provider: 'Omise / Opn Payments (Thailand)',
+    provider: 'Beam Checkout (Thailand)',
     merchantName: 'NoName Laundry Bangkok Co., Ltd.',
+    beamMerchantId: 'thatlaundryshop-38s3vq',
+    beamApiKey: '1ZHKXSTU0gi3UKvBTMQhU0SC7pO7muP9sCGSMPdEiGY=',
+    beamEnvironment: 'production',
     promptpayEnabled: true,
     creditCardEnabled: true,
     trueMoneyEnabled: true,
-    testMode: true,
-    modeNotice: '100% Cashless System via 3rd-Party Gateway'
+    testMode: false,
+    modeNotice: '100% Cashless System Powered by Beam Checkout'
   }
 };
 

@@ -51,15 +51,36 @@ export function BookingWizard({ services, categories: propCategories, initialSer
   });
   const [turnaroundSpeed, setTurnaroundSpeed] = useState(initialTurnaroundSpeed || 'standard_48h'); // 'standard_48h', 'next_day_24h', 'same_day'
   
-  // Validate initial customer (filter out any legacy/mock users like Alex CUST-8491)
-  const MOCK_CUSTOMER_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921'];
-  const isValidCustomerObj = (c) => Boolean(
-    c && c.id &&
-    !MOCK_CUSTOMER_IDS.includes(c.id) &&
-    !(c.fullName && c.fullName.toLowerCase().includes('alex')) &&
-    !(c.firstName && c.firstName.toLowerCase() === 'alex')
-  );
-  const validInitialCustomer = isValidCustomerObj(initialCustomer) ? initialCustomer : null;
+  // Validate customer object (filter out any legacy/mock/test users like Alex CUST-8491 or TEST NONAME)
+  const MOCK_CUSTOMER_IDS = ['CUST-8491', 'CUST-3920', 'CUST-7741', 'CUST-5510', 'CUST-1384', 'CUST-8424', 'CUST-6921', 'A15623B8-35EC-40A9-B178-CCF11706A41A'];
+  const isValidCustomerObj = (c) => {
+    if (!c || !c.id) return false;
+    const cid = String(c.id).toUpperCase();
+    const fName = String(c.fullName || c.name || '').toLowerCase();
+    const first = String(c.firstName || '').toLowerCase();
+    const nick = String(c.nickName || '').toLowerCase();
+    const em = String(c.email || '').toLowerCase();
+    const ph = String(c.mobileNumber || c.phone || '').replace(/\D/g, '');
+    if (
+      MOCK_CUSTOMER_IDS.includes(cid) ||
+      fName.includes('alex') ||
+      fName.includes('test noname') ||
+      fName.includes('test_noname') ||
+      first === 'alex' ||
+      first === 'test' ||
+      nick === 'tester' ||
+      em.includes('@example.com') ||
+      em.includes('test_noname') ||
+      ph.endsWith('899990001') ||
+      ph.endsWith('824559182') ||
+      ph.endsWith('897123456')
+    ) {
+      return false;
+    }
+    return true;
+  };
+  // Always start the public booking form clean without pre-filling cached sessions
+  const validInitialCustomer = null;
 
   // Customer Info (First Name & Last Name required)
   const primaryAddr = validInitialCustomer?.addresses?.[0];
@@ -94,12 +115,12 @@ export function BookingWizard({ services, categories: propCategories, initialSer
     const localMatch = laundryStore.findCustomerByPhone ? laundryStore.findCustomerByPhone(mobileNumber) : null;
     if (localMatch && isValidCustomerObj(localMatch)) {
       setDetectedCustomer(localMatch);
-      if (!firstName && localMatch.firstName) setFirstName(localMatch.firstName);
-      if (!lastName && localMatch.lastName) setLastName(localMatch.lastName);
-      if (!email && localMatch.email && !localMatch.email.includes('@customer.local')) setEmail(localMatch.email);
+      if (!firstName && localMatch.firstName) setFirstName(String(localMatch.firstName).toUpperCase());
+      if (!lastName && localMatch.lastName) setLastName(String(localMatch.lastName).toUpperCase());
+      if (!email && localMatch.email && !localMatch.email.includes('@customer.local')) setEmail(String(localMatch.email).toUpperCase());
       if (!condoName && localMatch.addresses?.[0]?.label) {
-        setCondoName(localMatch.addresses[0].label);
-        if (localMatch.addresses[0].roomNumber) setRoomNumber(localMatch.addresses[0].roomNumber);
+        setCondoName(String(localMatch.addresses[0].label).toUpperCase());
+        if (localMatch.addresses[0].roomNumber) setRoomNumber(String(localMatch.addresses[0].roomNumber).toUpperCase());
       }
       return;
     }
@@ -113,12 +134,12 @@ export function BookingWizard({ services, categories: propCategories, initialSer
           const data = await res.json();
           if (data.exists && data.customer && isValidCustomerObj(data.customer)) {
             setDetectedCustomer(data.customer);
-            if (!firstName && data.customer.firstName) setFirstName(data.customer.firstName);
-            if (!lastName && data.customer.lastName) setLastName(data.customer.lastName);
-            if (!email && data.customer.email && !data.customer.email.includes('@customer.local')) setEmail(data.customer.email);
+            if (!firstName && data.customer.firstName) setFirstName(String(data.customer.firstName).toUpperCase());
+            if (!lastName && data.customer.lastName) setLastName(String(data.customer.lastName).toUpperCase());
+            if (!email && data.customer.email && !data.customer.email.includes('@customer.local')) setEmail(String(data.customer.email).toUpperCase());
             if (!condoName && data.customer.condoName) {
-              setCondoName(data.customer.condoName);
-              if (data.customer.roomNumber) setRoomNumber(data.customer.roomNumber);
+              setCondoName(String(data.customer.condoName).toUpperCase());
+              if (data.customer.roomNumber) setRoomNumber(String(data.customer.roomNumber).toUpperCase());
             }
             if (data.customer.district) setDistrict(data.customer.district);
           } else {
@@ -140,9 +161,9 @@ export function BookingWizard({ services, categories: propCategories, initialSer
 
   // Thai Company Tax Info
   const [isCompanyTax, setIsCompanyTax] = useState(Boolean(validInitialCustomer?.companyTax?.required));
-  const [companyName, setCompanyName] = useState(validInitialCustomer?.companyTax?.companyName || '');
-  const [companyTaxId, setCompanyTaxId] = useState(validInitialCustomer?.companyTax?.taxId || '');
-  const [companyBranch, setCompanyBranch] = useState(validInitialCustomer?.companyTax?.branch || 'Head Office (สำนักงานใหญ่)');
+  const [companyName, setCompanyName] = useState((validInitialCustomer?.companyTax?.companyName || '').toUpperCase());
+  const [companyTaxId, setCompanyTaxId] = useState((validInitialCustomer?.companyTax?.taxId || '').toUpperCase());
+  const [companyBranch, setCompanyBranch] = useState((validInitialCustomer?.companyTax?.branch || 'HEAD OFFICE (สำนักงานใหญ่)').toUpperCase());
 
   // Service City & Address Info (Bangkok & Pattaya)
   const isPattayaInit = (initialCity === 'Pattaya') || (primaryAddr?.city === 'Pattaya');
@@ -160,8 +181,8 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       ? (PATTAYA_SUBDISTRICTS_LIST[0]?.code || '20150')
       : (BANGKOK_DISTRICTS_TO_SUBDISTRICTS[BANGKOK_DISTRICTS[0]]?.[0]?.code || '10110')
   );
-  const [condoName, setCondoName] = useState(primaryAddr?.condoName || primaryAddr?.label || primaryAddr?.placeName || primaryAddr?.address || '');
-  const [roomNumber, setRoomNumber] = useState(primaryAddr?.roomNumber || '');
+  const [condoName, setCondoName] = useState((primaryAddr?.condoName || primaryAddr?.label || primaryAddr?.placeName || primaryAddr?.address || '').toUpperCase());
+  const [roomNumber, setRoomNumber] = useState((primaryAddr?.roomNumber || '').toUpperCase());
   const [leaveWithJuristic, setLeaveWithJuristic] = useState(primaryAddr?.leaveWithJuristic !== false);
   const [selectedPickupAddressId, setSelectedPickupAddressId] = useState(primaryAddr?.id || '');
   const [selectedDeliveryAddressId, setSelectedDeliveryAddressId] = useState('SAME_AS_PICKUP');
@@ -176,8 +197,8 @@ export function BookingWizard({ services, categories: propCategories, initialSer
     setSelectedPickupAddressId(addr.id || '');
     const isPty = addr.city === 'Pattaya' || (addr.postalCode && String(addr.postalCode).startsWith('20'));
     setServiceCity(isPty ? 'Pattaya' : 'Bangkok');
-    setCondoName(addr.condoName || addr.label || addr.address || '');
-    setRoomNumber(addr.roomNumber || '');
+    setCondoName(String(addr.condoName || addr.label || addr.address || '').toUpperCase());
+    setRoomNumber(String(addr.roomNumber || '').toUpperCase());
     setLeaveWithJuristic(addr.leaveWithJuristic !== false);
     const cleanDist = (addr.district || '').split(' (')[0].trim();
     if (isPty) {
@@ -561,10 +582,10 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       subtotal: item.subtotal
     }));
 
-    const combinedCustomerName = `${firstName.trim()} ${lastName.trim()}`.trim();
-    const effectiveContactValue = contactChannel === 'whatsapp' ? (contactValue.trim() || mobileNumber.trim()) : contactValue.trim();
+    const combinedCustomerName = `${firstName.trim()} ${lastName.trim()}`.trim().toUpperCase();
+    const effectiveContactValue = (contactChannel === 'whatsapp' ? (contactValue.trim() || mobileNumber.trim()) : contactValue.trim()).toUpperCase();
 
-    const formattedPickupAddr = `${condoName.trim()}${roomNumber.trim() ? ` (${roomNumber.trim()})` : ''}, ${subdistrict ? `${subdistrict}, ` : ''}${district}, ${serviceCity} ${postalCode}`.trim();
+    const formattedPickupAddr = `${condoName.trim().toUpperCase()}${roomNumber.trim() ? ` (${roomNumber.trim().toUpperCase()})` : ''}, ${subdistrict ? `${subdistrict}, ` : ''}${district}, ${serviceCity} ${postalCode}`.trim();
     const matchedDeliveryObj = selectedDeliveryAddressId !== 'SAME_AS_PICKUP'
       ? savedCustomerAddresses.find(a => a.id === selectedDeliveryAddressId)
       : null;
@@ -573,15 +594,15 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       : formattedPickupAddr;
 
     const bookingPayload = {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
+      firstName: firstName.trim().toUpperCase(),
+      lastName: lastName.trim().toUpperCase(),
       customerName: combinedCustomerName,
       customerId: detectedCustomer?.id || validInitialCustomer?.id || null,
-      nickName: (nickName || firstName).trim(),
+      nickName: (nickName || firstName).trim().toUpperCase(),
       mobileNumber: mobileNumber.trim(),
       contactChannel,
       contactValue: effectiveContactValue,
-      email: email.trim().toLowerCase(),
+      email: email.trim().toUpperCase(),
       serviceId: primaryService.id,
       serviceName: selectedEntries.map(i => i.name).join(' + '),
       items,
@@ -590,8 +611,8 @@ export function BookingWizard({ services, categories: propCategories, initialSer
       district,
       subdistrict,
       postalCode,
-      condoName: condoName.trim(),
-      roomNumber: roomNumber.trim(),
+      condoName: condoName.trim().toUpperCase(),
+      roomNumber: roomNumber.trim().toUpperCase(),
       pickupAddress: formattedPickupAddr,
       deliveryAddress: formattedDeliveryAddr,
       leaveWithJuristic,
@@ -616,13 +637,13 @@ export function BookingWizard({ services, categories: propCategories, initialSer
         : activeSpeed === 'next_day_24h' 
           ? '18:00 - 20:30 (Evening Rush)' 
           : '16:00 - 18:00 (Early Evening)',
-      specialInstructions: specialInstructions.trim(),
+      specialInstructions: specialInstructions.trim().toUpperCase(),
       companyTax: isCompanyTax ? {
         required: true,
-        companyName: companyName.trim(),
-        taxId: companyTaxId.trim(),
-        branch: companyBranch.trim(),
-        companyAddress: `${condoName.trim()}, ${district}, Bangkok`
+        companyName: companyName.trim().toUpperCase(),
+        taxId: companyTaxId.trim().toUpperCase(),
+        branch: companyBranch.trim().toUpperCase(),
+        companyAddress: `${condoName.trim().toUpperCase()}, ${district}, Bangkok`
       } : { required: false }
     };
 
@@ -1417,13 +1438,14 @@ Please confirm our pickup schedule. Thank you!`
                 <input
                   type="text"
                   required
-                  placeholder={language === 'th' ? 'เช่น กิตติพัฒน์ / Alex' : 'e.g. Alex / กิตติพัฒน์'}
+                  placeholder={language === 'th' ? 'เช่น กิตติพัฒน์ / ALEX' : 'e.g. ALEX / กิตติพัฒน์'}
                   value={firstName}
                   onChange={(e) => {
-                    setFirstName(e.target.value);
-                    setCustomerName(`${e.target.value.trim()} ${lastName.trim()}`.trim());
+                    const val = e.target.value.toUpperCase();
+                    setFirstName(val);
+                    setCustomerName(`${val.trim()} ${lastName.trim()}`.trim());
                   }}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm uppercase placeholder:normal-case"
                 />
               </div>
 
@@ -1434,13 +1456,14 @@ Please confirm our pickup schedule. Thank you!`
                 <input
                   type="text"
                   required
-                  placeholder={language === 'th' ? 'เช่น วงศ์สุวรรณ / Thorne' : 'e.g. Thorne / วงศ์สุวรรณ'}
+                  placeholder={language === 'th' ? 'เช่น วงศ์สุวรรณ / THORNE' : 'e.g. THORNE / วงศ์สุวรรณ'}
                   value={lastName}
                   onChange={(e) => {
-                    setLastName(e.target.value);
-                    setCustomerName(`${firstName.trim()} ${e.target.value.trim()}`.trim());
+                    const val = e.target.value.toUpperCase();
+                    setLastName(val);
+                    setCustomerName(`${firstName.trim()} ${val.trim()}`.trim());
                   }}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm uppercase placeholder:normal-case"
                 />
               </div>
             </div>
@@ -1453,10 +1476,10 @@ Please confirm our pickup schedule. Thank you!`
                 </label>
                 <input
                   type="text"
-                  placeholder={language === 'th' ? 'เช่น บอย / Alex' : 'e.g. Alex / บอย'}
+                  placeholder={language === 'th' ? 'เช่น บอย / ALEX' : 'e.g. ALEX / บอย'}
                   value={nickName}
-                  onChange={(e) => setNickName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                  onChange={(e) => setNickName(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm uppercase placeholder:normal-case"
                 />
               </div>
 
@@ -1467,10 +1490,10 @@ Please confirm our pickup schedule. Thank you!`
                 <input
                   type="email"
                   required
-                  placeholder="alex.thorne@gmail.com"
+                  placeholder="ALEX.THORNE@GMAIL.COM"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm"
+                  onChange={(e) => setEmail(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm uppercase placeholder:normal-case"
                 />
                 <p className="text-[10px] text-sky-700 font-semibold mt-1">
                   {language === 'th'
@@ -1588,10 +1611,10 @@ Please confirm our pickup schedule. Thank you!`
                     </label>
                     <input
                       type="text"
-                      placeholder="@yourlineid"
+                      placeholder="@YOURLINEID"
                       value={contactValue && contactValue !== mobileNumber ? contactValue : ''}
-                      onChange={(e) => setContactValue(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-green-300 bg-white text-xs outline-none focus:ring-1 focus:ring-green-500"
+                      onChange={(e) => setContactValue(e.target.value.toUpperCase())}
+                      className="w-full px-3 py-1.5 rounded-lg border border-green-300 bg-white text-xs outline-none focus:ring-1 focus:ring-green-500 uppercase placeholder:normal-case"
                     />
                   </div>
                 </div>
@@ -1628,10 +1651,10 @@ Please confirm our pickup schedule. Thank you!`
                       <input
                         type="text"
                         required={isCompanyTax}
-                        placeholder={language === 'th' ? 'เช่น บริษัท สยาม ฮอสพิทาลิตี้ จำกัด' : 'e.g. Siam Hospitality Co., Ltd.'}
+                        placeholder={language === 'th' ? 'เช่น บริษัท สยาม ฮอสพิทาลิตี้ จำกัด' : 'e.g. SIAM HOSPITALITY CO., LTD.'}
                         value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
+                        onChange={(e) => setCompanyName(e.target.value.toUpperCase())}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white uppercase placeholder:normal-case"
                       />
                     </div>
                     <div>
@@ -1644,8 +1667,8 @@ Please confirm our pickup schedule. Thank you!`
                         maxLength="13"
                         placeholder="e.g. 0105558123456"
                         value={companyTaxId}
-                        onChange={(e) => setCompanyTaxId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white"
+                        onChange={(e) => setCompanyTaxId(e.target.value.toUpperCase())}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white uppercase placeholder:normal-case"
                       />
                     </div>
                   </div>
@@ -1655,10 +1678,10 @@ Please confirm our pickup schedule. Thank you!`
                     </label>
                     <input
                       type="text"
-                      placeholder={language === 'th' ? 'เช่น สำนักงานใหญ่ หรือ สาขา 00001' : 'e.g. Head Office (สำนักงานใหญ่)'}
+                      placeholder={language === 'th' ? 'เช่น สำนักงานใหญ่ หรือ สาขา 00001' : 'e.g. HEAD OFFICE (สำนักงานใหญ่)'}
                       value={companyBranch}
-                      onChange={(e) => setCompanyBranch(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
+                      onChange={(e) => setCompanyBranch(e.target.value.toUpperCase())}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white uppercase placeholder:normal-case"
                     />
                   </div>
                 </div>
@@ -1866,7 +1889,7 @@ Please confirm our pickup schedule. Thank you!`
                   value={condoName}
                   city={serviceCity}
                   onChange={(val, autoMatch) => {
-                    setCondoName(val);
+                    setCondoName(String(val || '').toUpperCase());
                     if (autoMatch) {
                       applyLocationUpdate(autoMatch);
                     }
@@ -1996,10 +2019,10 @@ Please confirm our pickup schedule. Thank you!`
                     </label>
                     <input
                       type="text"
-                      placeholder={language === 'th' ? 'เช่น ตึก B ห้อง 1402' : 'Tower B, Rm 1402'}
+                      placeholder={language === 'th' ? 'เช่น ตึก B ห้อง 1402' : 'TOWER B, RM 1402'}
                       value={roomNumber}
-                      onChange={(e) => setRoomNumber(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white shadow-2xs"
+                      onChange={(e) => setRoomNumber(e.target.value.toUpperCase())}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white shadow-2xs uppercase placeholder:normal-case"
                     />
                   </div>
                 </div>
@@ -2069,10 +2092,10 @@ Please confirm our pickup schedule. Thank you!`
                     </label>
                     <input
                       type="text"
-                      placeholder={language === 'th' ? 'เช่น วิลล่า 4 / ห้อง 801' : 'e.g. Villa 4 / Rm 801'}
+                      placeholder={language === 'th' ? 'เช่น วิลล่า 4 / ห้อง 801' : 'e.g. VILLA 4 / RM 801'}
                       value={roomNumber}
-                      onChange={(e) => setRoomNumber(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white shadow-2xs"
+                      onChange={(e) => setRoomNumber(e.target.value.toUpperCase())}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs bg-white shadow-2xs uppercase placeholder:normal-case"
                     />
                   </div>
                 </div>
@@ -2328,8 +2351,8 @@ Please confirm our pickup schedule. Thank you!`
                       : 'e.g. Leave with K. Somchai at front desk. Please avoid high-heat tumble dry for gym shirts.'
                   }
                   value={specialInstructions}
-                  onChange={(e) => setSpecialInstructions(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white placeholder:text-slate-400 shadow-2xs"
+                  onChange={(e) => setSpecialInstructions(e.target.value.toUpperCase())}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-xs sm:text-sm bg-white placeholder:text-slate-400 shadow-2xs uppercase placeholder:normal-case"
                 />
               </div>
             </div>

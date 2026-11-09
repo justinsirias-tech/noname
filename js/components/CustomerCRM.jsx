@@ -1674,7 +1674,7 @@ export function CustomerCRM({
                                 <div key={st.key} className="text-center">
                                   <div className={`h-1.5 rounded-full ${done ? 'bg-sky-600' : 'bg-slate-200'}`} />
                                   <div className={`text-[9px] mt-1 font-bold truncate ${current ? 'text-sky-700 font-extrabold' : done ? 'text-slate-700' : 'text-slate-400'}`}>
-                                    {idx + 1}. {st.label}
+                                    {st.label}
                                   </div>
                                 </div>
                               );

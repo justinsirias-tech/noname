@@ -77,6 +77,10 @@ async function sendBookingConfirmationEmail(order, overrideRecipient = null) {
   const addressLine = [room && `Room ${room}`, condo, district, 'Bangkok'].filter(Boolean).join(', ');
   const logoPath = path.join(__dirname, '../images/logo.png');
   const speedLabel = speed === 'same_day' ? '⚡ Same-Day Rush (12h)' : speed === 'next_day' ? '🚀 Next-Day Fast (24h)' : '✨ Standard Care (48h)';
+  const unitRate = Number(order.pricePerKg || 70);
+  const minWeight = Number(order.minWeightAppliedKg || 5);
+  const baseUrl = (order.originUrl || process.env.BASE_URL || 'https://apptest.thatlaundryshop.com').replace(/\/+$/, '');
+  const trackingUrl = `${baseUrl}/?track=${encodeURIComponent(trackingId)}`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -120,7 +124,7 @@ async function sendBookingConfirmationEmail(order, overrideRecipient = null) {
               </tr>
               <tr>
                 <td style="padding: 5px 0; color: #64748b;">Service Requested:</td>
-                <td style="padding: 5px 0; font-weight: 700; color: #0f172a;">${serviceName} (฿70/KG, min 4 KG)</td>
+                <td style="padding: 5px 0; font-weight: 700; color: #0f172a;">${serviceName} (฿${unitRate}/KG, min ${minWeight} KG)</td>
               </tr>
               <tr>
                 <td style="padding: 5px 0; color: #64748b;">Service Speed:</td>
@@ -144,6 +148,22 @@ async function sendBookingConfirmationEmail(order, overrideRecipient = null) {
                 <td style="padding: 5px 0; color: #e11d48;">${instructions}</td>
               </tr>` : ''}
             </table>
+          </div>
+
+          <!-- Live Laundry Order Status & Tracking Link Box -->
+          <div style="background-color: #f0f9ff; border: 2px solid #7dd3fc; border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 12px; font-weight: 800; color: #0369a1; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px;">
+              🔵 Active Order &amp; Live Laundry Process Tracking
+            </div>
+            <p style="font-size: 13px; color: #334155; margin: 0 0 14px 0; line-height: 1.5;">
+              Track your laundry order <strong style="color: #0f172a; font-family: monospace;">#${trackingId}</strong> in real time across all 6 stages (TBA → Scheduled → Billing → In Process → Ready For Delivery → Delivered):
+            </p>
+            <a href="${trackingUrl}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; text-align: center; text-decoration: none; padding: 13px 26px; border-radius: 12px; font-size: 14px; font-weight: 800; letter-spacing: 0.3px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+              🔍 Track Laundry Order Status (#${trackingId})
+            </a>
+            <div style="font-size: 11px; color: #64748b; margin-top: 12px; word-break: break-all;">
+              Direct Tracking Link: <a href="${trackingUrl}" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: 600;">${trackingUrl}</a>
+            </div>
           </div>
 
           <!-- What Happens Next Box -->
@@ -274,8 +294,9 @@ async function sendConfirmedBillingEmail(order, overrideRecipient = null) {
   const districtLine = `${districtParts}${postalCode ? ` (📮 ${postalCode})` : ''}`;
   const deliveryZoneText = `${city} · ${subdistrict || district || 'Central'} – ${postalCode}`;
 
-  const baseUrl = process.env.BASE_URL || 'https://apptest.thatlaundryshop.com';
+  const baseUrl = (order.originUrl || process.env.BASE_URL || 'https://apptest.thatlaundryshop.com').replace(/\/+$/, '');
   const paymentUrl = `${baseUrl}/?track=${encodeURIComponent(trackingId)}&pay=1`;
+  const trackingUrl = `${baseUrl}/?track=${encodeURIComponent(trackingId)}`;
   const logoPath = path.join(__dirname, '../images/logo.png');
 
   const hasMultiItems = Array.isArray(order.items) && order.items.length > 0;
@@ -568,9 +589,281 @@ async function sendConfirmedBillingEmail(order, overrideRecipient = null) {
   }
 }
 
+/**
+ * 3. THIRD EMAIL: Official Receipt (PAID)
+ * Automatically dispatched once payment is verified via Beam Checkout or cashless gateway.
+ */
+async function sendOfficialReceiptEmail(order, overrideRecipient = null) {
+  const mailer = getTransporter();
+  if (!mailer) {
+    console.warn('[MAILER] SMTP_PASS not configured. Skipping official receipt email for order:', order?.id);
+    return { sent: false, reason: 'SMTP_PASS_NOT_CONFIGURED' };
+  }
+
+  const trackingId = order.id || order.trackingNumber || 'NNL-NEW';
+  const receiptNumber = `RCP-${trackingId}`;
+  const invoiceNumber = `INV-${trackingId}`;
+  const customerName = order.customerName || order.customer_name || 'Customer';
+  const customerEmail = order.email || '';
+  const serviceName = order.serviceName || order.service_name || 'Wash / Iron / Fold';
+
+  const condoName = order.condoName || order.condo_name || ((order.city || 'Bangkok') + ' Residence');
+  const roomNumber = order.roomNumber || order.room_number || 'Lobby Reception';
+  const subdistrict = order.subdistrict || order.sub_district || '';
+  const district = order.district || '';
+  const city = order.city || 'Bangkok';
+  const postalCode = order.postalCode || order.postal_code || '10110';
+  const contactChannel = (order.contactChannel || order.contact_channel || 'WhatsApp').toUpperCase();
+  const contactValue = order.contactValue || order.contact_value || 'N/A';
+
+  const paymentMethod = order.paymentMethod || order.payment_method || 'Beam Checkout (PromptPay QR / Card)';
+  const paymentRef = order.paymentRef || order.payment_ref || `BEAM-${trackingId}`;
+  const paidDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const speed = (order.turnaroundSpeed || order.turnaround_speed || '').toLowerCase();
+  let speedLabel = 'Standard (48h)';
+  if (speed.includes('same_day')) {
+    speedLabel = 'Same Day Express (<18:00)';
+  } else if (speed.includes('next_day')) {
+    speedLabel = 'Next Day (24h)';
+  }
+
+  const isPiece = order.unit === 'piece' || order.pricingType === 'piece';
+  const unitLabel = isPiece ? (order.unit || 'pc') : 'KG';
+  const scaleWeight = order.actualWeightKg !== null && order.actualWeightKg !== undefined
+    ? Number(order.actualWeightKg)
+    : (Number(order.estimatedWeightKg) || (isPiece ? 1 : 5.0));
+  const minWeight = Number(order.minWeightAppliedKg || (isPiece ? 1 : 5.0));
+  const billableWeight = isPiece ? scaleWeight : Math.max(scaleWeight, minWeight);
+  const unitRate = Number(order.pricePerKg || 70);
+
+  const deliveryFee = Number(order.deliveryFee !== undefined && order.deliveryFee !== null ? order.deliveryFee : 0);
+  const serviceSubtotal = Number(order.serviceSubtotal !== undefined && order.serviceSubtotal !== null
+    ? order.serviceSubtotal
+    : Math.round(billableWeight * unitRate));
+  const totalPrice = Number(order.totalPrice || order.total_price || (serviceSubtotal + deliveryFee));
+
+  const subtotalExclTax = Math.round(totalPrice / 1.07);
+  const vatAmount = totalPrice - subtotalExclTax;
+
+  const districtParts = [subdistrict, district, city].filter(Boolean).join(', ');
+  const districtLine = `${districtParts}${postalCode ? ` (📮 ${postalCode})` : ''}`;
+  const deliveryZoneText = `${city} · ${subdistrict || district || 'Central'} – ${postalCode}`;
+
+  const baseUrl = (order.originUrl || process.env.BASE_URL || 'https://apptest.thatlaundryshop.com').replace(/\/+$/, '');
+  const trackingUrl = `${baseUrl}/?track=${encodeURIComponent(trackingId)}&receipt=1`;
+  const logoPath = path.join(__dirname, '../images/logo.png');
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Official Receipt - ${receiptNumber}</title>
+    </head>
+    <body style="margin: 0; padding: 28px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+      <div style="max-width: 660px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05); padding: 36px 36px 28px 36px; box-sizing: border-box;">
+        
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px;">
+          <tr>
+            <td width="60%" style="vertical-align: top; padding-right: 15px;">
+              <img src="cid:companylogo" alt="NoName Laundry" style="height: 48px; width: auto; max-width: 210px; object-fit: contain; margin-bottom: 12px; display: block;" />
+              <div style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.4; margin-bottom: 2px;">
+                บริษัท โนเนม ลอนดรี้ แบงค็อก จำกัด (NoName Laundry Bangkok Co., Ltd.)
+              </div>
+              <div style="font-size: 12px; color: #64748b; line-height: 1.4; margin-bottom: 2px;">
+                Watthana / Khlong Toei, Sukhumvit, Bangkok 10110
+              </div>
+              <div style="font-size: 12px; color: #64748b; line-height: 1.4; margin-bottom: 2px;">
+                Tax ID: 0105567089123 • Commercial Garment Care
+              </div>
+              <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
+                Email: nonamelaundrybooking@gmail.com • 100% Cashless Facility
+              </div>
+            </td>
+            <td width="40%" style="vertical-align: top; text-align: right;">
+              <div style="display: inline-block; padding: 6px 14px; background-color: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 9999px; font-size: 11px; font-weight: 800; color: #047857; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px;">
+                ✓ OFFICIAL TAX RECEIPT • PAID
+              </div>
+              <div style="font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: -0.3px; margin-bottom: 4px;">
+                ${receiptNumber}
+              </div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 3px;">
+                Paid Date: <strong style="color: #0f172a;">${paidDate}</strong>
+              </div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 3px;">
+                Invoice Ref: <strong style="color: #0f172a; font-family: monospace;">${invoiceNumber}</strong>
+              </div>
+              <div style="font-size: 12px; color: #64748b;">
+                Gateway Ref: <strong style="color: #047857; font-family: monospace;">${paymentRef}</strong>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- PAYMENT VERIFIED BANNER -->
+        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 14px; padding: 14px 18px; margin-bottom: 22px;">
+          <div style="font-size: 13px; font-weight: 800; color: #065f46;">
+            ✓ Payment Received in Full — Thank You, ${customerName}!
+          </div>
+          <div style="font-size: 12px; color: #047857; margin-top: 3px;">
+            Verified via <strong>${paymentMethod}</strong> (Ref: <code>${paymentRef}</code>). Your laundry order <strong>#${trackingId}</strong> is now in active processing.
+          </div>
+        </div>
+
+        <!-- CUSTOMER & PAYMENT DETAILS -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px;">
+          <tr>
+            <td width="48.5%" style="vertical-align: top;">
+              <div style="border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; background-color: #ffffff;">
+                <div style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                  RECEIVED FROM / CUSTOMER
+                </div>
+                <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
+                  ${customerName}
+                </div>
+                <div style="font-size: 12px; color: #334155; margin-bottom: 2px;">
+                  ${condoName} (Room: ${roomNumber})
+                </div>
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">
+                  ${districtLine}
+                </div>
+                <div style="font-size: 12px; color: #475569;">
+                  ${contactChannel}: ${contactValue}
+                </div>
+              </div>
+            </td>
+            <td width="3%"></td>
+            <td width="48.5%" style="vertical-align: top;">
+              <div style="border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; background-color: #ffffff;">
+                <div style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                  PAYMENT &amp; SETTLEMENT SUMMARY
+                </div>
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">
+                  Status: <strong style="color: #059669;">PAID IN FULL</strong>
+                </div>
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">
+                  Gateway: <strong style="color: #0f172a;">${paymentMethod}</strong>
+                </div>
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">
+                  Reference ID: <strong style="color: #0f172a; font-family: monospace;">${paymentRef}</strong>
+                </div>
+                <div style="font-size: 12px; color: #64748b;">
+                  Amount Paid: <strong style="color: #059669;">฿${totalPrice.toLocaleString()} THB</strong>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- ITEMIZED RECEIPT TABLE -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
+          <thead>
+            <tr style="border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase;">
+              <th align="left" style="padding: 10px 6px;">DESCRIPTION</th>
+              <th align="center" style="padding: 10px 6px;">SCALE WEIGHT</th>
+              <th align="center" style="padding: 10px 6px;">BILLABLE</th>
+              <th align="right" style="padding: 10px 6px;">RATE</th>
+              <th align="right" style="padding: 10px 6px;">PAID (THB)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td align="left" style="padding: 14px 6px;">
+                <div style="font-size: 14px; font-weight: 800; color: #0f172a;">${serviceName}</div>
+                <div style="font-size: 12px; color: #64748b;">Turnaround: ${speedLabel}</div>
+              </td>
+              <td align="center" style="padding: 14px 6px; font-weight: 700;">${scaleWeight} ${unitLabel}</td>
+              <td align="center" style="padding: 14px 6px; font-weight: 800;">${billableWeight} ${unitLabel}</td>
+              <td align="right" style="padding: 14px 6px; color: #475569;">฿${unitRate} / ${unitLabel}</td>
+              <td align="right" style="padding: 14px 6px; font-weight: 800;">฿${serviceSubtotal.toLocaleString()}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td colspan="4" align="left" style="padding: 12px 6px; font-weight: 700; color: #0f172a;">
+                🚚 Pickup &amp; Delivery (${deliveryZoneText})
+              </td>
+              <td align="right" style="padding: 12px 6px; font-weight: 800; color: #0f172a;">
+                ${deliveryFee > 0 ? `฿${deliveryFee}` : '<span style="color: #059669;">FREE</span>'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- TOTAL PAID SUMMARY -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px;">
+          <tr>
+            <td width="55%"></td>
+            <td width="45%" align="right">
+              <table width="100%" cellpadding="3" cellspacing="0" border="0" style="font-size: 13px;">
+                <tr>
+                  <td align="left" style="color: #64748b;">Subtotal (Excl. VAT):</td>
+                  <td align="right" style="color: #64748b; font-family: monospace; font-weight: 600;">฿${subtotalExclTax.toLocaleString()} THB</td>
+                </tr>
+                <tr>
+                  <td align="left" style="color: #64748b;">VAT 7% (Included):</td>
+                  <td align="right" style="color: #64748b; font-family: monospace; font-weight: 600;">฿${vatAmount.toLocaleString()} THB</td>
+                </tr>
+                <tr>
+                  <td align="left" style="font-size: 16px; font-weight: 900; color: #0f172a; padding-top: 10px; border-top: 2px solid #e2e8f0;">
+                    Total Paid:
+                  </td>
+                  <td align="right" style="font-size: 22px; font-weight: 900; color: #059669; padding-top: 10px; border-top: 2px solid #e2e8f0;">
+                    ฿${totalPrice.toLocaleString()} THB
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- LIVE TRACKING BUTTON -->
+        <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 14px; padding: 18px; text-align: center; margin-bottom: 20px;">
+          <a href="${trackingUrl}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 800;">
+            🧾 View Live Order Status &amp; Printable Receipt (#${receiptNumber})
+          </a>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 11px; color: #94a3b8;">
+          NoName Laundry Bangkok Co., Ltd. • Official Tax Receipt #${receiptNumber} for Order #${trackingId}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const targetEmail = (overrideRecipient || customerEmail || '').trim();
+  const hasValidCustomerEmail = targetEmail && targetEmail.includes('@') && !targetEmail.includes('@customer.local');
+
+  const mailOptions = {
+    from: `"NoName Laundry Bangkok" <${process.env.SMTP_USER || SMTP_USER}>`,
+    to: hasValidCustomerEmail ? targetEmail : NOTIFICATION_EMAIL,
+    bcc: hasValidCustomerEmail ? NOTIFICATION_EMAIL : undefined,
+    subject: `✅ Official Receipt (${receiptNumber}) - Order #${trackingId} PAID (฿${totalPrice.toLocaleString()} THB)`,
+    html: htmlContent,
+    attachments: [
+      {
+        filename: 'logo.png',
+        path: logoPath,
+        cid: 'companylogo'
+      }
+    ]
+  };
+
+  try {
+    const info = await mailer.sendMail(mailOptions);
+    console.log(`[MAILER] Official Receipt email sent for ${trackingId} (${receiptNumber}) to [${mailOptions.to}]. MessageId: ${info.messageId}`);
+    return { sent: true, receiptNumber, messageId: info.messageId };
+  } catch (error) {
+    console.error(`[MAILER] Failed to send official receipt email for ${trackingId}:`, error);
+    return { sent: false, error: error.message };
+  }
+}
+
 module.exports = {
   sendBookingConfirmationEmail,
   sendConfirmedBillingEmail,
+  sendOfficialReceiptEmail,
   sendBookingNotificationEmail: sendBookingConfirmationEmail,
   verifySmtpConnection,
   resetTransporter

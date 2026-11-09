@@ -196,7 +196,7 @@ export function getTrackingStage(status) {
   if (s === 'ready_for_delivery' || s === 'ready for delivery' || s === 'out_for_delivery') {
     return TRACKING_STAGES[4];
   }
-  if (s === 'in_process' || s === 'in process' || s === 'processing' || s === 'in_wash' || s === 'iron_fold') {
+  if (s === 'in_process' || s === 'in process' || s === 'processing' || s === 'in_wash' || s === 'washing' || s === 'iron_fold') {
     return TRACKING_STAGES[3];
   }
   if (s === 'billing' || s === 'billing_pending' || s === 'awaiting_payment' || s === 'weighed_inspected') {
@@ -226,6 +226,7 @@ export const ORDER_STATUSES = {
   AWAITING_PAYMENT: { label: '3. Billing', color: 'bg-blue-100 text-blue-800 border-blue-300', step: 3 },
   WEIGHED_INSPECTED: { label: '3. Billing', color: 'bg-blue-100 text-blue-800 border-blue-300', step: 3 },
   IN_WASH: { label: '4. In Process', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 4 },
+  WASHING: { label: '4. In Process', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 4 },
   IRON_FOLD: { label: '4. In Process', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 4 },
   PROCESSING: { label: '4. In Process', color: 'bg-amber-100 text-amber-800 border-amber-300', step: 4 },
   OUT_FOR_DELIVERY: { label: '5. Ready For Delivery', color: 'bg-indigo-100 text-indigo-800 border-indigo-300', step: 5 },

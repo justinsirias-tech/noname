@@ -61,9 +61,10 @@ export function OrderDetailsModal({
 
   const [editStatus, setEditStatus] = useState(order.status || 'TBA');
   const [editAssignedRider, setEditAssignedRider] = useState(order.assignedRider || '');
-  const [editWeight, setEditWeight] = useState(order.actualWeightKg !== null && order.actualWeightKg !== undefined ? order.actualWeightKg : (order.estimatedWeightKg || 4.0));
+  const [editWeight, setEditWeight] = useState(order.actualWeightKg !== null && order.actualWeightKg !== undefined ? order.actualWeightKg : (order.estimatedWeightKg || 5.0));
   const [editTag, setEditTag] = useState(order.tagNumber === 'TAG-PENDING' ? '' : (order.tagNumber || ''));
   const [editNote, setEditNote] = useState('');
+  const [allowCustomerPayment, setAllowCustomerPayment] = useState(Boolean(order.billingSentAt));
   const [isSaving, setIsSaving] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [copiedCustomerMsg, setCopiedCustomerMsg] = useState(false);
@@ -85,13 +86,13 @@ export function OrderDetailsModal({
   const [editDeliveryTime, setEditDeliveryTime] = useState(order.deliveryTime || '');
 
   const activeSrv = allServices.find(s => s.id === editServiceId) || initialSrv || allServices[0];
-  const activeMinWeight = activeSrv?.minWeightKg || order.minWeightAppliedKg || 4.0;
+  const activeMinWeight = activeSrv?.minWeightKg || order.minWeightAppliedKg || 5.0;
   const currentRate = (editCustomRate !== '' && editCustomRate !== undefined && editCustomRate !== null)
     ? Number(editCustomRate)
     : getRateForSpeed(activeSrv, editTurnaroundSpeed);
 
   // Recalculated price estimate based on modal inputs and scale weight
-  const previewWeight = parseFloat(editWeight) || order.estimatedWeightKg || 4.0;
+  const previewWeight = parseFloat(editWeight) || order.estimatedWeightKg || 5.0;
   const billableKg = Math.max(previewWeight, activeMinWeight);
 
   const orderItems = Array.isArray(order.items) && order.items.length > 0 ? order.items : null;
@@ -309,13 +310,18 @@ LINE: @nonamelaundry`;
       const data = await res.json();
       if (res.ok && data.success) {
         const sentAt = data.billingSentAt || new Date().toISOString();
+        const nextStatus = (editStatus === 'TBA' || editStatus === 'SCHEDULED') ? 'BILLING' : editStatus;
         order.billingSentAt = sentAt;
         order.billingChannel = 'EMAIL';
+        order.status = nextStatus;
+        setEditStatus(nextStatus);
+        setAllowCustomerPayment(true);
         setBillingEmailSentToast(`✓ Tax invoice & cashless payment link sent automatically to ${order.email || 'customer'}!`);
         if (onUpdateOrder) {
-          onUpdateOrder(order.id, order.status, `Official Tax Invoice sent via Email to ${order.email || order.contactValue}`, finalWeight, order.tagNumber, {
+          onUpdateOrder(order.id, nextStatus, `Official Tax Invoice sent via Email to ${order.email || order.contactValue}`, finalWeight, order.tagNumber, {
             billingSentAt: sentAt,
-            billingChannel: 'EMAIL'
+            billingChannel: 'EMAIL',
+            totalPrice: previewPrice
           });
         }
       } else {
@@ -434,6 +440,14 @@ LINE: @nonamelaundry`;
 
       const finalNote = editNote.trim() || defaultNote;
 
+      const isBillingStageOrLater = !['TBA', 'SCHEDULED', 'CANCELLED'].includes(editStatus);
+      const effectiveBillingSentAt = (isBillingStageOrLater && allowCustomerPayment)
+        ? (order.billingSentAt || new Date().toISOString())
+        : null;
+      const effectiveBillingChannel = (isBillingStageOrLater && allowCustomerPayment)
+        ? (order.billingChannel || 'ADMIN_ENABLED')
+        : null;
+
       const serviceUpdates = {
         serviceId: activeSrv.id,
         serviceName: isMultiItem ? order.serviceName : activeSrv.name,
@@ -446,7 +460,9 @@ LINE: @nonamelaundry`;
         totalPrice: previewPrice,
         deliveryDate: editDeliveryDate || order.deliveryDate,
         deliveryTime: editDeliveryTime || order.deliveryTime,
-        assignedRider: editAssignedRider || null
+        assignedRider: editAssignedRider || null,
+        billingSentAt: effectiveBillingSentAt,
+        billingChannel: effectiveBillingChannel
       };
 
       if (onUpdateOrder) {
@@ -1301,6 +1317,35 @@ LINE: @nonamelaundry`;
                         </span>
                       </div>
                       <span className="text-base font-black text-slate-900">฿{previewPrice} THB</span>
+                    </div>
+
+                    {/* Admin Customer Payment Authorization Toggle */}
+                    <div className="pt-2 border-t border-slate-200/80">
+                      <label className={`flex items-start gap-2.5 p-2 rounded-lg border transition cursor-pointer ${
+                        !['TBA', 'SCHEDULED', 'CANCELLED'].includes(editStatus) && allowCustomerPayment
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                          : 'bg-white border-slate-200 text-slate-700'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          disabled={['TBA', 'SCHEDULED', 'CANCELLED'].includes(editStatus)}
+                          checked={!['TBA', 'SCHEDULED', 'CANCELLED'].includes(editStatus) && allowCustomerPayment}
+                          onChange={(e) => setAllowCustomerPayment(e.target.checked)}
+                          className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 mt-0.5 disabled:opacity-40"
+                        />
+                        <div className="text-[11px] leading-tight">
+                          <span className="font-bold block">
+                            {!['TBA', 'SCHEDULED', 'CANCELLED'].includes(editStatus) && allowCustomerPayment
+                              ? '🔓 Customer Payment Unlocked (Bill Ready)'
+                              : '🔒 Allow Customer to Make Payment Online'}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block mt-0.5">
+                            {['TBA', 'SCHEDULED', 'CANCELLED'].includes(editStatus)
+                              ? 'Select Stage 3 (Billing) after weighing laundry to unlock payment for customer.'
+                              : 'Check this or click "Send Invoice Email" after weighing to unlock the Pay button for the customer.'}
+                          </span>
+                        </div>
+                      </label>
                     </div>
 
                     <div className="pt-1.5 border-t border-slate-200/80 flex items-center justify-between text-[11px]">

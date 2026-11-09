@@ -11,6 +11,7 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
   const [recipientEmail, setRecipientEmail] = useState(order?.email || '');
   const [localBillingSentAt, setLocalBillingSentAt] = useState(order?.billingSentAt || null);
   const [localBillingChannel, setLocalBillingChannel] = useState(order?.billingChannel || null);
+  const [beamQrImage, setBeamQrImage] = useState('');
 
   useEffect(() => {
     setLocalBillingSentAt(order?.billingSentAt || null);
@@ -18,6 +19,33 @@ export function InvoiceModal({ order, onClose, onMarkPaid, onInvoiceSent }) {
     setRecipientEmail(order?.email || '');
     setEmailError('');
   }, [order?.id, order?.email, order?.billingSentAt, order?.billingChannel]);
+
+  useEffect(() => {
+    const unlocked = Boolean(localBillingSentAt || order?.billingSentAt);
+    if (!order?.id || order?.paymentStatus === 'PAID' || !unlocked) {
+      setBeamQrImage('');
+      return;
+    }
+    let cancelled = false;
+    fetch('/api/payments/beam/create-qr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: order.id,
+        originUrl: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+      })
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!cancelled && data && data.qrImageDataUrl) {
+          setBeamQrImage(data.qrImageDataUrl);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [order?.id, order?.totalPrice, order?.paymentStatus, localBillingSentAt, order?.billingSentAt]);
 
   // ESC key listener
   useEffect(() => {
@@ -652,7 +680,7 @@ Need assistance? Contact our team:
                       100% Cashless Gateway
                     </span>
                     <span className="text-xs text-slate-300 font-semibold print:text-slate-700">
-                      Local Bank Integration (Omise / Opn Thailand)
+                      Beam Checkout (Thailand — PromptPay QR & Cards)
                     </span>
                   </div>
                   <span className={`text-xs font-black uppercase ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>
@@ -660,49 +688,67 @@ Need assistance? Contact our team:
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                  
-                  {/* PromptPay QR Code preview */}
-                  <div className="sm:col-span-4 text-center">
-                    <div className="bg-white p-2.5 rounded-xl inline-block shadow-md">
-                      <img
-                        src={generatePromptPayQrUrl(totalPrice)}
-                        alt="Scan to Pay via Thai Mobile Banking"
-                        className="w-32 h-32 mx-auto rounded"
-                      />
-                    </div>
-                    <span className="block text-[10px] text-slate-300 mt-1 font-semibold print:text-slate-600">
-                      Scan with any Thai Mobile Banking App
-                    </span>
-                  </div>
-
-                  {/* Payment Methods & Direct Link */}
-                  <div className="sm:col-span-8 space-y-2.5 text-xs">
-                    <div className="text-slate-200 print:text-slate-800 leading-relaxed">
-                      <strong>Choose Your Preferred Payment Method Online:</strong>
-                      <ul className="list-disc list-inside text-[11px] text-slate-300 print:text-slate-600 mt-1 space-y-0.5">
-                        <li><strong>PromptPay QR Code:</strong> K PLUS, SCB EASY, Krungthai NEXT, Bangkok Bank, TTB</li>
-                        <li><strong>Credit / Debit Card:</strong> Visa, Mastercard, JCB (Encrypted with 3D-Secure)</li>
-                      </ul>
-                    </div>
-
-                    {/* Clickable Payment Gateway Link */}
-                    <div className="p-3 rounded-xl bg-white/10 border border-white/15 print:bg-slate-100 print:border-slate-300 print:text-slate-900 space-y-1">
-                      <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider print:text-slate-500">
-                        Direct Online Payment Link (Customer Checkout):
+                {isPaid ? (
+                  <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:bg-emerald-50 print:border-emerald-300 print:text-slate-900">
+                    <div className="space-y-1 text-xs">
+                      <div className="font-black text-emerald-300 text-sm flex items-center gap-2 print:text-emerald-800">
+                        <Icon name="check" className="w-4 h-4 text-emerald-400" />
+                        <span>Payment Verified &amp; Cleared in Full (฿{totalPrice} THB)</span>
                       </div>
-                      <a
-                        href={paymentUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-mono text-xs text-sky-300 hover:text-sky-200 underline break-all font-bold block print:text-sky-800"
-                      >
-                        {paymentUrl}
-                      </a>
+                      <div className="text-[11px] text-slate-300 print:text-slate-600">
+                        Method: <strong>{order.paymentMethod || 'Beam Checkout (PromptPay / Card)'}</strong>
+                        {order.paymentRef ? ` • Ref: ${order.paymentRef}` : ''}
+                      </div>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-mono text-xs font-extrabold shrink-0 print:text-emerald-800 print:border-emerald-400">
+                      Official Receipt: #RCP-{order.id}
                     </div>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                    
+                    {/* PromptPay QR Code preview */}
+                    <div className="sm:col-span-4 text-center">
+                      <div className="bg-white p-2.5 rounded-xl inline-block shadow-md">
+                        <img
+                          src={beamQrImage || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(paymentUrl)}`}
+                          alt="Scan to Pay via Thai Mobile Banking"
+                          className="w-32 h-32 mx-auto rounded"
+                        />
+                      </div>
+                      <span className="block text-[10px] text-slate-300 mt-1 font-semibold print:text-slate-600">
+                        {beamQrImage ? 'Scan with any Thai Mobile Banking App' : 'Scan to Open Online Payment Page'}
+                      </span>
+                    </div>
 
-                </div>
+                    {/* Payment Methods & Direct Link */}
+                    <div className="sm:col-span-8 space-y-2.5 text-xs">
+                      <div className="text-slate-200 print:text-slate-800 leading-relaxed">
+                        <strong>Choose Your Preferred Payment Method Online:</strong>
+                        <ul className="list-disc list-inside text-[11px] text-slate-300 print:text-slate-600 mt-1 space-y-0.5">
+                          <li><strong>PromptPay QR Code:</strong> K PLUS, SCB EASY, Krungthai NEXT, Bangkok Bank, TTB</li>
+                          <li><strong>Credit / Debit Card:</strong> Visa, Mastercard, JCB (Encrypted with 3D-Secure)</li>
+                        </ul>
+                      </div>
+
+                      {/* Clickable Payment Gateway Link */}
+                      <div className="p-3 rounded-xl bg-white/10 border border-white/15 print:bg-slate-100 print:border-slate-300 print:text-slate-900 space-y-1">
+                        <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider print:text-slate-500">
+                          Direct Online Payment Link (Customer Checkout):
+                        </div>
+                        <a
+                          href={paymentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-xs text-sky-300 hover:text-sky-200 underline break-all font-bold block print:text-sky-800"
+                        >
+                          {paymentUrl}
+                        </a>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
 
               </div>
             </div>

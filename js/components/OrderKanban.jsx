@@ -8,7 +8,7 @@ const KANBAN_STAGES = [
   { id: 'TBA', label: '1. TBA (Confirm Details)', icon: 'phoneCall', badgeColor: 'bg-purple-100 text-purple-800 border-purple-300', matches: ['TBA', 'BOOKING_REQUESTED', 'PENDING', 'PENDING_CONFIRMATION'] },
   { id: 'SCHEDULED', label: '2. Scheduled', icon: 'package', badgeColor: 'bg-sky-100 text-sky-800 border-sky-300', matches: ['SCHEDULED', 'PICKUP_SCHEDULED', 'PICKED_UP'] },
   { id: 'BILLING', label: '3. Billing', icon: 'receipt', badgeColor: 'bg-blue-100 text-blue-800 border-blue-300', matches: ['BILLING', 'BILLING_PENDING', 'AWAITING_PAYMENT', 'WEIGHED_INSPECTED'] },
-  { id: 'IN_PROCESS', label: '4. In Process', icon: 'sparkles', badgeColor: 'bg-amber-100 text-amber-800 border-amber-300', matches: ['IN_PROCESS', 'IN_WASH', 'IRON_FOLD', 'PROCESSING'] },
+  { id: 'IN_PROCESS', label: '4. In Process', icon: 'sparkles', badgeColor: 'bg-amber-100 text-amber-800 border-amber-300', matches: ['IN_PROCESS', 'IN_WASH', 'WASHING', 'IRON_FOLD', 'PROCESSING'] },
   { id: 'READY_FOR_DELIVERY', label: '5. Ready For Delivery', icon: 'truck', badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300', matches: ['READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY'] },
   { id: 'DELIVERED', label: '6. Delivered', icon: 'check', badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300', matches: ['DELIVERED', 'COMPLETED'] },
   { id: 'CANCELLED', label: 'Cancelled', icon: 'x', badgeColor: 'bg-red-100 text-red-800 border-red-300', matches: ['CANCELLED'] }
@@ -19,7 +19,7 @@ const WORKFLOW_PHASES = [
   { id: 'tba', label: '1. TBA', icon: 'phoneCall', stageIds: ['TBA', 'BOOKING_REQUESTED', 'PENDING', 'PENDING_CONFIRMATION'] },
   { id: 'scheduled', label: '2. Scheduled', icon: 'package', stageIds: ['SCHEDULED', 'PICKUP_SCHEDULED', 'PICKED_UP'] },
   { id: 'billing', label: '3. Billing', icon: 'receipt', stageIds: ['BILLING', 'BILLING_PENDING', 'AWAITING_PAYMENT', 'WEIGHED_INSPECTED'] },
-  { id: 'in_process', label: '4. In Process', icon: 'sparkles', stageIds: ['IN_PROCESS', 'IN_WASH', 'IRON_FOLD', 'PROCESSING'] },
+  { id: 'in_process', label: '4. In Process', icon: 'sparkles', stageIds: ['IN_PROCESS', 'IN_WASH', 'WASHING', 'IRON_FOLD', 'PROCESSING'] },
   { id: 'ready_for_delivery', label: '5. Ready Delivery', icon: 'truck', stageIds: ['READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY'] },
   { id: 'delivered', label: '6. Delivered', icon: 'check', stageIds: ['DELIVERED', 'COMPLETED'] },
   { id: 'cancelled', label: 'Cancelled', icon: 'x', stageIds: ['CANCELLED'] }

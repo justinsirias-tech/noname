@@ -160,30 +160,30 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
     setIsSubmitting(true);
 
     try {
-      const combinedFullName = `${firstName.trim()} ${lastName.trim()}`;
+      const combinedFullName = `${firstName.trim()} ${lastName.trim()}`.toUpperCase();
       const customerPayload = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        firstName: firstName.trim().toUpperCase(),
+        lastName: lastName.trim().toUpperCase(),
         fullName: combinedFullName,
-        nickName: (nickName || firstName).trim(),
+        nickName: (nickName || firstName).trim().toUpperCase(),
         gender,
         dateOfBirth,
         mobileNumber: mobileNumber.trim(),
         isWhatsApp: Boolean(isWhatsApp),
         secondaryMobile: secondaryMobile.trim(),
         isSecondaryWhatsApp: Boolean(isSecondaryWhatsApp),
-        email: email.trim().toLowerCase(),
-        lineId: lineId.trim(),
+        email: email.trim().toUpperCase(),
+        lineId: lineId.trim().toUpperCase(),
         pinCode: pinCode.trim() || '123456',
         tier: 'New',
         isVerified: false,
         addresses: [
           {
             id: 'ADDR-' + Math.floor(100 + Math.random() * 900),
-            label: condoName.trim() || 'Home',
-            address: `${condoName.trim()}, ${district}, Bangkok`,
+            label: (condoName.trim() || 'HOME').toUpperCase(),
+            address: `${condoName.trim().toUpperCase()}, ${district}, Bangkok`,
             district,
-            roomNumber: roomNumber.trim(),
+            roomNumber: roomNumber.trim().toUpperCase(),
             googleMapsUrl: googleMapsUrl.trim() || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(condoName.trim() + ' ' + district + ' Bangkok')}`,
             leaveWithJuristic: Boolean(leaveWithJuristic),
             isPrimary: true
@@ -191,10 +191,10 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
         ],
         companyTax: {
           required: Boolean(requireTax),
-          companyName: companyName.trim(),
-          taxId: taxId.trim(),
-          branch: branch.trim(),
-          companyAddress: companyAddress.trim() || `${condoName.trim()}, ${district}, Bangkok`
+          companyName: companyName.trim().toUpperCase(),
+          taxId: taxId.trim().toUpperCase(),
+          branch: branch.trim().toUpperCase(),
+          companyAddress: (companyAddress.trim() || `${condoName.trim()}, ${district}, Bangkok`).toUpperCase()
         }
       };
 
@@ -381,10 +381,10 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               <input
                 type="text"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                onChange={(e) => setFirstName(e.target.value.toUpperCase())}
                 placeholder={isTh ? 'เช่น กิตติพัฒน์' : 'e.g. Alex'}
                 required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition uppercase placeholder:normal-case"
               />
             </div>
 
@@ -395,10 +395,10 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               <input
                 type="text"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                onChange={(e) => setLastName(e.target.value.toUpperCase())}
                 placeholder={isTh ? 'เช่น วงศ์สุวรรณ' : 'e.g. Thorne'}
                 required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition uppercase placeholder:normal-case"
               />
             </div>
 
@@ -409,9 +409,9 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               <input
                 type="text"
                 value={nickName}
-                onChange={(e) => setNickName(e.target.value)}
+                onChange={(e) => setNickName(e.target.value.toUpperCase())}
                 placeholder={isTh ? 'เช่น บอย' : 'e.g. Alex'}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition uppercase placeholder:normal-case"
               />
             </div>
 
@@ -550,10 +550,10 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value.toUpperCase())}
                   placeholder="e.g. alex.thorne@gmail.com"
                   required
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition uppercase placeholder:normal-case"
                 />
               </div>
               <p className="text-[11px] text-sky-700 font-semibold mt-1">
@@ -574,9 +574,9 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 <input
                   type="text"
                   value={lineId}
-                  onChange={(e) => setLineId(e.target.value)}
+                  onChange={(e) => setLineId(e.target.value.toUpperCase())}
                   placeholder="e.g. alex_bkk"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition uppercase placeholder:normal-case"
                 />
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
@@ -636,9 +636,9 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               </label>
               <GooglePlaceAutocompleteInput
                 value={condoName}
-                onChange={(e) => setCondoName(e.target.value)}
+                onChange={(e) => setCondoName(e.target.value.toUpperCase())}
                 onPlaceSelect={(place) => {
-                  setCondoName(place.condoName);
+                  setCondoName((place.condoName || '').toUpperCase());
                   if (place.district) {
                     setDistrict(place.district);
                   }
@@ -673,9 +673,9 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
               <input
                 type="text"
                 value={roomNumber}
-                onChange={(e) => setRoomNumber(e.target.value)}
+                onChange={(e) => setRoomNumber(e.target.value.toUpperCase())}
                 placeholder={isTh ? 'เช่น Tower A, ชั้น 18, ห้อง 1804' : 'e.g. Tower A, Fl 18, Room 1804'}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition uppercase placeholder:normal-case"
               />
             </div>
 
@@ -760,9 +760,9 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 <input
                   type="text"
                   value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
+                  onChange={(e) => setCompanyName(e.target.value.toUpperCase())}
                   placeholder="e.g. Acme Innovations (Thailand) Co., Ltd."
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition uppercase placeholder:normal-case"
                 />
               </div>
 
@@ -787,9 +787,9 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 <input
                   type="text"
                   value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
+                  onChange={(e) => setBranch(e.target.value.toUpperCase())}
                   placeholder={isTh ? 'สำนักงานใหญ่' : 'Head Office'}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition uppercase placeholder:normal-case"
                 />
               </div>
 
@@ -800,9 +800,9 @@ export function CustomerRegister({ onRegisterSuccess, onNavigateToBook, onNaviga
                 <input
                   type="text"
                   value={companyAddress}
-                  onChange={(e) => setCompanyAddress(e.target.value)}
+                  onChange={(e) => setCompanyAddress(e.target.value.toUpperCase())}
                   placeholder={isTh ? 'อาคาร ถนน แขวง เขต กรุงเทพฯ' : 'Building, Road, Sub-district, District, Bangkok'}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white transition uppercase placeholder:normal-case"
                 />
               </div>
             </div>
