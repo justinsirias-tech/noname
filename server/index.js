@@ -2587,8 +2587,8 @@ async function getBeamConfig(forceRefresh = false) {
   } catch (e) {
     // Fallback to env if DB not reachable
   }
-  const merchantId = (gw.beamMerchantId || process.env.BEAM_MERCHANT_ID || 'thatlaundryshop-38s3vq').trim();
-  const apiKey = (gw.beamApiKey || process.env.BEAM_API_KEY || '1ZHKXSTU0gi3UKvBTMQhU0SC7pO7muP9sCGSMPdEiGY=').trim();
+  const merchantId = (gw.beamMerchantId || process.env.BEAM_MERCHANT_ID || 'nonamelaundry-7rhj4f').trim();
+  const apiKey = (gw.beamApiKey || process.env.BEAM_API_KEY || 'qaAUDi/A0K5T3aroVHjyPxPZVIEYL0jmA9Q/0xwB5W4=').trim();
   const environment = (gw.beamEnvironment || process.env.BEAM_ENVIRONMENT || 'production').toLowerCase();
   const isSandbox = environment === 'sandbox' || environment === 'playground' || environment === 'test';
   const baseUrl = isSandbox

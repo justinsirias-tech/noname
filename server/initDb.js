@@ -219,8 +219,8 @@ const DEFAULT_SETTINGS = {
   paymentGateway: {
     provider: 'Beam Checkout (Thailand)',
     merchantName: 'NoName Laundry Bangkok Co., Ltd.',
-    beamMerchantId: 'thatlaundryshop-38s3vq',
-    beamApiKey: '1ZHKXSTU0gi3UKvBTMQhU0SC7pO7muP9sCGSMPdEiGY=',
+    beamMerchantId: 'nonamelaundry-7rhj4f',
+    beamApiKey: 'qaAUDi/A0K5T3aroVHjyPxPZVIEYL0jmA9Q/0xwB5W4=',
     beamEnvironment: 'production',
     promptpayEnabled: true,
     creditCardEnabled: true,

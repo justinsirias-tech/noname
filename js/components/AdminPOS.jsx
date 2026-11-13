@@ -142,8 +142,8 @@ export function AdminPOS({
   // 3rd-Party Cashless Gateway State
   const [gatewayProvider, setGatewayProvider] = useState(laundryStore.settings?.paymentGateway?.provider || 'Beam Checkout (Thailand)');
   const [merchantName, setMerchantName] = useState(laundryStore.settings?.paymentGateway?.merchantName || 'NoName Laundry Bangkok Co., Ltd.');
-  const [beamMerchantId, setBeamMerchantId] = useState(laundryStore.settings?.paymentGateway?.beamMerchantId || 'thatlaundryshop-38s3vq');
-  const [beamApiKey, setBeamApiKey] = useState(laundryStore.settings?.paymentGateway?.beamApiKey || '1ZHKXSTU0gi3UKvBTMQhU0SC7pO7muP9sCGSMPdEiGY=');
+  const [beamMerchantId, setBeamMerchantId] = useState(laundryStore.settings?.paymentGateway?.beamMerchantId || 'nonamelaundry-7rhj4f');
+  const [beamApiKey, setBeamApiKey] = useState(laundryStore.settings?.paymentGateway?.beamApiKey || 'qaAUDi/A0K5T3aroVHjyPxPZVIEYL0jmA9Q/0xwB5W4=');
   const [beamEnvironment, setBeamEnvironment] = useState(laundryStore.settings?.paymentGateway?.beamEnvironment || 'production');
   const [showBeamKey, setShowBeamKey] = useState(false);
   const [promptpayEnabled, setPromptpayEnabled] = useState(laundryStore.settings?.paymentGateway?.promptpayEnabled ?? true);
